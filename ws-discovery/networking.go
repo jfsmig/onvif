@@ -11,17 +11,82 @@ package wsdiscovery
 
 import (
 	"errors"
+	"github.com/use-go/onvif/networking"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/beevik/etree"
 	"github.com/gofrs/uuid"
 	"golang.org/x/net/ipv4"
 )
 
 const bufSize = 8192
 
-//SendProbe to device
+// DeviceType alias for int
+type DeviceType int
+
+// Onvif Device Type
+const (
+	NVD DeviceType = iota
+	NVS
+	NVA
+	NVT
+)
+
+func (devType DeviceType) String() string {
+	stringRepresentation := []string{
+		"NetworkVideoDisplay",
+		"NetworkVideoStorage",
+		"NetworkVideoAnalytics",
+		"NetworkVideoTransmitter",
+	}
+	i := uint8(devType)
+	switch {
+	case i <= uint8(NVT):
+		return stringRepresentation[i]
+	default:
+		return strconv.Itoa(int(i))
+	}
+}
+
+// GetAvailableDevicesAtSpecificEthernetInterface ...
+func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]networking.Client, error) {
+	// Call a ws-discovery Probe Message to Discover NVT type Devices
+	devices, err := SendProbe(interfaceName, nil, []string{"dn:" + NVT.String()}, map[string]string{"dn": "http://www.onvif.org/ver10/network/wsdl"})
+	if err != nil {
+		return nil, err
+	}
+
+	nvtDevicesSeen := make(map[string]bool)
+	nvtDevices := make([]networking.Client, 0)
+
+	for _, j := range devices {
+		doc := etree.NewDocument()
+		if err := doc.ReadFromString(j); err != nil {
+			return nil, err
+		}
+
+		for _, xaddr := range doc.Root().FindElements("./Body/ProbeMatches/ProbeMatch/XAddrs") {
+			xaddr := strings.Split(strings.Split(xaddr.Text(), " ")[0], "/")[2]
+			if !nvtDevicesSeen[xaddr] {
+				dev, err := networking.NewClient(networking.ClientParams{Xaddr: strings.Split(xaddr, " ")[0]})
+				if err != nil {
+					// TODO(jfsmig) print a warning
+				} else {
+					nvtDevicesSeen[xaddr] = true
+					nvtDevices = append(nvtDevices, *dev)
+				}
+			}
+		}
+	}
+
+	return nvtDevices, nil
+}
+
+// SendProbe to device
 func SendProbe(interfaceName string, scopes, types []string, namespaces map[string]string) ([]string, error) {
 	// Creating UUID Version 4
 	uuidV4 := uuid.Must(uuid.NewV4())

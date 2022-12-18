@@ -5,6 +5,8 @@ import (
 	"github.com/use-go/onvif/xsd/onvif"
 )
 
+//go:generate go run github.com/use-go/onvif/bin/onvif-codegen sdk ptz calls.txt
+
 type Capabilities struct {
 	EFlip                       xsd.Boolean `xml:"EFlip,attr"`
 	Reverse                     xsd.Boolean `xml:"Reverse,attr"`
@@ -28,7 +30,7 @@ type GetNodes struct {
 }
 
 type GetNodesResponse struct {
-	PTZNode onvif.PTZNode
+	PTZNode []onvif.PTZNode
 }
 
 type GetNode struct {
@@ -37,7 +39,7 @@ type GetNode struct {
 }
 
 type GetNodeResponse struct {
-	PTZNode onvif.PTZNode
+	PTZNode []onvif.PTZNode
 }
 
 type GetConfiguration struct {
@@ -91,7 +93,7 @@ type GetPresets struct {
 }
 
 type GetPresetsResponse struct {
-	Preset onvif.PTZPreset
+	Preset []onvif.PTZPreset
 }
 
 type SetPreset struct {
@@ -208,7 +210,7 @@ type GetPresetTours struct {
 }
 
 type GetPresetToursResponse struct {
-	PresetTour onvif.PresetTour
+	PresetTour []onvif.PresetTour
 }
 
 type GetPresetTour struct {

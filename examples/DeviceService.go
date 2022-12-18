@@ -3,12 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/use-go/onvif/networking"
 	"log"
 	"net/http"
 
-	goonvif "github.com/use-go/onvif"
 	"github.com/use-go/onvif/device"
-	sdk "github.com/use-go/onvif/sdk/device"
 	"github.com/use-go/onvif/xsd/onvif"
 )
 
@@ -20,8 +19,8 @@ const (
 func main() {
 	ctx := context.Background()
 
-	//Getting an camera instance
-	dev, err := goonvif.NewDevice(goonvif.DeviceParams{
+	//Getting a camera instance
+	dev, err := networking.NewClient(networking.ClientParams{
 		Xaddr:      "192.168.13.14:80",
 		Username:   login,
 		Password:   password,
@@ -35,28 +34,26 @@ func main() {
 	systemDateAndTyme := device.GetSystemDateAndTime{}
 	getCapabilities := device.GetCapabilities{Category: "All"}
 	createUser := device.CreateUsers{
-		User: onvif.User{
-			Username:  "TestUser",
-			Password:  "TestPassword",
-			UserLevel: "User",
+		User: []onvif.User{
+			{Username: "TestUser", Password: "TestPassword", UserLevel: "User"},
 		},
 	}
 
 	//Commands execution
-	systemDateAndTymeResponse, err := sdk.Call_GetSystemDateAndTime(ctx, dev, systemDateAndTyme)
+	systemDateAndTimeResponse, err := device.Call_GetSystemDateAndTime(ctx, dev, systemDateAndTyme)
 	if err != nil {
 		log.Println(err)
 	} else {
-		fmt.Println(systemDateAndTymeResponse)
+		fmt.Println(systemDateAndTimeResponse)
 	}
-	getCapabilitiesResponse, err := sdk.Call_GetCapabilities(ctx, dev, getCapabilities)
+	getCapabilitiesResponse, err := device.Call_GetCapabilities(ctx, dev, getCapabilities)
 	if err != nil {
 		log.Println(err)
 	} else {
 		fmt.Println(getCapabilitiesResponse)
 	}
 
-	createUserResponse, err := sdk.Call_CreateUsers(ctx, dev, createUser)
+	createUserResponse, err := device.Call_CreateUsers(ctx, dev, createUser)
 	if err != nil {
 		log.Println(err)
 	} else {
