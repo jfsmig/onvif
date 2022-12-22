@@ -10,7 +10,6 @@ To install the library,  use **go get**:
 
 ```go
 go get github.com/jfsmig/onvif
-
 ```
 
 ## Supported services
@@ -102,4 +101,4 @@ resp, err := dev.CallMethod(createUsers)
 
 ## Great Thanks
 
-Enhanced and Improved from: [goonvif](https://github.com/yakovlevdmv/goonvif)
+Enhanced and Improved from: [goonvif](https://github.com/use-go/goonvif)
