@@ -15,22 +15,19 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/gin-gonic/gin"
-	"github.com/use-go/onvif"
-	"github.com/use-go/onvif/gosoap"
-	"github.com/use-go/onvif/networking"
-	wsdiscovery "github.com/use-go/onvif/ws-discovery"
+	"github.com/jfsmig/onvif/gosoap"
+	"github.com/jfsmig/onvif/networking"
+	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 )
 
 var (
-	// LoggerContext is the builder of a zerolog.Logger that is exposed to the application so that
-	// options at the CLI might alter the formatting and the output of the logs.
-	LoggerContext = zerolog.
-			New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
-			With().Timestamp()
-
 	// Logger is a zerolog logger, that can be safely used from any part of the application.
-	// It gathers the format and the output.
-	Logger = LoggerContext.Logger()
+	// It gathers the format and the output. The application can replace the default Logger
+	// for an alternative that meets its own output.
+	Logger = zerolog.
+		New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+		With().Timestamp().
+		Logger()
 )
 
 func RunApi() {
@@ -47,7 +44,7 @@ func RunApi() {
 		xaddr := c.GetHeader("xaddr")
 		acceptedData, err := c.GetRawData()
 		if err != nil {
-			Logger.Debug().Err(err).Msg("Failed to get rawx data")
+			Logger.Warn().Err(err).Msg("Failed to get raw data")
 		}
 
 		message, err := callNecessaryMethod(serviceName, methodName, string(acceptedData), username, pass, xaddr)
@@ -140,7 +137,7 @@ func callNecessaryMethod(serviceName, methodName, acceptedData, username, passwo
 
 	soap := gosoap.NewEmptySOAP()
 	soap.AddStringBodyContent(*resp)
-	soap.AddRootNamespaces(onvif.Xlmns)
+	soap.AddRootNamespaces(networking.Xlmns)
 	soap.AddWSSecurity(username, password)
 
 	servResp, err := networking.SendSoap(new(http.Client), endpoint, soap.String())
@@ -157,16 +154,16 @@ func callNecessaryMethod(serviceName, methodName, acceptedData, username, passwo
 }
 
 func getEndpoint(service, xaddr string) (string, error) {
-	dev, err := onvif.NewDevice(onvif.DeviceParams{Xaddr: xaddr})
+	dev, err := networking.NewClient(networking.ClientParams{Xaddr: xaddr})
 	if err != nil {
-		return "", errors.Annotate(err, "NewDevice")
+		return "", errors.Annotate(err, "NewClient")
 	}
 	pkg := strings.ToLower(service)
 
 	var endpoint string
 	switch pkg {
 	case "device":
-		endpoint = dev.GetEndpoint("Device")
+		endpoint = dev.GetEndpoint("Client")
 	case "event":
 		endpoint = dev.GetEndpoint("Event")
 	case "imaging":
@@ -339,7 +336,7 @@ func soapHandling(tp interface{}, tags *[]map[string]string) {
 		f := s.Field(i)
 		tmp, ok := typeOfT.FieldByName(typeOfT.Field(i).Name)
 		if !ok {
-			Logger.Debug().Str("field", typeOfT.Field(i).Name).Msg("reflection failed")
+			Logger.Warn().Str("field", typeOfT.Field(i).Name).Msg("reflection failed")
 		}
 		*tags = append(*tags, map[string]string{typeOfT.Field(i).Name: string(tmp.Tag)})
 		subStruct := reflect.New(reflect.TypeOf(f.Interface()))
