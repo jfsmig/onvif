@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"github.com/jfsmig/onvif/networking"
 	"github.com/juju/errors"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -24,6 +25,13 @@ var (
 )
 
 func main() {
+	params := networking.ClientParams{
+		Xaddr:      "",
+		Username:   envOrDefault("ONVIF_USERNAME", "admin"),
+		Password:   envOrDefault("ONVIF_PASSWORD", "admin"),
+		HttpClient: nil,
+	}
+
 	cmd := &cobra.Command{
 		Use:   "main",
 		Short: "OnVif command Line Interface",
@@ -64,7 +72,8 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			return dumpAll(ctx, args[0])
+			params.Xaddr = args[0]
+			return dumpAll(ctx, params)
 		},
 	}
 
@@ -75,7 +84,8 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			return dumpDescriptor(ctx, args[0])
+			params.Xaddr = args[0]
+			return dumpDescriptor(ctx, params)
 		},
 	}
 
@@ -86,7 +96,8 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			return dumpMedia(ctx, args[0])
+			params.Xaddr = args[0]
+			return dumpMedia(ctx, params)
 		},
 	}
 
@@ -114,13 +125,20 @@ type Runner struct {
 }
 
 func (r *Runner) Async(fn func()) {
-	defer r.wg.Done()
-	fn()
-}
-
-func (r *Runner) Sync(fn func()) {
 	r.wg.Add(1)
-	go r.Async(fn)
+	go func() {
+		defer r.wg.Done()
+		fn()
+	}()
 }
 
 func (r *Runner) Wait() { r.wg.Wait() }
+
+func envOrDefault(key, defaultValue string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	} else {
+		return defaultValue
+	}
+
+}

@@ -11,32 +11,20 @@ import (
 	"os"
 )
 
-// Used once to generate the first skeleton of code
-//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli ptz    ../../ptz/calls.txt
-//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli device ../../device/calls.txt
-//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli media  ../../media/calls.txt
-//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli event  ../../event/calls.txt
-
 type OnvifFullOutput struct {
-	Endpoint   string
 	Descriptor sdk.DeviceDescriptor
 	Device     DeviceOutput
 	Media      sdk.Media
 	Ptz        PtzOutput
 }
 
-func dumpAll(ctx context.Context, endpoint string) error {
-	sdkDev, err := sdk.NewDevice(networking.ClientParams{
-		endpoint,
-		"admin",
-		"ollyhgqo",
-		nil})
+func dumpAll(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
 		return errors.Trace(err)
 	}
 
 	out := OnvifFullOutput{}
-	out.Endpoint = endpoint
 
 	r := Runner{}
 	r.Async(func() { out.Descriptor = sdkDev.FetchDescriptor(ctx) })
@@ -50,12 +38,8 @@ func dumpAll(ctx context.Context, endpoint string) error {
 	return encoder.Encode(out)
 }
 
-func dumpMedia(ctx context.Context, endpoint string) error {
-	sdkDev, err := sdk.NewDevice(networking.ClientParams{
-		endpoint,
-		"admin",
-		"ollyhgqo",
-		nil})
+func dumpMedia(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
 		return errors.Trace(err)
 	}
@@ -67,12 +51,8 @@ func dumpMedia(ctx context.Context, endpoint string) error {
 	return encoder.Encode(out)
 }
 
-func dumpDescriptor(ctx context.Context, endpoint string) error {
-	sdkDev, err := sdk.NewDevice(networking.ClientParams{
-		endpoint,
-		"admin",
-		"ollyhgqo",
-		nil})
+func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
 		return errors.Trace(err)
 	}

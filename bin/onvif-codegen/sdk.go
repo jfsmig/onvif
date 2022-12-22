@@ -27,13 +27,12 @@ package {{.Package}}
 
 import (
 	"context"
-	"github.com/juju/errors"{{if .IsNotDevicePackage}}
-	"github.com/jfsmig/onvif/device"{{end}}
+	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_{{.TypeRequest}} forwards the call to dev.CallMethod() then parses the payload of the reply as a {{.TypeReply}}.
-func Call_{{.TypeRequest}}(ctx context.Context, dev *{{if .IsNotDevicePackage}}device.{{end}}Device, request {{.TypeRequest}}) ({{.TypeReply}}, error) {
+func Call_{{.TypeRequest}}(ctx context.Context, dev *networking.Client, request {{.TypeRequest}}) ({{.TypeReply}}, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {
