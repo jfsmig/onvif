@@ -7,12 +7,11 @@ package ptz
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetPresets forwards the call to dev.CallMethod() then parses the payload of the reply as a GetPresetsResponse.
-func Call_GetPresets(ctx context.Context, dev *device.Device, request GetPresets) (GetPresetsResponse, error) {
+func Call_GetPresets(ctx context.Context, dev *networking.Client, request GetPresets) (GetPresetsResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

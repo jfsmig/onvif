@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetWsdlUrl forwards the call to dev.CallMethod() then parses the payload of the reply as a GetWsdlUrlResponse.
-func Call_GetWsdlUrl(ctx context.Context, dev *Device, request GetWsdlUrl) (GetWsdlUrlResponse, error) {
+func Call_GetWsdlUrl(ctx context.Context, dev *networking.Client, request GetWsdlUrl) (GetWsdlUrlResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

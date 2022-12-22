@@ -11,7 +11,7 @@ import (
 )
 
 // Call_AddIPAddressFilter forwards the call to dev.CallMethod() then parses the payload of the reply as a AddIPAddressFilterResponse.
-func Call_AddIPAddressFilter(ctx context.Context, dev *Device, request AddIPAddressFilter) (AddIPAddressFilterResponse, error) {
+func Call_AddIPAddressFilter(ctx context.Context, dev *networking.Client, request AddIPAddressFilter) (AddIPAddressFilterResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

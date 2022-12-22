@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetDot1XConfigurations forwards the call to dev.CallMethod() then parses the payload of the reply as a GetDot1XConfigurationsResponse.
-func Call_GetDot1XConfigurations(ctx context.Context, dev *Device, request GetDot1XConfigurations) (GetDot1XConfigurationsResponse, error) {
+func Call_GetDot1XConfigurations(ctx context.Context, dev *networking.Client, request GetDot1XConfigurations) (GetDot1XConfigurationsResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

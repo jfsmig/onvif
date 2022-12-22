@@ -11,7 +11,7 @@ import (
 )
 
 // Call_DeleteStorageConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a DeleteStorageConfigurationResponse.
-func Call_DeleteStorageConfiguration(ctx context.Context, dev *Device, request DeleteStorageConfiguration) (DeleteStorageConfigurationResponse, error) {
+func Call_DeleteStorageConfiguration(ctx context.Context, dev *networking.Client, request DeleteStorageConfiguration) (DeleteStorageConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

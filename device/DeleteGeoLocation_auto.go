@@ -11,7 +11,7 @@ import (
 )
 
 // Call_DeleteGeoLocation forwards the call to dev.CallMethod() then parses the payload of the reply as a DeleteGeoLocationResponse.
-func Call_DeleteGeoLocation(ctx context.Context, dev *Device, request DeleteGeoLocation) (DeleteGeoLocationResponse, error) {
+func Call_DeleteGeoLocation(ctx context.Context, dev *networking.Client, request DeleteGeoLocation) (DeleteGeoLocationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

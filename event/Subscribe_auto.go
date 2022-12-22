@@ -7,12 +7,11 @@ package event
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_Subscribe forwards the call to dev.CallMethod() then parses the payload of the reply as a SubscribeResponse.
-func Call_Subscribe(ctx context.Context, dev *device.Device, request Subscribe) (SubscribeResponse, error) {
+func Call_Subscribe(ctx context.Context, dev *networking.Client, request Subscribe) (SubscribeResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

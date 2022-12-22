@@ -11,7 +11,7 @@ import (
 )
 
 // Call_CreateUsers forwards the call to dev.CallMethod() then parses the payload of the reply as a CreateUsersResponse.
-func Call_CreateUsers(ctx context.Context, dev *Device, request CreateUsers) (CreateUsersResponse, error) {
+func Call_CreateUsers(ctx context.Context, dev *networking.Client, request CreateUsers) (CreateUsersResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

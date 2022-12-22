@@ -11,7 +11,7 @@ import (
 )
 
 // Call_CreateDot1XConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a CreateDot1XConfigurationResponse.
-func Call_CreateDot1XConfiguration(ctx context.Context, dev *Device, request CreateDot1XConfiguration) (CreateDot1XConfigurationResponse, error) {
+func Call_CreateDot1XConfiguration(ctx context.Context, dev *networking.Client, request CreateDot1XConfiguration) (CreateDot1XConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -11,7 +11,7 @@ import (
 )
 
 // Call_DeleteUsers forwards the call to dev.CallMethod() then parses the payload of the reply as a DeleteUsersResponse.
-func Call_DeleteUsers(ctx context.Context, dev *Device, request DeleteUsers) (DeleteUsersResponse, error) {
+func Call_DeleteUsers(ctx context.Context, dev *networking.Client, request DeleteUsers) (DeleteUsersResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

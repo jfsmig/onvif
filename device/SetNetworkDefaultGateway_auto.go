@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetNetworkDefaultGateway forwards the call to dev.CallMethod() then parses the payload of the reply as a SetNetworkDefaultGatewayResponse.
-func Call_SetNetworkDefaultGateway(ctx context.Context, dev *Device, request SetNetworkDefaultGateway) (SetNetworkDefaultGatewayResponse, error) {
+func Call_SetNetworkDefaultGateway(ctx context.Context, dev *networking.Client, request SetNetworkDefaultGateway) (SetNetworkDefaultGatewayResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetAccessPolicy forwards the call to dev.CallMethod() then parses the payload of the reply as a GetAccessPolicyResponse.
-func Call_GetAccessPolicy(ctx context.Context, dev *Device, request GetAccessPolicy) (GetAccessPolicyResponse, error) {
+func Call_GetAccessPolicy(ctx context.Context, dev *networking.Client, request GetAccessPolicy) (GetAccessPolicyResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -7,12 +7,11 @@ package ptz
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_ContinuousMove forwards the call to dev.CallMethod() then parses the payload of the reply as a ContinuousMoveResponse.
-func Call_ContinuousMove(ctx context.Context, dev *device.Device, request ContinuousMove) (ContinuousMoveResponse, error) {
+func Call_ContinuousMove(ctx context.Context, dev *networking.Client, request ContinuousMove) (ContinuousMoveResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

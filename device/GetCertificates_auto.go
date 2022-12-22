@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetCertificates forwards the call to dev.CallMethod() then parses the payload of the reply as a GetCertificatesResponse.
-func Call_GetCertificates(ctx context.Context, dev *Device, request GetCertificates) (GetCertificatesResponse, error) {
+func Call_GetCertificates(ctx context.Context, dev *networking.Client, request GetCertificates) (GetCertificatesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

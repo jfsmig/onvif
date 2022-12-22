@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetRemoteUser forwards the call to dev.CallMethod() then parses the payload of the reply as a SetRemoteUserResponse.
-func Call_SetRemoteUser(ctx context.Context, dev *Device, request SetRemoteUser) (SetRemoteUserResponse, error) {
+func Call_SetRemoteUser(ctx context.Context, dev *networking.Client, request SetRemoteUser) (SetRemoteUserResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

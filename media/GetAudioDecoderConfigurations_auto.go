@@ -7,12 +7,11 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetAudioDecoderConfigurations forwards the call to dev.CallMethod() then parses the payload of the reply as a GetAudioDecoderConfigurationsResponse.
-func Call_GetAudioDecoderConfigurations(ctx context.Context, dev *device.Device, request GetAudioDecoderConfigurations) (GetAudioDecoderConfigurationsResponse, error) {
+func Call_GetAudioDecoderConfigurations(ctx context.Context, dev *networking.Client, request GetAudioDecoderConfigurations) (GetAudioDecoderConfigurationsResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

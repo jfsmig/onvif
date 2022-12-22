@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetRelayOutputs forwards the call to dev.CallMethod() then parses the payload of the reply as a GetRelayOutputsResponse.
-func Call_GetRelayOutputs(ctx context.Context, dev *Device, request GetRelayOutputs) (GetRelayOutputsResponse, error) {
+func Call_GetRelayOutputs(ctx context.Context, dev *networking.Client, request GetRelayOutputs) (GetRelayOutputsResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

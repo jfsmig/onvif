@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SendAuxiliaryCommand forwards the call to dev.CallMethod() then parses the payload of the reply as a SendAuxiliaryCommandResponse.
-func Call_SendAuxiliaryCommand(ctx context.Context, dev *Device, request SendAuxiliaryCommand) (SendAuxiliaryCommandResponse, error) {
+func Call_SendAuxiliaryCommand(ctx context.Context, dev *networking.Client, request SendAuxiliaryCommand) (SendAuxiliaryCommandResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetUser forwards the call to dev.CallMethod() then parses the payload of the reply as a SetUserResponse.
-func Call_SetUser(ctx context.Context, dev *Device, request SetUser) (SetUserResponse, error) {
+func Call_SetUser(ctx context.Context, dev *networking.Client, request SetUser) (SetUserResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

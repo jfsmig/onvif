@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetSystemUris forwards the call to dev.CallMethod() then parses the payload of the reply as a GetSystemUrisResponse.
-func Call_GetSystemUris(ctx context.Context, dev *Device, request GetSystemUris) (GetSystemUrisResponse, error) {
+func Call_GetSystemUris(ctx context.Context, dev *networking.Client, request GetSystemUris) (GetSystemUrisResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

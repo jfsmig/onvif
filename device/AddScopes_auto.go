@@ -11,7 +11,7 @@ import (
 )
 
 // Call_AddScopes forwards the call to dev.CallMethod() then parses the payload of the reply as a AddScopesResponse.
-func Call_AddScopes(ctx context.Context, dev *Device, request AddScopes) (AddScopesResponse, error) {
+func Call_AddScopes(ctx context.Context, dev *networking.Client, request AddScopes) (AddScopesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

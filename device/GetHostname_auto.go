@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetHostname forwards the call to dev.CallMethod() then parses the payload of the reply as a GetHostnameResponse.
-func Call_GetHostname(ctx context.Context, dev *Device, request GetHostname) (GetHostnameResponse, error) {
+func Call_GetHostname(ctx context.Context, dev *networking.Client, request GetHostname) (GetHostnameResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

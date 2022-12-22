@@ -11,7 +11,7 @@ import (
 )
 
 // Call_LoadCertificateWithPrivateKey forwards the call to dev.CallMethod() then parses the payload of the reply as a LoadCertificateWithPrivateKeyResponse.
-func Call_LoadCertificateWithPrivateKey(ctx context.Context, dev *Device, request LoadCertificateWithPrivateKey) (LoadCertificateWithPrivateKeyResponse, error) {
+func Call_LoadCertificateWithPrivateKey(ctx context.Context, dev *networking.Client, request LoadCertificateWithPrivateKey) (LoadCertificateWithPrivateKeyResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {
