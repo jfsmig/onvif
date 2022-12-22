@@ -28,8 +28,8 @@ package {{.Package}}
 import (
 	"context"
 	"github.com/juju/errors"{{if .IsNotDevicePackage}}
-	"github.com/use-go/onvif/device"{{end}}
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"{{end}}
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_{{.TypeRequest}} forwards the call to dev.CallMethod() then parses the payload of the reply as a {{.TypeReply}}.

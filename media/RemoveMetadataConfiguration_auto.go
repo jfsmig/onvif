@@ -7,11 +7,12 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_RemoveMetadataConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a RemoveMetadataConfigurationResponse.
-func Call_RemoveMetadataConfiguration(ctx context.Context, dev *networking.Client, request RemoveMetadataConfiguration) (RemoveMetadataConfigurationResponse, error) {
+func Call_RemoveMetadataConfiguration(ctx context.Context, dev *device.Device, request RemoveMetadataConfiguration) (RemoveMetadataConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

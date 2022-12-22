@@ -5,14 +5,14 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"github.com/use-go/onvif/networking"
-	wsdiscovery "github.com/use-go/onvif/ws-discovery"
 	"net"
 	"net/url"
 	"os"
 
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
+	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/device"
 )
 
 func discover(ctx context.Context) error {

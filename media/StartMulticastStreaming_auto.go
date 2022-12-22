@@ -7,11 +7,12 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_StartMulticastStreaming forwards the call to dev.CallMethod() then parses the payload of the reply as a StartMulticastStreamingResponse.
-func Call_StartMulticastStreaming(ctx context.Context, dev *networking.Client, request StartMulticastStreaming) (StartMulticastStreamingResponse, error) {
+func Call_StartMulticastStreaming(ctx context.Context, dev *device.Device, request StartMulticastStreaming) (StartMulticastStreamingResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

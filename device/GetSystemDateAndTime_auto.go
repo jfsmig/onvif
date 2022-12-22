@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetSystemDateAndTime forwards the call to dev.CallMethod() then parses the payload of the reply as a GetSystemDateAndTimeResponse.
-func Call_GetSystemDateAndTime(ctx context.Context, dev *networking.Client, request GetSystemDateAndTime) (GetSystemDateAndTimeResponse, error) {
+func Call_GetSystemDateAndTime(ctx context.Context, dev *Device, request GetSystemDateAndTime) (GetSystemDateAndTimeResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

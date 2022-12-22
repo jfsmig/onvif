@@ -6,8 +6,8 @@ package main
 
 import (
 	"context"
-	"github.com/use-go/onvif/event"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/event"
+	"github.com/jfsmig/onvif/networking"
 )
 
 type EventOutput struct { 

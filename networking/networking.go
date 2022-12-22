@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/beevik/etree"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/gosoap"
+	"github.com/jfsmig/onvif/gosoap"
 	"io/ioutil"
 	"net/http"
 )

@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetCapabilities forwards the call to dev.CallMethod() then parses the payload of the reply as a GetCapabilitiesResponse.
-func Call_GetCapabilities(ctx context.Context, dev *networking.Client, request GetCapabilities) (GetCapabilitiesResponse, error) {
+func Call_GetCapabilities(ctx context.Context, dev *Device, request GetCapabilities) (GetCapabilitiesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

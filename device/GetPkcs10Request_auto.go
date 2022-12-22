@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetPkcs10Request forwards the call to dev.CallMethod() then parses the payload of the reply as a GetPkcs10RequestResponse.
-func Call_GetPkcs10Request(ctx context.Context, dev *networking.Client, request GetPkcs10Request) (GetPkcs10RequestResponse, error) {
+func Call_GetPkcs10Request(ctx context.Context, dev *Device, request GetPkcs10Request) (GetPkcs10RequestResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

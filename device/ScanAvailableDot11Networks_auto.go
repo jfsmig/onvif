@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_ScanAvailableDot11Networks forwards the call to dev.CallMethod() then parses the payload of the reply as a ScanAvailableDot11NetworksResponse.
-func Call_ScanAvailableDot11Networks(ctx context.Context, dev *networking.Client, request ScanAvailableDot11Networks) (ScanAvailableDot11NetworksResponse, error) {
+func Call_ScanAvailableDot11Networks(ctx context.Context, dev *Device, request ScanAvailableDot11Networks) (ScanAvailableDot11NetworksResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -1,11 +1,11 @@
 package device
 
 import (
-	"github.com/use-go/onvif/xsd"
-	"github.com/use-go/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/xsd"
+	"github.com/jfsmig/onvif/xsd/onvif"
 )
 
-//go:generate go run github.com/use-go/onvif/bin/onvif-codegen sdk device calls.txt
+//go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen sdk device calls.txt
 
 type Service struct {
 	Namespace xsd.AnyURI

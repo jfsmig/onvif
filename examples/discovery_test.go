@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	client2 "github.com/use-go/onvif/networking"
+	client2 "github.com/jfsmig/onvif/networking"
 	"io/ioutil"
 	"log"
 	"path"
@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/beevik/etree"
-	"github.com/use-go/onvif/device"
-	discover "github.com/use-go/onvif/ws-discovery"
+	"github.com/jfsmig/onvif/device"
+	discover "github.com/jfsmig/onvif/ws-discovery"
 )
 
 func TestGetAvailableDevicesAtSpecificEthernetInterface(t *testing.T) {

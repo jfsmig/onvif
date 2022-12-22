@@ -3,12 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 	"log"
 	"net/http"
 
-	"github.com/use-go/onvif/device"
-	"github.com/use-go/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/xsd/onvif"
 )
 
 const (
@@ -57,7 +57,7 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	} else {
-		// You could use https://github.com/use-go/onvif/gosoap for pretty printing response
+		// You could use https://github.com/jfsmig/onvif/gosoap for pretty printing response
 		fmt.Println(createUserResponse)
 	}
 

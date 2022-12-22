@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_SetDynamicDNS forwards the call to dev.CallMethod() then parses the payload of the reply as a SetDynamicDNSResponse.
-func Call_SetDynamicDNS(ctx context.Context, dev *networking.Client, request SetDynamicDNS) (SetDynamicDNSResponse, error) {
+func Call_SetDynamicDNS(ctx context.Context, dev *Device, request SetDynamicDNS) (SetDynamicDNSResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

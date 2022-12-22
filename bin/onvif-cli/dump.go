@@ -5,17 +5,17 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/sdk"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
-	"github.com/use-go/onvif/sdk"
 	"os"
 )
 
 // Used once to generate the first skeleton of code
-//#go:generate go run github.com/use-go/onvif/bin/onvif-codegen cli ptz    ../../ptz/calls.txt
-//#go:generate go run github.com/use-go/onvif/bin/onvif-codegen cli device ../../device/calls.txt
-//#go:generate go run github.com/use-go/onvif/bin/onvif-codegen cli media  ../../media/calls.txt
-//#go:generate go run github.com/use-go/onvif/bin/onvif-codegen cli event  ../../event/calls.txt
+//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli ptz    ../../ptz/calls.txt
+//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli device ../../device/calls.txt
+//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli media  ../../media/calls.txt
+//#go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen cli event  ../../event/calls.txt
 
 type OnvifFullOutput struct {
 	Endpoint   string

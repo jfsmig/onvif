@@ -7,11 +7,12 @@ package ptz
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_RemovePreset forwards the call to dev.CallMethod() then parses the payload of the reply as a RemovePresetResponse.
-func Call_RemovePreset(ctx context.Context, dev *networking.Client, request RemovePreset) (RemovePresetResponse, error) {
+func Call_RemovePreset(ctx context.Context, dev *device.Device, request RemovePreset) (RemovePresetResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -6,8 +6,8 @@ package main
 
 import (
 	"context"
-	"github.com/use-go/onvif/networking"
-	"github.com/use-go/onvif/ptz"
+	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/ptz"
 )
 
 type PtzOutput struct { 

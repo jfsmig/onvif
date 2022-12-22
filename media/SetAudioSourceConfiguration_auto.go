@@ -7,11 +7,12 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_SetAudioSourceConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a SetAudioSourceConfigurationResponse.
-func Call_SetAudioSourceConfiguration(ctx context.Context, dev *networking.Client, request SetAudioSourceConfiguration) (SetAudioSourceConfigurationResponse, error) {
+func Call_SetAudioSourceConfiguration(ctx context.Context, dev *device.Device, request SetAudioSourceConfiguration) (SetAudioSourceConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

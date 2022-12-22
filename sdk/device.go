@@ -2,8 +2,8 @@ package sdk
 
 import (
 	"context"
-	"github.com/use-go/onvif/networking"
-	"github.com/use-go/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/xsd/onvif"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,8 +11,8 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/device"
-	"github.com/use-go/onvif/media"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/media"
 
 	"github.com/rs/zerolog"
 )

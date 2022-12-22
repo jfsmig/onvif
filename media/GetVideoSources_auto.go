@@ -7,11 +7,12 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetVideoSources forwards the call to dev.CallMethod() then parses the payload of the reply as a GetVideoSourcesResponse.
-func Call_GetVideoSources(ctx context.Context, dev *networking.Client, request GetVideoSources) (GetVideoSourcesResponse, error) {
+func Call_GetVideoSources(ctx context.Context, dev *device.Device, request GetVideoSources) (GetVideoSourcesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

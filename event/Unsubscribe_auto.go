@@ -7,11 +7,12 @@ package event
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_Unsubscribe forwards the call to dev.CallMethod() then parses the payload of the reply as a UnsubscribeResponse.
-func Call_Unsubscribe(ctx context.Context, dev *networking.Client, request Unsubscribe) (UnsubscribeResponse, error) {
+func Call_Unsubscribe(ctx context.Context, dev *device.Device, request Unsubscribe) (UnsubscribeResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

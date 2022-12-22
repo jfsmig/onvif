@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_LoadCACertificates forwards the call to dev.CallMethod() then parses the payload of the reply as a LoadCACertificatesResponse.
-func Call_LoadCACertificates(ctx context.Context, dev *networking.Client, request LoadCACertificates) (LoadCACertificatesResponse, error) {
+func Call_LoadCACertificates(ctx context.Context, dev *Device, request LoadCACertificates) (LoadCACertificatesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -7,11 +7,12 @@ package event
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_CreatePullPointSubscription forwards the call to dev.CallMethod() then parses the payload of the reply as a CreatePullPointSubscriptionResponse.
-func Call_CreatePullPointSubscription(ctx context.Context, dev *networking.Client, request CreatePullPointSubscription) (CreatePullPointSubscriptionResponse, error) {
+func Call_CreatePullPointSubscription(ctx context.Context, dev *device.Device, request CreatePullPointSubscription) (CreatePullPointSubscriptionResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

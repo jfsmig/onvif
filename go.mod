@@ -1,4 +1,4 @@
-module github.com/use-go/onvif
+module github.com/jfsmig/onvif
 
 go 1.15
 
@@ -11,5 +11,4 @@ require (
 	github.com/rs/zerolog v1.26.1
 	github.com/spf13/cobra v1.6.1
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
-	golang.org/x/text v0.3.6
 )

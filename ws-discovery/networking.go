@@ -11,7 +11,7 @@ package wsdiscovery
 
 import (
 	"errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 	"net"
 	"os"
 	"strconv"

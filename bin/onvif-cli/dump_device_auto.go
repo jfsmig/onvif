@@ -6,8 +6,8 @@ package main
 
 import (
 	"context"
-	"github.com/use-go/onvif/device"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/networking"
 )
 
 type DeviceOutput struct { 

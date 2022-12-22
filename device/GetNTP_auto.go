@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetNTP forwards the call to dev.CallMethod() then parses the payload of the reply as a GetNTPResponse.
-func Call_GetNTP(ctx context.Context, dev *networking.Client, request GetNTP) (GetNTPResponse, error) {
+func Call_GetNTP(ctx context.Context, dev *Device, request GetNTP) (GetNTPResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

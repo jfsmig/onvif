@@ -3,8 +3,8 @@ package sdk
 import (
 	"context"
 
-	"github.com/use-go/onvif/media"
-	"github.com/use-go/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/media"
+	"github.com/jfsmig/onvif/xsd/onvif"
 )
 
 type Profiles struct {

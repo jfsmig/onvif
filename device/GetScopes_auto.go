@@ -7,11 +7,11 @@ package device
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/use-go/onvif/networking"
+	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetScopes forwards the call to dev.CallMethod() then parses the payload of the reply as a GetScopesResponse.
-func Call_GetScopes(ctx context.Context, dev *networking.Client, request GetScopes) (GetScopesResponse, error) {
+func Call_GetScopes(ctx context.Context, dev *Device, request GetScopes) (GetScopesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {
