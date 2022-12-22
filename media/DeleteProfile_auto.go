@@ -7,12 +7,11 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_DeleteProfile forwards the call to dev.CallMethod() then parses the payload of the reply as a DeleteProfileResponse.
-func Call_DeleteProfile(ctx context.Context, dev *device.Device, request DeleteProfile) (DeleteProfileResponse, error) {
+func Call_DeleteProfile(ctx context.Context, dev *networking.Client, request DeleteProfile) (DeleteProfileResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

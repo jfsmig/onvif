@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetDeviceInformation forwards the call to dev.CallMethod() then parses the payload of the reply as a GetDeviceInformationResponse.
-func Call_GetDeviceInformation(ctx context.Context, dev *Device, request GetDeviceInformation) (GetDeviceInformationResponse, error) {
+func Call_GetDeviceInformation(ctx context.Context, dev *networking.Client, request GetDeviceInformation) (GetDeviceInformationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

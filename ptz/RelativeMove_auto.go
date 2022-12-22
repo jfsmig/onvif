@@ -7,12 +7,11 @@ package ptz
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_RelativeMove forwards the call to dev.CallMethod() then parses the payload of the reply as a RelativeMoveResponse.
-func Call_RelativeMove(ctx context.Context, dev *device.Device, request RelativeMove) (RelativeMoveResponse, error) {
+func Call_RelativeMove(ctx context.Context, dev *networking.Client, request RelativeMove) (RelativeMoveResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

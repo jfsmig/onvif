@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetDiscoveryMode forwards the call to dev.CallMethod() then parses the payload of the reply as a GetDiscoveryModeResponse.
-func Call_GetDiscoveryMode(ctx context.Context, dev *Device, request GetDiscoveryMode) (GetDiscoveryModeResponse, error) {
+func Call_GetDiscoveryMode(ctx context.Context, dev *networking.Client, request GetDiscoveryMode) (GetDiscoveryModeResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

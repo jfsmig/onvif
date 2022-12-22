@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetCertificatesStatus forwards the call to dev.CallMethod() then parses the payload of the reply as a SetCertificatesStatusResponse.
-func Call_SetCertificatesStatus(ctx context.Context, dev *Device, request SetCertificatesStatus) (SetCertificatesStatusResponse, error) {
+func Call_SetCertificatesStatus(ctx context.Context, dev *networking.Client, request SetCertificatesStatus) (SetCertificatesStatusResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

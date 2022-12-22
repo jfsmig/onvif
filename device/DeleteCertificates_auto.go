@@ -11,7 +11,7 @@ import (
 )
 
 // Call_DeleteCertificates forwards the call to dev.CallMethod() then parses the payload of the reply as a DeleteCertificatesResponse.
-func Call_DeleteCertificates(ctx context.Context, dev *Device, request DeleteCertificates) (DeleteCertificatesResponse, error) {
+func Call_DeleteCertificates(ctx context.Context, dev *networking.Client, request DeleteCertificates) (DeleteCertificatesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

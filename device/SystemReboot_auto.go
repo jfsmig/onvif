@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SystemReboot forwards the call to dev.CallMethod() then parses the payload of the reply as a SystemRebootResponse.
-func Call_SystemReboot(ctx context.Context, dev *Device, request SystemReboot) (SystemRebootResponse, error) {
+func Call_SystemReboot(ctx context.Context, dev *networking.Client, request SystemReboot) (SystemRebootResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

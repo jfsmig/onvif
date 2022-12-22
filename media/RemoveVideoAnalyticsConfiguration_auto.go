@@ -7,12 +7,11 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_RemoveVideoAnalyticsConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a RemoveVideoAnalyticsConfigurationResponse.
-func Call_RemoveVideoAnalyticsConfiguration(ctx context.Context, dev *device.Device, request RemoveVideoAnalyticsConfiguration) (RemoveVideoAnalyticsConfigurationResponse, error) {
+func Call_RemoveVideoAnalyticsConfiguration(ctx context.Context, dev *networking.Client, request RemoveVideoAnalyticsConfiguration) (RemoveVideoAnalyticsConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetClientCertificateMode forwards the call to dev.CallMethod() then parses the payload of the reply as a GetClientCertificateModeResponse.
-func Call_GetClientCertificateMode(ctx context.Context, dev *Device, request GetClientCertificateMode) (GetClientCertificateModeResponse, error) {
+func Call_GetClientCertificateMode(ctx context.Context, dev *networking.Client, request GetClientCertificateMode) (GetClientCertificateModeResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetSystemBackup forwards the call to dev.CallMethod() then parses the payload of the reply as a GetSystemBackupResponse.
-func Call_GetSystemBackup(ctx context.Context, dev *Device, request GetSystemBackup) (GetSystemBackupResponse, error) {
+func Call_GetSystemBackup(ctx context.Context, dev *networking.Client, request GetSystemBackup) (GetSystemBackupResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetNetworkProtocols forwards the call to dev.CallMethod() then parses the payload of the reply as a SetNetworkProtocolsResponse.
-func Call_SetNetworkProtocols(ctx context.Context, dev *Device, request SetNetworkProtocols) (SetNetworkProtocolsResponse, error) {
+func Call_SetNetworkProtocols(ctx context.Context, dev *networking.Client, request SetNetworkProtocols) (SetNetworkProtocolsResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

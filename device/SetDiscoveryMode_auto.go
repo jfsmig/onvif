@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetDiscoveryMode forwards the call to dev.CallMethod() then parses the payload of the reply as a SetDiscoveryModeResponse.
-func Call_SetDiscoveryMode(ctx context.Context, dev *Device, request SetDiscoveryMode) (SetDiscoveryModeResponse, error) {
+func Call_SetDiscoveryMode(ctx context.Context, dev *networking.Client, request SetDiscoveryMode) (SetDiscoveryModeResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

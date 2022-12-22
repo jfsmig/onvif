@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetStorageConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a SetStorageConfigurationResponse.
-func Call_SetStorageConfiguration(ctx context.Context, dev *Device, request SetStorageConfiguration) (SetStorageConfigurationResponse, error) {
+func Call_SetStorageConfiguration(ctx context.Context, dev *networking.Client, request SetStorageConfiguration) (SetStorageConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

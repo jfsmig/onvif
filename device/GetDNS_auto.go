@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetDNS forwards the call to dev.CallMethod() then parses the payload of the reply as a GetDNSResponse.
-func Call_GetDNS(ctx context.Context, dev *Device, request GetDNS) (GetDNSResponse, error) {
+func Call_GetDNS(ctx context.Context, dev *networking.Client, request GetDNS) (GetDNSResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

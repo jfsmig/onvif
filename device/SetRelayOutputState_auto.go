@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetRelayOutputState forwards the call to dev.CallMethod() then parses the payload of the reply as a SetRelayOutputStateResponse.
-func Call_SetRelayOutputState(ctx context.Context, dev *Device, request SetRelayOutputState) (SetRelayOutputStateResponse, error) {
+func Call_SetRelayOutputState(ctx context.Context, dev *networking.Client, request SetRelayOutputState) (SetRelayOutputStateResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

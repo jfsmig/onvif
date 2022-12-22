@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetServices forwards the call to dev.CallMethod() then parses the payload of the reply as a GetServicesResponse.
-func Call_GetServices(ctx context.Context, dev *Device, request GetServices) (GetServicesResponse, error) {
+func Call_GetServices(ctx context.Context, dev *networking.Client, request GetServices) (GetServicesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

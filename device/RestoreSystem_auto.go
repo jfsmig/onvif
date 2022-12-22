@@ -11,7 +11,7 @@ import (
 )
 
 // Call_RestoreSystem forwards the call to dev.CallMethod() then parses the payload of the reply as a RestoreSystemResponse.
-func Call_RestoreSystem(ctx context.Context, dev *Device, request RestoreSystem) (RestoreSystemResponse, error) {
+func Call_RestoreSystem(ctx context.Context, dev *networking.Client, request RestoreSystem) (RestoreSystemResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

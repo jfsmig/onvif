@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetIPAddressFilter forwards the call to dev.CallMethod() then parses the payload of the reply as a GetIPAddressFilterResponse.
-func Call_GetIPAddressFilter(ctx context.Context, dev *Device, request GetIPAddressFilter) (GetIPAddressFilterResponse, error) {
+func Call_GetIPAddressFilter(ctx context.Context, dev *networking.Client, request GetIPAddressFilter) (GetIPAddressFilterResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

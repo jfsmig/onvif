@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetZeroConfiguration forwards the call to dev.CallMethod() then parses the payload of the reply as a SetZeroConfigurationResponse.
-func Call_SetZeroConfiguration(ctx context.Context, dev *Device, request SetZeroConfiguration) (SetZeroConfigurationResponse, error) {
+func Call_SetZeroConfiguration(ctx context.Context, dev *networking.Client, request SetZeroConfiguration) (SetZeroConfigurationResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

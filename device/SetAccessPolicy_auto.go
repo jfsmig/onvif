@@ -11,7 +11,7 @@ import (
 )
 
 // Call_SetAccessPolicy forwards the call to dev.CallMethod() then parses the payload of the reply as a SetAccessPolicyResponse.
-func Call_SetAccessPolicy(ctx context.Context, dev *Device, request SetAccessPolicy) (SetAccessPolicyResponse, error) {
+func Call_SetAccessPolicy(ctx context.Context, dev *networking.Client, request SetAccessPolicy) (SetAccessPolicyResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

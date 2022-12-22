@@ -11,7 +11,7 @@ import (
 )
 
 // Call_GetSystemLog forwards the call to dev.CallMethod() then parses the payload of the reply as a GetSystemLogResponse.
-func Call_GetSystemLog(ctx context.Context, dev *Device, request GetSystemLog) (GetSystemLogResponse, error) {
+func Call_GetSystemLog(ctx context.Context, dev *networking.Client, request GetSystemLog) (GetSystemLogResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

@@ -7,12 +7,11 @@ package event
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_PullMessages forwards the call to dev.CallMethod() then parses the payload of the reply as a PullMessagesResponse.
-func Call_PullMessages(ctx context.Context, dev *device.Device, request PullMessages) (PullMessagesResponse, error) {
+func Call_PullMessages(ctx context.Context, dev *networking.Client, request PullMessages) (PullMessagesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

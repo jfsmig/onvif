@@ -11,7 +11,7 @@ import (
 )
 
 // Call_RemoveIPAddressFilter forwards the call to dev.CallMethod() then parses the payload of the reply as a RemoveIPAddressFilterResponse.
-func Call_RemoveIPAddressFilter(ctx context.Context, dev *Device, request RemoveIPAddressFilter) (RemoveIPAddressFilterResponse, error) {
+func Call_RemoveIPAddressFilter(ctx context.Context, dev *networking.Client, request RemoveIPAddressFilter) (RemoveIPAddressFilterResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

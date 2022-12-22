@@ -7,12 +7,11 @@ package event
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetEventProperties forwards the call to dev.CallMethod() then parses the payload of the reply as a GetEventPropertiesResponse.
-func Call_GetEventProperties(ctx context.Context, dev *device.Device, request GetEventProperties) (GetEventPropertiesResponse, error) {
+func Call_GetEventProperties(ctx context.Context, dev *networking.Client, request GetEventProperties) (GetEventPropertiesResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {

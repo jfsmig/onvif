@@ -7,12 +7,11 @@ package media
 import (
 	"context"
 	"github.com/juju/errors"
-	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 )
 
 // Call_GetCompatibleVideoSourceConfigurations forwards the call to dev.CallMethod() then parses the payload of the reply as a GetCompatibleVideoSourceConfigurationsResponse.
-func Call_GetCompatibleVideoSourceConfigurations(ctx context.Context, dev *device.Device, request GetCompatibleVideoSourceConfigurations) (GetCompatibleVideoSourceConfigurationsResponse, error) {
+func Call_GetCompatibleVideoSourceConfigurations(ctx context.Context, dev *networking.Client, request GetCompatibleVideoSourceConfigurations) (GetCompatibleVideoSourceConfigurationsResponse, error) {
 	type Envelope struct {
 		Header struct{}
 		Body   struct {
