@@ -26,10 +26,10 @@ type XProfile struct {
 	CompatibleAudioDecoders []onvif.ReferenceToken
 }
 
-func (d *deviceWrapper) FetchProfiles(ctx context.Context) Profiles {
+func (dw *deviceWrapper) FetchProfiles(ctx context.Context) Profiles {
 	out := Profiles{}
 
-	if profiles, err := media.Call_GetProfiles(ctx, d.client, media.GetProfiles{}); err == nil {
+	if profiles, err := media.Call_GetProfiles(ctx, dw.client, media.GetProfiles{}); err == nil {
 		for _, profile := range profiles.Profiles {
 			pe := XProfile{Profile: profile}
 			out.Profiles = append(out.Profiles, pe)
@@ -41,16 +41,16 @@ func (d *deviceWrapper) FetchProfiles(ctx context.Context) Profiles {
 	return out
 }
 
-func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceToken) XProfile {
+func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceToken) XProfile {
 	out := XProfile{}
 
-	if profile, err := media.Call_GetProfile(ctx, d.client, media.GetProfile{ProfileToken: token}); err == nil {
+	if profile, err := media.Call_GetProfile(ctx, dw.client, media.GetProfile{ProfileToken: token}); err == nil {
 		out.Profile = profile.Profile
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetProfile").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleMetadataConfigurations(ctx, d.client, media.GetCompatibleMetadataConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleMetadataConfigurations(ctx, dw.client, media.GetCompatibleMetadataConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleMetadata = append(out.CompatibleMetadata, x.Token)
 		}
@@ -58,7 +58,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleMetadataConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleVideoSourceConfigurations(ctx, d.client, media.GetCompatibleVideoSourceConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleVideoSourceConfigurations(ctx, dw.client, media.GetCompatibleVideoSourceConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleVideoSources = append(out.CompatibleVideoSources, x.Token)
 		}
@@ -66,7 +66,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoSourceConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleVideoEncoderConfigurations(ctx, d.client, media.GetCompatibleVideoEncoderConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleVideoEncoderConfigurations(ctx, dw.client, media.GetCompatibleVideoEncoderConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleVideoEncoders = append(out.CompatibleVideoEncoders, x.Token)
 		}
@@ -74,7 +74,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoEncoderConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleVideoAnalyticsConfigurations(ctx, d.client, media.GetCompatibleVideoAnalyticsConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleVideoAnalyticsConfigurations(ctx, dw.client, media.GetCompatibleVideoAnalyticsConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleVideoAnalytics = append(out.CompatibleVideoAnalytics, x.Token)
 		}
@@ -82,7 +82,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoAnalyticsConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleAudioSourceConfigurations(ctx, d.client, media.GetCompatibleAudioSourceConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleAudioSourceConfigurations(ctx, dw.client, media.GetCompatibleAudioSourceConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleAudioSources = append(out.CompatibleAudioSources, x.Token)
 		}
@@ -90,7 +90,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioSourceConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleAudioEncoderConfigurations(ctx, d.client, media.GetCompatibleAudioEncoderConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleAudioEncoderConfigurations(ctx, dw.client, media.GetCompatibleAudioEncoderConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleAudioEncoders = append(out.CompatibleAudioEncoders, x.Token)
 		}
@@ -98,7 +98,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioEncoderConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleAudioOutputConfigurations(ctx, d.client, media.GetCompatibleAudioOutputConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleAudioOutputConfigurations(ctx, dw.client, media.GetCompatibleAudioOutputConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleAudioOutputs = append(out.CompatibleAudioOutputs, x.Token)
 		}
@@ -106,7 +106,7 @@ func (d *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceT
 		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioOutputConfigurations").Msg("audio")
 	}
 
-	if all, err := media.Call_GetCompatibleAudioDecoderConfigurations(ctx, d.client, media.GetCompatibleAudioDecoderConfigurations{ProfileToken: token}); err == nil {
+	if all, err := media.Call_GetCompatibleAudioDecoderConfigurations(ctx, dw.client, media.GetCompatibleAudioDecoderConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleAudioDecoders = append(out.CompatibleAudioDecoders, x.Token)
 		}

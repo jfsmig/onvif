@@ -28,13 +28,13 @@ type AudioOutput struct {
 	Configurations []onvif.AudioOutputConfiguration
 }
 
-func (d *deviceWrapper) FetchAudio(ctx context.Context) Audio {
+func (dw *deviceWrapper) FetchAudio(ctx context.Context) Audio {
 	out := Audio{}
 
-	if sources, err := media.Call_GetAudioSources(ctx, d.client, media.GetAudioSources{}); err == nil {
+	if sources, err := media.Call_GetAudioSources(ctx, dw.client, media.GetAudioSources{}); err == nil {
 		for _, src := range sources.AudioSources {
 			vs := AudioSource{Source: src}
-			if configs, err := media.Call_GetAudioSourceConfigurations(ctx, d.client, media.GetAudioSourceConfigurations{}); err == nil {
+			if configs, err := media.Call_GetAudioSourceConfigurations(ctx, dw.client, media.GetAudioSourceConfigurations{}); err == nil {
 				vs.Configurations = configs.Configurations
 			} else {
 				Logger.Trace().Err(err).Str("rpc", "GetAudioSourceConfigurations").Msg("audio")
@@ -45,15 +45,15 @@ func (d *deviceWrapper) FetchAudio(ctx context.Context) Audio {
 		Logger.Trace().Err(err).Str("rpc", "GetAudioSources").Msg("audio")
 	}
 
-	if configs, err := media.Call_GetAudioEncoderConfigurations(ctx, d.client, media.GetAudioEncoderConfigurations{}); err == nil {
+	if configs, err := media.Call_GetAudioEncoderConfigurations(ctx, dw.client, media.GetAudioEncoderConfigurations{}); err == nil {
 		for _, cfg := range configs.Configurations {
 			ve := AudioEncoderConfiguration{}
-			if cfgDetail, err := media.Call_GetAudioEncoderConfiguration(ctx, d.client, media.GetAudioEncoderConfiguration{ConfigurationToken: cfg.Token}); err == nil {
+			if cfgDetail, err := media.Call_GetAudioEncoderConfiguration(ctx, dw.client, media.GetAudioEncoderConfiguration{ConfigurationToken: cfg.Token}); err == nil {
 				ve.Configuration = cfgDetail.Configuration
 			} else {
 				Logger.Trace().Err(err).Str("rpc", "GetAudioEncoderConfiguration").Msg("audio")
 			}
-			if cfgOptions, err := media.Call_GetAudioEncoderConfigurationOptions(ctx, d.client, media.GetAudioEncoderConfigurationOptions{ConfigurationToken: cfg.Token}); err == nil {
+			if cfgOptions, err := media.Call_GetAudioEncoderConfigurationOptions(ctx, dw.client, media.GetAudioEncoderConfigurationOptions{ConfigurationToken: cfg.Token}); err == nil {
 				ve.Options = cfgOptions.Options
 			} else {
 				Logger.Trace().Err(err).Str("rpc", "GetAudioEncoderConfigurationOptions").Msg("audio")
@@ -64,7 +64,7 @@ func (d *deviceWrapper) FetchAudio(ctx context.Context) Audio {
 		Logger.Trace().Err(err).Str("rpc", "GetAudioEncoderConfigurations").Msg("audio")
 	}
 
-	if outputs, err := media.Call_GetAudioOutputs(ctx, d.client, media.GetAudioOutputs{}); err == nil {
+	if outputs, err := media.Call_GetAudioOutputs(ctx, dw.client, media.GetAudioOutputs{}); err == nil {
 		for _, output := range outputs.AudioOutputs {
 			ao := AudioOutput{
 				Output: output,
@@ -74,7 +74,7 @@ func (d *deviceWrapper) FetchAudio(ctx context.Context) Audio {
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetAnalyticsConfigurations").Msg("audio")
 	}
-	if configurations, err := media.Call_GetAudioOutputConfigurations(ctx, d.client, media.GetAudioOutputConfigurations{}); err == nil {
+	if configurations, err := media.Call_GetAudioOutputConfigurations(ctx, dw.client, media.GetAudioOutputConfigurations{}); err == nil {
 		for _, config := range configurations.Configurations {
 			out.Outputs[config.OutputToken].Configurations = append(out.Outputs[config.OutputToken].Configurations, config)
 		}

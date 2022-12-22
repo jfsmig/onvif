@@ -4,15 +4,15 @@ import (
 	"context"
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/xsd/onvif"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/beevik/etree"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/media"
+	"github.com/juju/errors"
 
 	"github.com/rs/zerolog"
 )
@@ -58,9 +58,23 @@ type Media struct {
 	Capabilities media.Capabilities
 }
 
-// Why not
 type deviceWrapper struct {
 	client *networking.Client
+}
+
+func WrapClient(client *networking.Client) (Device, error) {
+	dw := &deviceWrapper{client: client}
+	return dw.load()
+}
+
+// GetServices return available endpoints
+func (dw *deviceWrapper) GetServices() map[string]string {
+	return dw.client.GetServices()
+}
+
+// GetEndpoint returns specific ONVIF service endpoint address
+func (dw *deviceWrapper) GetEndpoint(name string) string {
+	return dw.client.GetEndpoint(name)
 }
 
 func NewDevice(params networking.ClientParams) (Device, error) {
@@ -68,16 +82,18 @@ func NewDevice(params networking.ClientParams) (Device, error) {
 	if err != nil {
 		return nil, err
 	}
+	dw := &deviceWrapper{client: client}
+	return dw.load()
+}
 
-	dev := &deviceWrapper{client: client}
-
-	resp, err := dev.client.CallMethod(device.GetCapabilities{Category: "All"})
+func (dw *deviceWrapper) load() (Device, error) {
+	resp, err := dw.client.CallMethod(device.GetCapabilities{Category: "All"})
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errors.New("camera not available or ONVIF not supported")
 	}
 
 	doc := etree.NewDocument()
-	data, _ := ioutil.ReadAll(resp.Body)
+	data, _ := io.ReadAll(resp.Body)
 	resp.Body.Close()
 
 	if err := doc.ReadFromBytes(data); err != nil {
@@ -85,26 +101,26 @@ func NewDevice(params networking.ClientParams) (Device, error) {
 	}
 	services := doc.FindElements("./Envelope/Body/GetCapabilitiesResponse/Capabilities/*/XAddr")
 	for _, j := range services {
-		dev.client.AddEndpoint(j.Parent().Tag, j.Text())
+		dw.client.AddEndpoint(j.Parent().Tag, j.Text())
 	}
 	extension_services := doc.FindElements("./Envelope/Body/GetCapabilitiesResponse/Capabilities/Extension/*/XAddr")
 	for _, j := range extension_services {
-		dev.client.AddEndpoint(j.Parent().Tag, j.Text())
+		dw.client.AddEndpoint(j.Parent().Tag, j.Text())
 	}
 
-	return dev, nil
+	return dw, nil
 }
 
-func (d *deviceWrapper) FetchDescriptor(ctx context.Context) DeviceDescriptor {
+func (dw *deviceWrapper) FetchDescriptor(ctx context.Context) DeviceDescriptor {
 	out := DeviceDescriptor{}
 
-	if info, err := device.Call_GetDeviceInformation(context.Background(), d.client, device.GetDeviceInformation{}); err == nil {
+	if info, err := device.Call_GetDeviceInformation(context.Background(), dw.client, device.GetDeviceInformation{}); err == nil {
 		out.Info = info
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetDeviceInformation").Msg("device")
 	}
 
-	if caps, err := device.Call_GetCapabilities(ctx, d.client, device.GetCapabilities{}); err == nil {
+	if caps, err := device.Call_GetCapabilities(ctx, dw.client, device.GetCapabilities{}); err == nil {
 		out.Capabilities = caps.Capabilities
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetCapabilities").Msg("device")
@@ -112,17 +128,17 @@ func (d *deviceWrapper) FetchDescriptor(ctx context.Context) DeviceDescriptor {
 	return out
 }
 
-func (d *deviceWrapper) FetchMedia(ctx context.Context) Media {
+func (dw *deviceWrapper) FetchMedia(ctx context.Context) Media {
 	out := Media{}
 
-	if caps, err := media.Call_GetServiceCapabilities(ctx, d.client, media.GetServiceCapabilities{}); err == nil {
+	if caps, err := media.Call_GetServiceCapabilities(ctx, dw.client, media.GetServiceCapabilities{}); err == nil {
 		out.Capabilities = caps.Capabilities
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("media")
 	}
 
-	out.Video = d.FetchVideo(ctx)
-	out.Audio = d.FetchAudio(ctx)
-	out.Profiles = d.FetchProfiles(ctx)
+	out.Video = dw.FetchVideo(ctx)
+	out.Audio = dw.FetchAudio(ctx)
+	out.Profiles = dw.FetchProfiles(ctx)
 	return out
 }

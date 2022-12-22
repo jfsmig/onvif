@@ -56,53 +56,54 @@ func NewClient(params ClientParams) (*Client, error) {
 	return dev, nil
 }
 
-// GetServices return available endpoints
-func (dev *Client) GetServices() map[string]string {
-	return dev.endpoints
+func (client *Client) SetAuth(username, password string) {
+	client.params.Username = username
+	client.params.Password = password
 }
+
+// GetServices return available endpoints
+func (client *Client) GetServices() map[string]string { return client.endpoints }
 
 // GetEndpoint returns specific ONVIF service endpoint address
-func (dev *Client) GetEndpoint(name string) string {
-	return dev.endpoints[name]
-}
+func (client *Client) GetEndpoint(name string) string { return client.endpoints[name] }
 
-func (dev *Client) AddEndpoint(Key, Value string) {
+func (client *Client) AddEndpoint(Key, Value string) {
 	//use lowCaseKey
 	//make key having ability to handle Mixed Case for Different vendor devcie (e.g. Events EVENTS, events)
 	lowCaseKey := strings.ToLower(Key)
 
 	// Replace host with host from device params.
 	if u, err := url.Parse(Value); err == nil {
-		u.Host = dev.params.Xaddr
+		u.Host = client.params.Xaddr
 		Value = u.String()
 	}
 
-	dev.endpoints[lowCaseKey] = Value
+	client.endpoints[lowCaseKey] = Value
 }
 
 // CallMethod functions call a method, defined <method> struct.
 // You should use Authenticate method to call authorized requests.
-func (dev Client) CallMethod(method interface{}) (*http.Response, error) {
+func (client Client) CallMethod(method interface{}) (*http.Response, error) {
 	pkgPath := strings.Split(reflect.TypeOf(method).PkgPath(), "/")
 	pkg := strings.ToLower(pkgPath[len(pkgPath)-1])
 
-	endpoint, err := dev.getEndpoint(pkg)
+	endpoint, err := client.getEndpoint(pkg)
 	if err != nil {
 		return nil, err
 	}
 
-	return callMethodDo(dev.params.HttpClient, callMethodParams{
+	return callMethodDo(client.params.HttpClient, callMethodParams{
 		endpoint,
-		dev.params.Username,
-		dev.params.Password,
+		client.params.Username,
+		client.params.Password,
 		method})
 }
 
 // getEndpoint functions get the target service endpoint in a better way
-func (dev Client) getEndpoint(endpoint string) (string, error) {
+func (client Client) getEndpoint(endpoint string) (string, error) {
 
 	// common condition, endpointMark in map we use this.
-	if endpointURL, bFound := dev.endpoints[endpoint]; bFound {
+	if endpointURL, bFound := client.endpoints[endpoint]; bFound {
 		return endpointURL, nil
 	}
 
@@ -110,9 +111,9 @@ func (dev Client) getEndpoint(endpoint string) (string, error) {
 	//and sametime the Targetkey like : events、analytics
 	//we use fuzzy way to find the best match url
 	var endpointURL string
-	for targetKey := range dev.endpoints {
+	for targetKey := range client.endpoints {
 		if strings.Contains(targetKey, endpoint) {
-			endpointURL = dev.endpoints[targetKey]
+			endpointURL = client.endpoints[targetKey]
 			return endpointURL, nil
 		}
 	}
