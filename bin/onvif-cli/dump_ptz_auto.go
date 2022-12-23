@@ -10,10 +10,10 @@ import (
 	"github.com/jfsmig/onvif/ptz"
 )
 
-type PtzOutput struct { 
-	Configurations                           *ptz.GetConfigurationsResponse
-	Nodes                                    *ptz.GetNodesResponse
-	ServiceCapabilities                      *ptz.GetServiceCapabilitiesResponse
+type PtzOutput struct {
+	Configurations      *ptz.GetConfigurationsResponse
+	Nodes               *ptz.GetNodesResponse
+	ServiceCapabilities *ptz.GetServiceCapabilitiesResponse
 }
 
 func detailPtz(ctx context.Context, dev *networking.Client) PtzOutput {
@@ -21,7 +21,7 @@ func detailPtz(ctx context.Context, dev *networking.Client) PtzOutput {
 	calls := make([]func(c context.Context), 0)
 
 	calls = append(calls, func(c context.Context) {
-		if p, err := ptz.Call_GetConfigurations(c, dev, ptz.GetConfigurations {}); err == nil {
+		if p, err := ptz.Call_GetConfigurations(c, dev, ptz.GetConfigurations{}); err == nil {
 			out.Configurations = &p
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "Configurations").Msg("ptz")
@@ -29,7 +29,7 @@ func detailPtz(ctx context.Context, dev *networking.Client) PtzOutput {
 	})
 
 	calls = append(calls, func(c context.Context) {
-		if p, err := ptz.Call_GetNodes(c, dev, ptz.GetNodes {}); err == nil {
+		if p, err := ptz.Call_GetNodes(c, dev, ptz.GetNodes{}); err == nil {
 			out.Nodes = &p
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "Nodes").Msg("ptz")
@@ -37,7 +37,7 @@ func detailPtz(ctx context.Context, dev *networking.Client) PtzOutput {
 	})
 
 	calls = append(calls, func(c context.Context) {
-		if p, err := ptz.Call_GetServiceCapabilities(c, dev, ptz.GetServiceCapabilities {}); err == nil {
+		if p, err := ptz.Call_GetServiceCapabilities(c, dev, ptz.GetServiceCapabilities{}); err == nil {
 			out.ServiceCapabilities = &p
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "ServiceCapabilities").Msg("ptz")

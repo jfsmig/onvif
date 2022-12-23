@@ -1,7 +1,8 @@
 package api
 
 import (
-	"io/ioutil"
+	"github.com/juju/errors"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -10,14 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/juju/errors"
-	"github.com/rs/zerolog"
-
 	"github.com/beevik/etree"
 	"github.com/gin-gonic/gin"
 	"github.com/jfsmig/onvif/gosoap"
 	"github.com/jfsmig/onvif/networking"
 	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -107,6 +106,8 @@ func RunApi() {
 	router.Run()
 }
 
+var ErrNoSuchService = errors.New("no such service")
+
 func callNecessaryMethod(serviceName, methodName, acceptedData, username, password, xaddr string) (string, error) {
 	var methodStruct interface{}
 	var err error
@@ -119,7 +120,7 @@ func callNecessaryMethod(serviceName, methodName, acceptedData, username, passwo
 	case "media":
 		methodStruct, err = getMediaStructByName(methodName)
 	default:
-		return "", errors.New("there is no such service")
+		return "", ErrNoSuchService
 	}
 	if err != nil { //done
 		return "", errors.Annotate(err, "getStructByName")
@@ -145,7 +146,7 @@ func callNecessaryMethod(serviceName, methodName, acceptedData, username, passwo
 		return "", errors.Annotate(err, "SendSoap")
 	}
 
-	rsp, err := ioutil.ReadAll(servResp.Body)
+	rsp, err := io.ReadAll(servResp.Body)
 	if err != nil {
 		return "", errors.Annotate(err, "ReadAll")
 	}

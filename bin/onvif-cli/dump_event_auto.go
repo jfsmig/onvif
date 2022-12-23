@@ -10,9 +10,9 @@ import (
 	"github.com/jfsmig/onvif/networking"
 )
 
-type EventOutput struct { 
-	EventProperties                          *event.GetEventPropertiesResponse
-	ServiceCapabilities                      *event.GetServiceCapabilitiesResponse
+type EventOutput struct {
+	EventProperties     *event.GetEventPropertiesResponse
+	ServiceCapabilities *event.GetServiceCapabilitiesResponse
 }
 
 func detailEvent(ctx context.Context, dev *networking.Client) EventOutput {
@@ -20,7 +20,7 @@ func detailEvent(ctx context.Context, dev *networking.Client) EventOutput {
 	calls := make([]func(c context.Context), 0)
 
 	calls = append(calls, func(c context.Context) {
-		if p, err := event.Call_GetEventProperties(c, dev, event.GetEventProperties {}); err == nil {
+		if p, err := event.Call_GetEventProperties(c, dev, event.GetEventProperties{}); err == nil {
 			out.EventProperties = &p
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "EventProperties").Msg("event")
@@ -28,7 +28,7 @@ func detailEvent(ctx context.Context, dev *networking.Client) EventOutput {
 	})
 
 	calls = append(calls, func(c context.Context) {
-		if p, err := event.Call_GetServiceCapabilities(c, dev, event.GetServiceCapabilities {}); err == nil {
+		if p, err := event.Call_GetServiceCapabilities(c, dev, event.GetServiceCapabilities{}); err == nil {
 			out.ServiceCapabilities = &p
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "ServiceCapabilities").Msg("event")

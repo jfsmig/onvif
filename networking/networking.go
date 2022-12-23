@@ -6,8 +6,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/beevik/etree"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/gosoap"
+	"github.com/juju/errors"
 	"io/ioutil"
 	"net/http"
 )
