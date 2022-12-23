@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"errors"
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/xsd/onvif"
 	"io"
@@ -12,7 +13,6 @@ import (
 	"github.com/beevik/etree"
 	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/media"
-	"github.com/juju/errors"
 
 	"github.com/rs/zerolog"
 )
@@ -86,10 +86,12 @@ func WrapClient(client *networking.Client) (Device, error) {
 	return dw.load()
 }
 
+var ErrOnvifUnsupported = errors.New("unsupported device")
+
 func (dw *deviceWrapper) load() (Device, error) {
 	resp, err := dw.client.CallMethod(device.GetCapabilities{Category: "All"})
 	if err != nil || resp.StatusCode != http.StatusOK {
-		return nil, errors.New("camera not available or ONVIF not supported")
+		return nil, ErrOnvifUnsupported
 	}
 
 	doc := etree.NewDocument()
