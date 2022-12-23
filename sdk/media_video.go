@@ -23,7 +23,7 @@ type VideoEncoderConfiguration struct {
 	Options       onvif.VideoEncoderConfigurationOptions
 }
 
-func (dw *deviceWrapper) FetchVideo(ctx context.Context) Video {
+func (dw *deviceWrapper) FetchMediaVideo(ctx context.Context) Video {
 	out := Video{}
 
 	if sources, err := media.Call_GetVideoSources(ctx, dw.client, media.GetVideoSources{}); err == nil {

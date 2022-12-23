@@ -39,15 +39,21 @@ type Device interface {
 
 	// FetchVideo fetches from the Device only the Video related information,
 	// otherwise part from the Media information
-	FetchVideo(ctx context.Context) Video
+	FetchMediaVideo(ctx context.Context) Video
 
 	// FetchAudio fetches from the Device only the Audio related information,
 	// otherwise part from the Media information
-	FetchAudio(ctx context.Context) Audio
+	FetchMediaAudio(ctx context.Context) Audio
 
 	// FetchAudio fetches from the Device only the Profile related information,
 	// otherwise part from the Media information
-	FetchProfiles(ctx context.Context) Profiles
+	FetchMediaProfiles(ctx context.Context) Profiles
+
+	// @param ctx
+	// @param token
+	// @param protocol
+	// @param transport
+	FetchMediaProfileUris(ctx context.Context, token onvif.ReferenceToken, protocol, transport string) ProfileUris
 }
 
 type DeviceDescriptor struct {
@@ -141,8 +147,9 @@ func (dw *deviceWrapper) FetchMedia(ctx context.Context) Media {
 		Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("media")
 	}
 
-	out.Video = dw.FetchVideo(ctx)
-	out.Audio = dw.FetchAudio(ctx)
-	out.Profiles = dw.FetchProfiles(ctx)
+	out.Video = dw.FetchMediaVideo(ctx)
+	out.Audio = dw.FetchMediaAudio(ctx)
+	out.Profiles = dw.FetchMediaProfiles(ctx)
+
 	return out
 }

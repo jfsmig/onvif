@@ -28,7 +28,7 @@ type AudioOutput struct {
 	Configurations []onvif.AudioOutputConfiguration
 }
 
-func (dw *deviceWrapper) FetchAudio(ctx context.Context) Audio {
+func (dw *deviceWrapper) FetchMediaAudio(ctx context.Context) Audio {
 	out := Audio{}
 
 	if sources, err := media.Call_GetAudioSources(ctx, dw.client, media.GetAudioSources{}); err == nil {

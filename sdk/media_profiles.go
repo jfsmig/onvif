@@ -12,7 +12,9 @@ type Profiles struct {
 }
 
 type XProfile struct {
-	Profile            onvif.Profile
+	Profile onvif.Profile
+	Uris    ProfileUris
+
 	CompatibleMetadata []onvif.ReferenceToken
 
 	CompatibleVideoSources   []onvif.ReferenceToken
@@ -26,7 +28,12 @@ type XProfile struct {
 	CompatibleAudioDecoders []onvif.ReferenceToken
 }
 
-func (dw *deviceWrapper) FetchProfiles(ctx context.Context) Profiles {
+type ProfileUris struct {
+	Stream   onvif.MediaUri
+	Snapshot onvif.MediaUri
+}
+
+func (dw *deviceWrapper) FetchMediaProfiles(ctx context.Context) Profiles {
 	out := Profiles{}
 
 	if profiles, err := media.Call_GetProfiles(ctx, dw.client, media.GetProfiles{}); err == nil {
@@ -41,21 +48,41 @@ func (dw *deviceWrapper) FetchProfiles(ctx context.Context) Profiles {
 	return out
 }
 
+func (dw *deviceWrapper) FetchMediaProfileUris(ctx context.Context, token onvif.ReferenceToken, protocol, transport string) ProfileUris {
+	out := ProfileUris{}
+
+	if uris, err := media.Call_GetStreamUri(ctx, dw.client, media.GetStreamUri{ProfileToken: token}); err == nil {
+		out.Stream = uris.MediaUri
+	} else {
+		Logger.Trace().Err(err).Str("rpc", "GetStreamUri").Msg("profile")
+	}
+
+	if uris, err := media.Call_GetSnapshotUri(ctx, dw.client, media.GetSnapshotUri{ProfileToken: token}); err == nil {
+		out.Snapshot = uris.MediaUri
+	} else {
+		Logger.Trace().Err(err).Str("rpc", "GetSnapshotUri").Msg("profile")
+	}
+
+	return out
+}
+
 func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.ReferenceToken) XProfile {
 	out := XProfile{}
 
 	if profile, err := media.Call_GetProfile(ctx, dw.client, media.GetProfile{ProfileToken: token}); err == nil {
 		out.Profile = profile.Profile
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetProfile").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetProfile").Msg("profile")
 	}
+
+	out.Uris = dw.FetchMediaProfileUris(ctx, token, "RTSP", "TCP")
 
 	if all, err := media.Call_GetCompatibleMetadataConfigurations(ctx, dw.client, media.GetCompatibleMetadataConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {
 			out.CompatibleMetadata = append(out.CompatibleMetadata, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleMetadataConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleMetadataConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleVideoSourceConfigurations(ctx, dw.client, media.GetCompatibleVideoSourceConfigurations{ProfileToken: token}); err == nil {
@@ -63,7 +90,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleVideoSources = append(out.CompatibleVideoSources, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoSourceConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoSourceConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleVideoEncoderConfigurations(ctx, dw.client, media.GetCompatibleVideoEncoderConfigurations{ProfileToken: token}); err == nil {
@@ -71,7 +98,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleVideoEncoders = append(out.CompatibleVideoEncoders, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoEncoderConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoEncoderConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleVideoAnalyticsConfigurations(ctx, dw.client, media.GetCompatibleVideoAnalyticsConfigurations{ProfileToken: token}); err == nil {
@@ -79,7 +106,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleVideoAnalytics = append(out.CompatibleVideoAnalytics, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoAnalyticsConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleVideoAnalyticsConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleAudioSourceConfigurations(ctx, dw.client, media.GetCompatibleAudioSourceConfigurations{ProfileToken: token}); err == nil {
@@ -87,7 +114,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleAudioSources = append(out.CompatibleAudioSources, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioSourceConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioSourceConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleAudioEncoderConfigurations(ctx, dw.client, media.GetCompatibleAudioEncoderConfigurations{ProfileToken: token}); err == nil {
@@ -95,7 +122,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleAudioEncoders = append(out.CompatibleAudioEncoders, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioEncoderConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioEncoderConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleAudioOutputConfigurations(ctx, dw.client, media.GetCompatibleAudioOutputConfigurations{ProfileToken: token}); err == nil {
@@ -103,7 +130,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleAudioOutputs = append(out.CompatibleAudioOutputs, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioOutputConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioOutputConfigurations").Msg("profile")
 	}
 
 	if all, err := media.Call_GetCompatibleAudioDecoderConfigurations(ctx, dw.client, media.GetCompatibleAudioDecoderConfigurations{ProfileToken: token}); err == nil {
@@ -111,7 +138,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 			out.CompatibleAudioDecoders = append(out.CompatibleAudioDecoders, x.Token)
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioDecoderConfigurations").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetCompatibleAudioDecoderConfigurations").Msg("profile")
 	}
 
 	return out
