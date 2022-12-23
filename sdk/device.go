@@ -28,6 +28,10 @@ var (
 )
 
 type Device interface {
+	GetEndpoint(name string) string
+
+	GetServices() map[string]string
+
 	FetchDescriptor(ctx context.Context) DeviceDescriptor
 
 	// FetchMedia fetches from the Device a fully-hydrated Media structure
@@ -62,26 +66,16 @@ type deviceWrapper struct {
 	client *networking.Client
 }
 
-func WrapClient(client *networking.Client) (Device, error) {
-	dw := &deviceWrapper{client: client}
-	return dw.load()
-}
-
-// GetServices return available endpoints
-func (dw *deviceWrapper) GetServices() map[string]string {
-	return dw.client.GetServices()
-}
-
-// GetEndpoint returns specific ONVIF service endpoint address
-func (dw *deviceWrapper) GetEndpoint(name string) string {
-	return dw.client.GetEndpoint(name)
-}
-
 func NewDevice(params networking.ClientParams) (Device, error) {
 	client, err := networking.NewClient(params)
 	if err != nil {
 		return nil, err
 	}
+	dw := &deviceWrapper{client: client}
+	return dw.load()
+}
+
+func WrapClient(client *networking.Client) (Device, error) {
 	dw := &deviceWrapper{client: client}
 	return dw.load()
 }
@@ -109,6 +103,16 @@ func (dw *deviceWrapper) load() (Device, error) {
 	}
 
 	return dw, nil
+}
+
+// GetServices return available endpoints
+func (dw *deviceWrapper) GetServices() map[string]string {
+	return dw.client.GetServices()
+}
+
+// GetEndpoint returns specific ONVIF service endpoint address
+func (dw *deviceWrapper) GetEndpoint(name string) string {
+	return dw.client.GetEndpoint(name)
 }
 
 func (dw *deviceWrapper) FetchDescriptor(ctx context.Context) DeviceDescriptor {
