@@ -4,14 +4,15 @@ package main
 
 import (
 	"context"
-	"github.com/jfsmig/onvif/networking"
-	"github.com/juju/errors"
-	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
+	"errors"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
+
+	"github.com/jfsmig/onvif/networking"
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -22,6 +23,10 @@ var (
 		New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().
 		Logger()
+)
+
+var (
+	ErrMissingSubcommand = errors.New("missing sub-command")
 )
 
 func main() {
@@ -38,7 +43,7 @@ func main() {
 		Long:  "CLI Client for OnVif devices",
 		//Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errors.New("Missing sub-command")
+			return ErrMissingSubcommand
 		},
 	}
 
@@ -60,7 +65,7 @@ func main() {
 		Long:  "Dump the configuration of the given camera, playing all the possible OnVif calls to explicitly check which are supported",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errors.New("Missing sub-command")
+			return ErrMissingSubcommand
 		},
 	}
 

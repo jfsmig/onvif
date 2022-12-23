@@ -6,13 +6,14 @@ package main
 import (
 	"bufio"
 	"context"
-	"github.com/juju/errors"
-	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
+	"errors"
 	"os"
 	"os/signal"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -25,12 +26,16 @@ var (
 		Logger()
 )
 
+var (
+	ErrMissingSubcommand = errors.New("missing sub-command")
+)
+
 func main() {
 	cmd := &cobra.Command{
 		Use:   "codegen",
 		Short: "",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return errors.New("Missing sub-command")
+			return ErrMissingSubcommand
 		},
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/networking"
 	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
-	"github.com/juju/errors"
 )
 
 func discover(ctx context.Context) error {
@@ -25,7 +24,7 @@ func discover(ctx context.Context) error {
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		return errors.Annotate(err, "lan discovery")
+		return err
 	}
 
 	encoder := json.NewEncoder(os.Stdout)

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/sdk"
-	"github.com/juju/errors"
 	"os"
 )
 
@@ -21,7 +20,7 @@ type OnvifFullOutput struct {
 func dumpAll(ctx context.Context, params networking.ClientParams) error {
 	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	out := OnvifFullOutput{}
@@ -41,7 +40,7 @@ func dumpAll(ctx context.Context, params networking.ClientParams) error {
 func dumpMedia(ctx context.Context, params networking.ClientParams) error {
 	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	out := sdkDev.FetchMedia(ctx)
@@ -54,7 +53,7 @@ func dumpMedia(ctx context.Context, params networking.ClientParams) error {
 func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
 	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
-		return errors.Trace(err)
+		return err
 	}
 
 	out := sdkDev.FetchDescriptor(ctx)
