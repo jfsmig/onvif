@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_SetGeoLocation(ctx context.Context, dev *networking.Client, request Se
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.SetGeoLocationResponse, errors.Annotate(err, "call")
+		return reply.Body.SetGeoLocationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetGeoLocation")
-		return reply.Body.SetGeoLocationResponse, errors.Annotate(err, "reply")
+		return reply.Body.SetGeoLocationResponse, err
 	}
 }

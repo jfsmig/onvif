@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_RemoveAudioEncoderConfiguration(ctx context.Context, dev *networking.C
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.RemoveAudioEncoderConfigurationResponse, errors.Annotate(err, "call")
+		return reply.Body.RemoveAudioEncoderConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveAudioEncoderConfiguration")
-		return reply.Body.RemoveAudioEncoderConfigurationResponse, errors.Annotate(err, "reply")
+		return reply.Body.RemoveAudioEncoderConfigurationResponse, err
 	}
 }

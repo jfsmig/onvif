@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetHostname(ctx context.Context, dev *networking.Client, request GetHo
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetHostnameResponse, errors.Annotate(err, "call")
+		return reply.Body.GetHostnameResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetHostname")
-		return reply.Body.GetHostnameResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetHostnameResponse, err
 	}
 }

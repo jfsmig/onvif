@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetAccessPolicy(ctx context.Context, dev *networking.Client, request G
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetAccessPolicyResponse, errors.Annotate(err, "call")
+		return reply.Body.GetAccessPolicyResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetAccessPolicy")
-		return reply.Body.GetAccessPolicyResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetAccessPolicyResponse, err
 	}
 }

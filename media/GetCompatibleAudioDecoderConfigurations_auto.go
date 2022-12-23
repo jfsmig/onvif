@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetCompatibleAudioDecoderConfigurations(ctx context.Context, dev *netw
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetCompatibleAudioDecoderConfigurationsResponse, errors.Annotate(err, "call")
+		return reply.Body.GetCompatibleAudioDecoderConfigurationsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCompatibleAudioDecoderConfigurations")
-		return reply.Body.GetCompatibleAudioDecoderConfigurationsResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetCompatibleAudioDecoderConfigurationsResponse, err
 	}
 }

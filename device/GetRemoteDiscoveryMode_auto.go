@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetRemoteDiscoveryMode(ctx context.Context, dev *networking.Client, re
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetRemoteDiscoveryModeResponse, errors.Annotate(err, "call")
+		return reply.Body.GetRemoteDiscoveryModeResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetRemoteDiscoveryMode")
-		return reply.Body.GetRemoteDiscoveryModeResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetRemoteDiscoveryModeResponse, err
 	}
 }

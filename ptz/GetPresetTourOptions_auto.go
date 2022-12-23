@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetPresetTourOptions(ctx context.Context, dev *networking.Client, requ
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetPresetTourOptionsResponse, errors.Annotate(err, "call")
+		return reply.Body.GetPresetTourOptionsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetPresetTourOptions")
-		return reply.Body.GetPresetTourOptionsResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetPresetTourOptionsResponse, err
 	}
 }

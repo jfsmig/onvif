@@ -6,7 +6,6 @@ package event
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_Subscribe(ctx context.Context, dev *networking.Client, request Subscri
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.SubscribeResponse, errors.Annotate(err, "call")
+		return reply.Body.SubscribeResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "Subscribe")
-		return reply.Body.SubscribeResponse, errors.Annotate(err, "reply")
+		return reply.Body.SubscribeResponse, err
 	}
 }

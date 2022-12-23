@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_SetMetadataConfiguration(ctx context.Context, dev *networking.Client, 
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.SetMetadataConfigurationResponse, errors.Annotate(err, "call")
+		return reply.Body.SetMetadataConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetMetadataConfiguration")
-		return reply.Body.SetMetadataConfigurationResponse, errors.Annotate(err, "reply")
+		return reply.Body.SetMetadataConfigurationResponse, err
 	}
 }

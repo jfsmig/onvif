@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_Stop(ctx context.Context, dev *networking.Client, request Stop) (StopR
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.StopResponse, errors.Annotate(err, "call")
+		return reply.Body.StopResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "Stop")
-		return reply.Body.StopResponse, errors.Annotate(err, "reply")
+		return reply.Body.StopResponse, err
 	}
 }

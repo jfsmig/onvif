@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_StopMulticastStreaming(ctx context.Context, dev *networking.Client, re
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.StopMulticastStreamingResponse, errors.Annotate(err, "call")
+		return reply.Body.StopMulticastStreamingResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "StopMulticastStreaming")
-		return reply.Body.StopMulticastStreamingResponse, errors.Annotate(err, "reply")
+		return reply.Body.StopMulticastStreamingResponse, err
 	}
 }

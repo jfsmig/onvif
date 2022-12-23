@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_DeleteDot1XConfiguration(ctx context.Context, dev *networking.Client, 
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.DeleteDot1XConfigurationResponse, errors.Annotate(err, "call")
+		return reply.Body.DeleteDot1XConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteDot1XConfiguration")
-		return reply.Body.DeleteDot1XConfigurationResponse, errors.Annotate(err, "reply")
+		return reply.Body.DeleteDot1XConfigurationResponse, err
 	}
 }

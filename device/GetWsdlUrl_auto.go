@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetWsdlUrl(ctx context.Context, dev *networking.Client, request GetWsd
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetWsdlUrlResponse, errors.Annotate(err, "call")
+		return reply.Body.GetWsdlUrlResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetWsdlUrl")
-		return reply.Body.GetWsdlUrlResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetWsdlUrlResponse, err
 	}
 }

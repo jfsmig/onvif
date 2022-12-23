@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_RemoveScopes(ctx context.Context, dev *networking.Client, request Remo
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.RemoveScopesResponse, errors.Annotate(err, "call")
+		return reply.Body.RemoveScopesResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveScopes")
-		return reply.Body.RemoveScopesResponse, errors.Annotate(err, "reply")
+		return reply.Body.RemoveScopesResponse, err
 	}
 }

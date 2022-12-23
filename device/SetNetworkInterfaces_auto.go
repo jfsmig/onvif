@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_SetNetworkInterfaces(ctx context.Context, dev *networking.Client, requ
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.SetNetworkInterfacesResponse, errors.Annotate(err, "call")
+		return reply.Body.SetNetworkInterfacesResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetNetworkInterfaces")
-		return reply.Body.SetNetworkInterfacesResponse, errors.Annotate(err, "reply")
+		return reply.Body.SetNetworkInterfacesResponse, err
 	}
 }

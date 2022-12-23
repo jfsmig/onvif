@@ -28,7 +28,6 @@ package {{.Package}}
 import (
 	"context"
 	"github.com/jfsmig/onvif/networking"
-	"github.com/juju/errors"
 )
 
 // Call_{{.TypeRequest}} forwards the call to dev.CallMethod() then parses the payload of the reply as a {{.TypeReply}}.
@@ -41,10 +40,10 @@ func Call_{{.TypeRequest}}(ctx context.Context, dev *networking.Client, request 
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.{{.TypeReply}}, errors.Annotate(err, "call")
+		return reply.Body.{{.TypeReply}}, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "{{.TypeRequest}}")
-		return reply.Body.{{.TypeReply}}, errors.Annotate(err, "reply")
+		return reply.Body.{{.TypeReply}}, err
 	}
 }
 `

@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_DeleteOSD(ctx context.Context, dev *networking.Client, request DeleteO
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.DeleteOSDResponse, errors.Annotate(err, "call")
+		return reply.Body.DeleteOSDResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteOSD")
-		return reply.Body.DeleteOSDResponse, errors.Annotate(err, "reply")
+		return reply.Body.DeleteOSDResponse, err
 	}
 }

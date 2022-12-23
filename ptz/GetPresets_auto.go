@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetPresets(ctx context.Context, dev *networking.Client, request GetPre
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetPresetsResponse, errors.Annotate(err, "call")
+		return reply.Body.GetPresetsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetPresets")
-		return reply.Body.GetPresetsResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetPresetsResponse, err
 	}
 }

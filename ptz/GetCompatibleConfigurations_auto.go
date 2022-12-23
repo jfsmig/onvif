@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetCompatibleConfigurations(ctx context.Context, dev *networking.Clien
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetCompatibleConfigurationsResponse, errors.Annotate(err, "call")
+		return reply.Body.GetCompatibleConfigurationsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCompatibleConfigurations")
-		return reply.Body.GetCompatibleConfigurationsResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetCompatibleConfigurationsResponse, err
 	}
 }

@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetSystemSupportInformation(ctx context.Context, dev *networking.Clien
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetSystemSupportInformationResponse, errors.Annotate(err, "call")
+		return reply.Body.GetSystemSupportInformationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSystemSupportInformation")
-		return reply.Body.GetSystemSupportInformationResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetSystemSupportInformationResponse, err
 	}
 }

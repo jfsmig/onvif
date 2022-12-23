@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_DeleteProfile(ctx context.Context, dev *networking.Client, request Del
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.DeleteProfileResponse, errors.Annotate(err, "call")
+		return reply.Body.DeleteProfileResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteProfile")
-		return reply.Body.DeleteProfileResponse, errors.Annotate(err, "reply")
+		return reply.Body.DeleteProfileResponse, err
 	}
 }

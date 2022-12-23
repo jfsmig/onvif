@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetNodes(ctx context.Context, dev *networking.Client, request GetNodes
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetNodesResponse, errors.Annotate(err, "call")
+		return reply.Body.GetNodesResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetNodes")
-		return reply.Body.GetNodesResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetNodesResponse, err
 	}
 }

@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_SetScopes(ctx context.Context, dev *networking.Client, request SetScop
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.SetScopesResponse, errors.Annotate(err, "call")
+		return reply.Body.SetScopesResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetScopes")
-		return reply.Body.SetScopesResponse, errors.Annotate(err, "reply")
+		return reply.Body.SetScopesResponse, err
 	}
 }

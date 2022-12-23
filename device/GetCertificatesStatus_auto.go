@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetCertificatesStatus(ctx context.Context, dev *networking.Client, req
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetCertificatesStatusResponse, errors.Annotate(err, "call")
+		return reply.Body.GetCertificatesStatusResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCertificatesStatus")
-		return reply.Body.GetCertificatesStatusResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetCertificatesStatusResponse, err
 	}
 }

@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_RelativeMove(ctx context.Context, dev *networking.Client, request Rela
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.RelativeMoveResponse, errors.Annotate(err, "call")
+		return reply.Body.RelativeMoveResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "RelativeMove")
-		return reply.Body.RelativeMoveResponse, errors.Annotate(err, "reply")
+		return reply.Body.RelativeMoveResponse, err
 	}
 }

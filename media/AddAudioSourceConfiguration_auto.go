@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_AddAudioSourceConfiguration(ctx context.Context, dev *networking.Clien
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.AddAudioSourceConfigurationResponse, errors.Annotate(err, "call")
+		return reply.Body.AddAudioSourceConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "AddAudioSourceConfiguration")
-		return reply.Body.AddAudioSourceConfigurationResponse, errors.Annotate(err, "reply")
+		return reply.Body.AddAudioSourceConfigurationResponse, err
 	}
 }

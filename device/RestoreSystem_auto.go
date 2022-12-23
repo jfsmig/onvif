@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_RestoreSystem(ctx context.Context, dev *networking.Client, request Res
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.RestoreSystemResponse, errors.Annotate(err, "call")
+		return reply.Body.RestoreSystemResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "RestoreSystem")
-		return reply.Body.RestoreSystemResponse, errors.Annotate(err, "reply")
+		return reply.Body.RestoreSystemResponse, err
 	}
 }

@@ -6,7 +6,6 @@ package ptz
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GotoHomePosition(ctx context.Context, dev *networking.Client, request 
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GotoHomePositionResponse, errors.Annotate(err, "call")
+		return reply.Body.GotoHomePositionResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GotoHomePosition")
-		return reply.Body.GotoHomePositionResponse, errors.Annotate(err, "reply")
+		return reply.Body.GotoHomePositionResponse, err
 	}
 }

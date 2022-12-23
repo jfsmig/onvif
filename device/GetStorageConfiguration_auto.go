@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetStorageConfiguration(ctx context.Context, dev *networking.Client, r
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetStorageConfigurationResponse, errors.Annotate(err, "call")
+		return reply.Body.GetStorageConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetStorageConfiguration")
-		return reply.Body.GetStorageConfigurationResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetStorageConfigurationResponse, err
 	}
 }

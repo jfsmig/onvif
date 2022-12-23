@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetVideoEncoderConfigurationOptions(ctx context.Context, dev *networki
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetVideoEncoderConfigurationOptionsResponse, errors.Annotate(err, "call")
+		return reply.Body.GetVideoEncoderConfigurationOptionsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetVideoEncoderConfigurationOptions")
-		return reply.Body.GetVideoEncoderConfigurationOptionsResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetVideoEncoderConfigurationOptionsResponse, err
 	}
 }

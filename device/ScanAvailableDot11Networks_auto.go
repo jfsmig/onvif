@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_ScanAvailableDot11Networks(ctx context.Context, dev *networking.Client
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.ScanAvailableDot11NetworksResponse, errors.Annotate(err, "call")
+		return reply.Body.ScanAvailableDot11NetworksResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "ScanAvailableDot11Networks")
-		return reply.Body.ScanAvailableDot11NetworksResponse, errors.Annotate(err, "reply")
+		return reply.Body.ScanAvailableDot11NetworksResponse, err
 	}
 }

@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetDNS(ctx context.Context, dev *networking.Client, request GetDNS) (G
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetDNSResponse, errors.Annotate(err, "call")
+		return reply.Body.GetDNSResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDNS")
-		return reply.Body.GetDNSResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetDNSResponse, err
 	}
 }

@@ -6,7 +6,6 @@ package device
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_SystemReboot(ctx context.Context, dev *networking.Client, request Syst
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.SystemRebootResponse, errors.Annotate(err, "call")
+		return reply.Body.SystemRebootResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SystemReboot")
-		return reply.Body.SystemRebootResponse, errors.Annotate(err, "reply")
+		return reply.Body.SystemRebootResponse, err
 	}
 }

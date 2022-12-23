@@ -6,7 +6,6 @@ package media
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
 )
 
@@ -20,9 +19,9 @@ func Call_GetCompatibleVideoAnalyticsConfigurations(ctx context.Context, dev *ne
 	}
 	var reply Envelope
 	if httpReply, err := dev.CallMethod(request); err != nil {
-		return reply.Body.GetCompatibleVideoAnalyticsConfigurationsResponse, errors.Annotate(err, "call")
+		return reply.Body.GetCompatibleVideoAnalyticsConfigurationsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCompatibleVideoAnalyticsConfigurations")
-		return reply.Body.GetCompatibleVideoAnalyticsConfigurationsResponse, errors.Annotate(err, "reply")
+		return reply.Body.GetCompatibleVideoAnalyticsConfigurationsResponse, err
 	}
 }
