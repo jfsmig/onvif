@@ -48,10 +48,29 @@ func (dw *deviceWrapper) FetchMediaProfiles(ctx context.Context) Profiles {
 	return out
 }
 
-func (dw *deviceWrapper) FetchMediaProfileUris(ctx context.Context, token onvif.ReferenceToken, protocol, transport string) ProfileUris {
+const (
+	ProtocolRTSP = onvif.TransportProtocol("RTSP")
+)
+
+const (
+	StreamTypeDefault = onvif.StreamType("000")
+)
+
+func (dw *deviceWrapper) FetchMediaProfileUris(ctx context.Context, protocol onvif.TransportProtocol, token onvif.ReferenceToken, sType onvif.StreamType) ProfileUris {
 	out := ProfileUris{}
 
-	if uris, err := media.Call_GetStreamUri(ctx, dw.client, media.GetStreamUri{ProfileToken: token}); err == nil {
+	streamRequest := media.GetStreamUri{
+		StreamSetup: onvif.StreamSetup{
+			Stream: sType,
+			Transport: onvif.Transport{
+				Protocol: protocol,
+				Tunnel:   nil,
+			},
+		},
+		ProfileToken: token,
+	}
+
+	if uris, err := media.Call_GetStreamUri(ctx, dw.client, streamRequest); err == nil {
 		out.Stream = uris.MediaUri
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetStreamUri").Msg("profile")
@@ -75,7 +94,7 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, token onvif.Reference
 		Logger.Trace().Err(err).Str("rpc", "GetProfile").Msg("profile")
 	}
 
-	out.Uris = dw.FetchMediaProfileUris(ctx, token, "RTSP", "TCP")
+	out.Uris = dw.FetchMediaProfileUris(ctx, ProtocolRTSP, token, StreamTypeDefault)
 
 	if all, err := media.Call_GetCompatibleMetadataConfigurations(ctx, dw.client, media.GetCompatibleMetadataConfigurations{ProfileToken: token}); err == nil {
 		for _, x := range all.Configurations {

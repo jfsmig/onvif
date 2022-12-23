@@ -50,10 +50,10 @@ type Device interface {
 	FetchMediaProfiles(ctx context.Context) Profiles
 
 	// @param ctx
-	// @param token
 	// @param protocol
-	// @param transport
-	FetchMediaProfileUris(ctx context.Context, token onvif.ReferenceToken, protocol, transport string) ProfileUris
+	// @param token
+	// @param sType
+	FetchMediaProfileUris(ctx context.Context, protocol onvif.TransportProtocol, token onvif.ReferenceToken, sType onvif.StreamType) ProfileUris
 }
 
 type DeviceDescriptor struct {
