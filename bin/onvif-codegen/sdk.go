@@ -27,8 +27,8 @@ package {{.Package}}
 
 import (
 	"context"
-	"github.com/juju/errors"
 	"github.com/jfsmig/onvif/networking"
+	"github.com/juju/errors"
 )
 
 // Call_{{.TypeRequest}} forwards the call to dev.CallMethod() then parses the payload of the reply as a {{.TypeReply}}.
