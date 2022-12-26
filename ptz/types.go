@@ -39,7 +39,7 @@ type GetNode struct {
 }
 
 type GetNodeResponse struct {
-	PTZNode []onvif.PTZNode
+	PTZNode onvif.PTZNode
 }
 
 type GetConfiguration struct {
@@ -56,7 +56,7 @@ type GetConfigurations struct {
 }
 
 type GetConfigurationsResponse struct {
-	PTZConfiguration onvif.PTZConfiguration
+	PTZConfiguration []onvif.PTZConfiguration
 }
 
 type SetConfiguration struct {
