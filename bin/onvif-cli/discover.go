@@ -4,30 +4,18 @@ package main
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
+	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 	"net"
 	"net/url"
-	"os"
-
-	"github.com/jfsmig/onvif/device"
-	"github.com/jfsmig/onvif/networking"
-	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 )
 
 func discover(ctx context.Context) error {
-	type Output struct {
-		device.GetDeviceInformationResponse
-		Error     error
-		Interface string
-		Endpoint  string
-	}
-
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return err
 	}
 
-	encoder := json.NewEncoder(os.Stdout)
 	for _, itf := range interfaces {
 		devices, err := wsdiscovery.GetAvailableDevicesAtSpecificEthernetInterface(itf.Name)
 		if err != nil {
@@ -36,23 +24,11 @@ func discover(ctx context.Context) error {
 			for _, dev := range devices {
 				u := dev.GetEndpoint("device")
 				parsedUrl, err := url.Parse(u)
-				authDev, err := networking.NewClient(networking.ClientParams{
-					Xaddr:    parsedUrl.Host,
-					Username: "admin",
-					Password: "ollyhgqo",
-				})
 				if err != nil {
-					Logger.Warn().Str("itf", itf.Name).Msg("auth failed")
+					Logger.Warn().Err(err).Str("action", "parse").Msg("invalid device")
 				} else {
-					dev = *authDev
+					fmt.Println(parsedUrl.Host)
 				}
-
-				reply, err := device.Call_GetDeviceInformation(ctx, &dev, device.GetDeviceInformation{})
-				out := Output{GetDeviceInformationResponse: reply}
-				out.Error = err
-				out.Interface = itf.Name
-				out.Endpoint = parsedUrl.Host
-				encoder.Encode(out)
 			}
 		}
 	}

@@ -48,10 +48,10 @@ func main() {
 	}
 
 	cmdDiscover := &cobra.Command{
-		Use:   "discover",
-		Short: "Discover the local cameras",
-		Long:  "Discover the local cameras on all the local network interfaces using the built-in Web Service discovery mechanism",
-		Args:  cobra.NoArgs,
+		Use:     "discover",
+		Aliases: []string{"find", "crawl", "probe"},
+		Short:   "Discover the local cameras",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
@@ -60,20 +60,20 @@ func main() {
 	}
 
 	cmdDump := &cobra.Command{
-		Use:   "dump",
-		Short: "Dump the configuration of the given camera",
-		Long:  "Dump the configuration of the given camera, playing all the possible OnVif calls to explicitly check which are supported",
-		Args:  cobra.NoArgs,
+		Use:     "dump",
+		Aliases: []string{"all", "detail", "details"},
+		Short:   "Dump the configuration of the given camera",
+		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return ErrMissingSubcommand
 		},
 	}
 
 	cmdDumpAll := &cobra.Command{
-		Use:   "all",
-		Short: "Dump the configuration of the given camera",
-		Long:  "Dump the configuration of the given camera, playing all the possible OnVif calls to explicitly check which are supported",
-		Args:  cobra.ExactArgs(1),
+		Use:     "all",
+		Aliases: []string{"full"},
+		Short:   "Dump the configuration of the given camera",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
@@ -96,7 +96,7 @@ func main() {
 
 	cmdDumpMedia := &cobra.Command{
 		Use:   "media",
-		Short: "Dump a general descriptor of the given camera",
+		Short: "Dump the information related to the Media service of the camera",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
@@ -106,22 +106,66 @@ func main() {
 		},
 	}
 
-	cmdDump.AddCommand(cmdDumpDescr, cmdDumpMedia, cmdDumpAll)
+	cmdDumpPtz := &cobra.Command{
+		Use:     "ptz",
+		Aliases: []string{"PTZ"},
+		Short:   "Dump the information related to the PTZ service of the camera",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+			defer cancel()
+			params.Xaddr = args[0]
+			return dumpPTZ(ctx, params)
+		},
+	}
+
+	cmdDumpEvents := &cobra.Command{
+		Use:     "event",
+		Aliases: []string{"events", "evt"},
+		Short:   "Dump the information related to the Events service of the camera",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+			defer cancel()
+			params.Xaddr = args[0]
+			return dumpEvents(ctx, params)
+		},
+	}
+
+	cmdDumpProfiles := &cobra.Command{
+		Use:     "profile",
+		Aliases: []string{"profiles", "prof"},
+		Short:   "Dump the information related to the Profiles of the camera",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+			defer cancel()
+			params.Xaddr = args[0]
+			return dumpProfiles(ctx, params)
+		},
+	}
+
+	cmdDumpDevice := &cobra.Command{
+		Use:     "device",
+		Aliases: []string{"devices", "dev"},
+		Short:   "Dump the information related to the core Device service of the camera",
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+			defer cancel()
+			params.Xaddr = args[0]
+			return dumpDevice(ctx, params)
+		},
+	}
+
+	cmdDump.AddCommand(cmdDumpDescr, cmdDumpAll)
+	cmdDump.AddCommand(cmdDumpMedia, cmdDumpPtz, cmdDumpEvents, cmdDumpProfiles, cmdDumpDevice)
 	cmd.AddCommand(cmdDiscover, cmdDump)
 
 	if err := cmd.Execute(); err != nil {
 		Logger.Fatal().Err(err).Msg("Aborting")
 	} else {
 		Logger.Info().Msg("Exiting")
-	}
-}
-
-func runAll(ctx context.Context, hooks ...func(ctx2 context.Context)) {
-	for _, fun := range hooks {
-		if ctx.Err() != nil {
-			return
-		}
-		fun(ctx)
 	}
 }
 

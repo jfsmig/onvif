@@ -12,9 +12,11 @@ import (
 
 type OnvifFullOutput struct {
 	Descriptor sdk.DeviceDescriptor
-	Device     DeviceOutput
+	Device     sdk.Device
 	Media      sdk.Media
-	Ptz        PtzOutput
+	Ptz        sdk.Ptz
+	Profiles   sdk.Profiles
+	Events     sdk.Event
 }
 
 func dumpAll(ctx context.Context, params networking.ClientParams) error {
@@ -27,9 +29,11 @@ func dumpAll(ctx context.Context, params networking.ClientParams) error {
 
 	r := Runner{}
 	r.Async(func() { out.Descriptor = sdkDev.FetchDescriptor(ctx) })
-	//r.Async(func() { out.Device = detailDevice(ctx, dev) })
+	r.Async(func() { out.Device = sdkDev.FetchDevice(ctx) })
 	r.Async(func() { out.Media = sdkDev.FetchMedia(ctx) })
-	//r.Async(func() { out.Ptz = detailPtz(ctx, dev) })
+	r.Async(func() { out.Ptz = sdkDev.FetchPTZ(ctx) })
+	r.Async(func() { out.Events = sdkDev.FetchEvent(ctx) })
+	r.Async(func() { out.Profiles = sdkDev.FetchProfiles(ctx) })
 	r.Wait()
 
 	encoder := json.NewEncoder(os.Stdout)
@@ -57,6 +61,58 @@ func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
 	}
 
 	out := sdkDev.FetchDescriptor(ctx)
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(out)
+}
+
+func dumpPTZ(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
+	if err != nil {
+		return err
+	}
+
+	out := sdkDev.FetchPTZ(ctx)
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(out)
+}
+
+func dumpEvents(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
+	if err != nil {
+		return err
+	}
+
+	out := sdkDev.FetchEvent(ctx)
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(out)
+}
+
+func dumpDevice(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
+	if err != nil {
+		return err
+	}
+
+	out := sdkDev.FetchDevice(ctx)
+
+	encoder := json.NewEncoder(os.Stdout)
+	encoder.SetIndent("", "  ")
+	return encoder.Encode(out)
+}
+
+func dumpProfiles(ctx context.Context, params networking.ClientParams) error {
+	sdkDev, err := sdk.NewDevice(params)
+	if err != nil {
+		return err
+	}
+
+	out := sdkDev.FetchProfiles(ctx)
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
