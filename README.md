@@ -1,104 +1,60 @@
-# onvif protocol
+# Go OnVif Client
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/jfsmig/onvif/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/jfsmig/onvif/tree/master)
 
-Simple management of onvif IP-devices cameras. onvif is an implementation of  ONVIF protocol for managing onvif IP devices. The purpose of this library is convenient and easy management of IP cameras and other devices that support ONVIF standard.
+Simple management IP-devices cameras that honor the [ONVIF Protocol](https://www.onvif.org/) protocol.
 
-## Installation
+The present repository is a fork of [goonvif](https://github.com/use-go/goonvif) that quickly evolved. 
+Because of the need for quickly merged changes, the link to the upstream has been cut.
 
-To install the library,  use **go get**:
+## CLI tools
 
-```go
-go get github.com/jfsmig/onvif
+For the convenience and testing purposes, a [CLI](https://en.wikipedia.org/wiki/Command-line_interface) tool ships
+with the repository to help discovering and fetching information from devices.
+
+```console
+onvif-cli COMMAND [SUBCOMAND] [ARGUMENTS...]
+COMMAND:
+  discover                 perform a web-service discovery on the local networks and
+                           reports one line (IP:PORT CRLF) per device that responded
+  dump SUBCOMMAND IP:PORT  Prints a single JSON object with a configuration dump
+                           for the given camera
+  SUBCOMMAND: 
+    all         Prints the full configuration dump, all sections included
+    media       Prints only the media section
+    event       ...
+    ptz         ...
+    device      ...
 ```
 
-## Supported services
+## SDK
 
-The following services are implemented:
+A High Level go package aims at fetching information from the devices:
+- [github.com/jfsmig/onvif/sdk](https://pkg.go.dev/github.com/jfsmig/onvif/sdk)
 
-- Device
-- Media
-- PTZ
-- Imaging
-- Event
-- Discovery
-- Auth(More Options)
-- Soap
+Low-Level go packages implement the OnVIF unitary SOAP calls. For each call :
+- [github.com/jfsmig/onvif/device](https://pkg.go.dev/github.com/jfsmig/onvif/device)
+- [github.com/jfsmig/onvif/event](https://pkg.go.dev/github.com/jfsmig/onvif/event)
+- [github.com/jfsmig/onvif/ptz](https://pkg.go.dev/github.com/jfsmig/onvif/ptz)
+- [github.com/jfsmig/onvif/Imaging](https://pkg.go.dev/github.com/jfsmig/onvif/Imaging)
+- [github.com/jfsmig/onvif/media](https://pkg.go.dev/github.com/jfsmig/onvif/media)
 
-## Using
+Helpers:
+- [github.com/jfsmig/onvif/networking](https://pkg.go.dev/github.com/jfsmig/onvif/networking)
+  implements the low-level SOAP connectivity
+- [github.com/jfsmig/onvif/ws-discovery](https://pkg.go.dev/github.com/jfsmig/onvif/ws-discovery)
+  implements the probing of the LAN network interfaces. Please refer to the CLI tools `onvif-cli discover NIC`
 
-### General concept
-
-1) Connecting to the device
-2) Authentication (if necessary)
-3) Defining Data Types
-4) Carrying out the required method
-
-#### Connecting to the device
-
-If there is a device on the network at the address *192.168.13.42*, and its ONVIF services use the *1234* port, then you can connect to the device in the following way:
+### Beginner's Guide
 
 ```go
-dev, err := onvif.NewDevice(onvif.DeviceParams{Xaddr: "192.168.13.42:1234"})
+params := networking.ClientParams{
+    Xaddr:      "",
+    Username:   os.Getenv("ONVIF_USERNAME"),
+    Password:   os.Getenv("ONVIF_PASSWORD"),
+    HttpClient: nil,
+}
+sdkDev, err := sdk.NewDevice(params)
+if err != nil { /* Not a reachable OnVif device */ }
 ```
-
-*The ONVIF port may differ depending on the device , to find out which port to use, you can go to the web interface of the device. **Usually this is 80 port.***
-
-#### Authentication
-
-If any function of the ONVIF services requires authentication, you must use the `Authenticate` method.
-
-```go
-device := onvif.NewDevice(onvif.DeviceParams{Xaddr: "192.168.13.42:1234", Username: "username", Password: password})
-```
-
-#### Defining Data Types
-
-Each ONVIF service in this library has its own package, in which all data types of this service are defined, and the package name is identical to the service name and begins with a capital letter. onvif defines the structures for each function of each ONVIF service supported by this library. Define the data type of the `GetCapabilities` function of the Device service. This is done as follows:
-
-```go
-capabilities := device.GetCapabilities{Category:"All"}
-```
-
-Why does the `GetCapabilities` structure have the Category field and why is the value of this field `All`?
-
-The figure below shows the documentation for the [GetCapabilities](https://www.onvif.org/ver10/device/wsdl/devicemgmt.wsdl). It can be seen that the function takes one Category parameter and its value should be one of the following: 'All', 'Analytics',' Device ',' Events', 'Imaging', 'Media' or 'PTZ'`.
-
-![Device GetCapabilities](docs/img/exmp_GetCapabilities.png)
-
-An example of defining the data type of `GetServiceCapabilities` function in [PTZ](https://www.onvif.org/ver20/ptz/wsdl/ptz.wsdl):
-
-```go
-ptzCapabilities := ptz.GetServiceCapabilities{}
-```
-
-The figure below shows that `GetServiceCapabilities` does not accept any arguments.
-
-![PTZ GetServiceCapabilities](docs/img/GetServiceCapabilities.png)
-
-*Common data types are in the xsd/onvif package. The types of data (structures) that can be shared by all services are defined in the onvif package.*
-
-An example of how to define the data type of the CreateUsers function in [Devicemgmt](https://www.onvif.org/ver10/device/wsdl/devicemgmt.wsdl):
-
-```go
-createUsers := device.CreateUsers{User: onvif.User{Username:"admin", Password:"qwerty", UserLevel:"User"}}
-```
-
-The figure below shows that ,in this example, the `CreateUsers` structure field must be a User whose data type is the User structure containing the Username, Password, UserLevel, and optional Extension fields. The User structure is in the onvif package.
-
-![Device CreateUsers](docs/img/exmp_CreateUsers.png)
-
-#### Carrying out the required method
-
-To perform any function of one of the ONVIF services whose structure has been defined, you must use the `CallMethod` of the device object.
-
-```go
-createUsers := device.CreateUsers{User: onvif.User{Username:"admin", Password:"qwerty", UserLevel:"User"}}
-device := onvif.NewDevice(onvif.DeviceParams{Xaddr: "192.168.13.42:1234", Username: "username", Password: password})
-device.Authenticate("username", "password")
-resp, err := dev.CallMethod(createUsers)
-```
-
-## Great Thanks
-
-Enhanced and Improved from: [goonvif](https://github.com/use-go/goonvif)
