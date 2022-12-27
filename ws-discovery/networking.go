@@ -69,17 +69,31 @@ func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]net
 			return nil, err
 		}
 
+		currentUuid := ""
+		for _, x := range doc.Root().FindElements("./Body/ProbeMatches/ProbeMatch/EndpointReference/Address") {
+			addr := strings.TrimSpace(x.Text())
+			if addr != "" {
+				currentUuid = addr
+				break
+			}
+		}
+
+		// The developer guide at https://www.onvif.org/wp-content/uploads/2016/12/ONVIF_WG-APG-Application_Programmers_Guide-1.pdf
+		// states that the application should stick to the first working address for a given camera.
+		added := false
 		for _, xaddr := range doc.Root().FindElements("./Body/ProbeMatches/ProbeMatch/XAddrs") {
-			xaddr := strings.Split(strings.Split(xaddr.Text(), " ")[0], "/")[2]
-			if !nvtDevicesSeen[xaddr] {
-				dev, err := networking.NewClient(networking.ClientParams{Xaddr: strings.Split(xaddr, " ")[0]})
+			rawXaddr := strings.TrimSpace(xaddr.Text())
+			xaddr := strings.Split(strings.Split(rawXaddr, " ")[0], "/")[2]
+			if !added && !nvtDevicesSeen[xaddr] {
+				dev, err := networking.NewClient(networking.ClientParams{Xaddr: strings.Split(xaddr, " ")[0]}, currentUuid)
 				if err != nil {
 					// TODO(jfsmig) print a warning
 				} else {
-					nvtDevicesSeen[xaddr] = true
 					nvtDevices = append(nvtDevices, *dev)
+					added = true
 				}
 			}
+			nvtDevicesSeen[xaddr] = true
 		}
 	}
 
@@ -88,9 +102,7 @@ func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]net
 
 // SendProbe to device
 func SendProbe(interfaceName string, scopes, types []string, namespaces map[string]string) ([]string, error) {
-	// Creating UUID Version 4
 	uuidV4 := uuid.Must(uuid.NewV4())
-	//fmt.Printf("UUIDv4: %s\n", uuidV4)
 
 	probeSOAP := buildProbeMessage(uuidV4.String(), scopes, types, namespaces)
 	//probeSOAP = `<?xml version="1.0" encoding="UTF-8"?>
@@ -131,11 +143,11 @@ func sendUDPMulticast(msg string, interfaceName string) ([]string, error) {
 	dst := &net.UDPAddr{IP: group, Port: 3702}
 	data := []byte(msg)
 	for _, ifi := range []*net.Interface{iface} {
-		if err := p.SetMulticastInterface(ifi); err != nil {
+		if err = p.SetMulticastInterface(ifi); err != nil {
 			return nil, err
 		}
 		p.SetMulticastTTL(2)
-		if _, err := p.WriteTo(data, nil, dst); err != nil {
+		if _, err = p.WriteTo(data, nil, dst); err != nil {
 			return nil, err
 		}
 	}

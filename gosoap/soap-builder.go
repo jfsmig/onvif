@@ -244,48 +244,32 @@ func buildSoapRoot() *etree.Document {
 
 // AddWSSecurity Header for soapMessage
 func (msg *SoapMessage) AddWSSecurity(username, password string) {
-	//doc := etree.NewDocument()
-	//if err := doc.ReadFromString(msg.String()); err != nil {
-	//	log.Println(err.Error())
-	//}
-	/*
-		Getting an WS-Security struct representation
-	*/
+	// Getting an WS-Security struct representation
 	auth := NewSecurity(username, password)
 
-	/*
-		Adding WS-Security namespaces to root element of SOAP message
-	*/
+	// Adding WS-Security namespaces to root element of SOAP message
+
 	//msg.AddRootNamespace("wsse", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext1.0.xsd")
 	//msg.AddRootNamespace("wsu", "http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility1.0.xsd")
-
 	soapReq, err := xml.MarshalIndent(auth, "", "  ")
 	if err != nil {
 		//log.Printf("error: %v\n", err.Error())
 		panic(err)
 	}
 
-	/*
-		Adding WS-Security struct to SOAP header
-	*/
+	// Adding WS-Security struct to SOAP header
 	msg.AddStringHeaderContent(string(soapReq))
-
-	//doc.IndentTabs()
-	//res, _ := doc.WriteToString()
-	//
-	//*msg = SoapMessage(res)
 }
 
 // AddAction Header handling for soapMessage
 func (msg *SoapMessage) AddAction() {
-
 	doc := etree.NewDocument()
 	if err := doc.ReadFromString(msg.String()); err != nil {
 		log.Println(err.Error())
 	}
-	// opetaionTag := doc.Root().SelectElement("Body")
 
-	// firstElemnt := opetaionTag.Child[0]
+	// operationTag := doc.Root().SelectElement("Body")
+	// firstElemnt := operationTag.Child[0]
 
 	// soapReq, err := xml.MarshalIndent(action, "", "  ")
 	// if err != nil {
@@ -296,9 +280,4 @@ func (msg *SoapMessage) AddAction() {
 	// 	Adding WS-Security struct to SOAP header
 	// */
 	// msg.AddStringHeaderContent(string(soapReq))
-
-	// //doc.IndentTabs()
-	// //res, _ := doc.WriteToString()
-	// //
-	// //*msg = SoapMessage(res)
 }

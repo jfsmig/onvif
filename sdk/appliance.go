@@ -2,7 +2,7 @@ package sdk
 
 import (
 	"context"
-	"errors"
+	"github.com/jfsmig/onvif/errorz"
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/xsd/onvif"
 	"io"
@@ -28,6 +28,8 @@ var (
 )
 
 type Appliance interface {
+	GetUUID() string
+
 	GetEndpoint(name string) string
 
 	GetServices() map[string]string
@@ -67,7 +69,7 @@ type deviceWrapper struct {
 }
 
 func NewDevice(params networking.ClientParams) (Appliance, error) {
-	client, err := networking.NewClient(params)
+	client, err := networking.NewClient(params, "")
 	if err != nil {
 		return nil, err
 	}
@@ -80,12 +82,15 @@ func WrapClient(client *networking.Client) (Appliance, error) {
 	return dw.load()
 }
 
-var ErrOnvifUnsupported = errors.New("unsupported device")
-
 func (dw *deviceWrapper) load() (Appliance, error) {
-	resp, err := dw.client.CallMethod(device.GetCapabilities{Category: "All"})
+	resp, err := dw.client.CallMethod(device.GetSystemDateAndTime{})
 	if err != nil || resp.StatusCode != http.StatusOK {
-		return nil, ErrOnvifUnsupported
+		return nil, errorz.ErrNotOnvif
+	}
+
+	resp, err = dw.client.CallMethod(device.GetCapabilities{Category: "All"})
+	if err != nil || resp.StatusCode != http.StatusOK {
+		return nil, errorz.ErrNotOnvif
 	}
 
 	doc := etree.NewDocument()
@@ -107,15 +112,13 @@ func (dw *deviceWrapper) load() (Appliance, error) {
 	return dw, nil
 }
 
+func (dw *deviceWrapper) GetUUID() string { return dw.client.GetUUID() }
+
 // GetServices return available endpoints
-func (dw *deviceWrapper) GetServices() map[string]string {
-	return dw.client.GetServices()
-}
+func (dw *deviceWrapper) GetServices() map[string]string { return dw.client.GetServices() }
 
 // GetEndpoint returns specific ONVIF service endpoint address
-func (dw *deviceWrapper) GetEndpoint(name string) string {
-	return dw.client.GetEndpoint(name)
-}
+func (dw *deviceWrapper) GetEndpoint(name string) string { return dw.client.GetEndpoint(name) }
 
 func (dw *deviceWrapper) FetchDescriptor(ctx context.Context) DeviceDescriptor {
 	out := DeviceDescriptor{}

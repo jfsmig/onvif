@@ -83,9 +83,10 @@ func main() {
 	}
 
 	cmdDumpDescr := &cobra.Command{
-		Use:   "descr",
-		Short: "Dump a general descriptor of the given camera",
-		Args:  cobra.ExactArgs(1),
+		Use:     "descriptor",
+		Aliases: []string{"minimal", "mini"},
+		Short:   "Dump a general descriptor of the given camera",
+		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()

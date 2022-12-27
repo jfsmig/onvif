@@ -31,7 +31,12 @@ var Xlmns = map[string]string{
 // struct represents an abstract ONVIF device.
 // It contains methods, which helps to communicate with ONVIF device
 type Client struct {
-	params    ClientParams
+	params ClientParams
+
+	// Discovered with the WS-discovery Probematch
+	uuid string
+
+	// Discovered with the WS-discovery ProbeMatch
 	endpoints map[string]string
 }
 
@@ -43,9 +48,10 @@ type ClientParams struct {
 }
 
 // NewClient function construct a ONVIF Client entity
-func NewClient(params ClientParams) (*Client, error) {
+func NewClient(params ClientParams, uuid string) (*Client, error) {
 	dev := new(Client)
 	dev.params = params
+	dev.uuid = uuid
 	dev.endpoints = make(map[string]string)
 	dev.AddEndpoint("Device", "http://"+dev.params.Xaddr+"/onvif/device_service")
 
@@ -55,6 +61,10 @@ func NewClient(params ClientParams) (*Client, error) {
 
 	return dev, nil
 }
+
+func (client *Client) GetUUID() string { return client.uuid }
+
+func (client *Client) SetUUID(uuid string) { client.uuid = uuid }
 
 func (client *Client) SetAuth(username, password string) {
 	client.params.Username = username

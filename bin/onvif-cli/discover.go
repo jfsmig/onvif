@@ -27,7 +27,11 @@ func discover(ctx context.Context) error {
 				if err != nil {
 					Logger.Warn().Err(err).Str("action", "parse").Msg("invalid device")
 				} else {
-					fmt.Println(parsedUrl.Host)
+					uuid := dev.GetUUID()
+					if uuid == "" {
+						uuid = "-"
+					}
+					fmt.Println(parsedUrl.Host, uuid)
 				}
 			}
 		}

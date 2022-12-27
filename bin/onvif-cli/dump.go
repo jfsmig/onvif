@@ -55,12 +55,21 @@ func dumpMedia(ctx context.Context, params networking.ClientParams) error {
 }
 
 func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
+	type Output struct {
+		Services   map[string]string
+		UUID       string
+		Descriptor sdk.DeviceDescriptor
+	}
 	sdkDev, err := sdk.NewDevice(params)
 	if err != nil {
 		return err
 	}
 
-	out := sdkDev.FetchDescriptor(ctx)
+	out := Output{}
+
+	out.UUID = sdkDev.GetUUID()
+	out.Services = sdkDev.GetServices()
+	out.Descriptor = sdkDev.FetchDescriptor(ctx)
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
