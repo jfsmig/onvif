@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/jfsmig/onvif/errorz"
 	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/xsd/onvif"
 	"io"
 	"net/http"
 	"os"
@@ -28,13 +27,16 @@ var (
 )
 
 type Appliance interface {
+	// GetUUID return the unique identifier of the remote appliance.
+	// The UUID is Usually known after the discovery.
+	// TODO(jfs): determine the UUID for devices that do not requires discovery
 	GetUUID() string
 
 	GetEndpoint(name string) string
 
 	GetServices() map[string]string
 
-	FetchDescriptor(ctx context.Context) DeviceDescriptor
+	FetchDeviceDescriptor(ctx context.Context) DeviceDescriptor
 
 	// FetchMedia fetches from the Appliance a fully-hydrated Media structure
 	FetchMedia(ctx context.Context) Media
@@ -51,11 +53,6 @@ type Appliance interface {
 	// FetchMediaProfiles fetches from the Appliance only the Profile related information,
 	// otherwise part from the Media information
 	FetchProfiles(ctx context.Context) Profiles
-}
-
-type DeviceDescriptor struct {
-	Capabilities onvif.Capabilities
-	Info         device.GetDeviceInformationResponse
 }
 
 type Media struct {
@@ -119,20 +116,3 @@ func (dw *deviceWrapper) GetServices() map[string]string { return dw.client.GetS
 
 // GetEndpoint returns specific ONVIF service endpoint address
 func (dw *deviceWrapper) GetEndpoint(name string) string { return dw.client.GetEndpoint(name) }
-
-func (dw *deviceWrapper) FetchDescriptor(ctx context.Context) DeviceDescriptor {
-	out := DeviceDescriptor{}
-
-	if info, err := device.Call_GetDeviceInformation(context.Background(), dw.client, device.GetDeviceInformation{}); err == nil {
-		out.Info = info
-	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetDeviceInformation").Msg("device")
-	}
-
-	if caps, err := device.Call_GetCapabilities(ctx, dw.client, device.GetCapabilities{}); err == nil {
-		out.Capabilities = caps.Capabilities
-	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetCapabilities").Msg("device")
-	}
-	return out
-}

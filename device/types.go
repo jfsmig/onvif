@@ -110,7 +110,7 @@ type GetServices struct {
 }
 
 type GetServicesResponse struct {
-	Service Service
+	Service []Service
 }
 
 type GetServiceCapabilities struct {
@@ -451,7 +451,7 @@ type GetNetworkInterfaces struct {
 }
 
 type GetNetworkInterfacesResponse struct {
-	NetworkInterfaces onvif.NetworkInterface
+	NetworkInterfaces []onvif.NetworkInterface
 }
 
 type SetNetworkInterfaces struct {
@@ -745,7 +745,7 @@ type GetDot1XConfigurations struct {
 }
 
 type GetDot1XConfigurationsResponse struct {
-	Dot1XConfiguration onvif.Dot1XConfiguration
+	Dot1XConfiguration []onvif.Dot1XConfiguration
 }
 
 type DeleteDot1XConfiguration struct {
@@ -817,7 +817,7 @@ type GetStorageConfigurations struct {
 }
 
 type GetStorageConfigurationsResponse struct {
-	StorageConfigurations StorageConfiguration
+	StorageConfigurations []StorageConfiguration
 }
 
 type CreateStorageConfiguration struct {

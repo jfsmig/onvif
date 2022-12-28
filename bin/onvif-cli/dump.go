@@ -28,7 +28,7 @@ func dumpAll(ctx context.Context, params networking.ClientParams) error {
 	out := OnvifFullOutput{}
 
 	r := Runner{}
-	r.Async(func() { out.Descriptor = sdkDev.FetchDescriptor(ctx) })
+	r.Async(func() { out.Descriptor = sdkDev.FetchDeviceDescriptor(ctx) })
 	r.Async(func() { out.Device = sdkDev.FetchDevice(ctx) })
 	r.Async(func() { out.Media = sdkDev.FetchMedia(ctx) })
 	r.Async(func() { out.Ptz = sdkDev.FetchPTZ(ctx) })
@@ -69,7 +69,7 @@ func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
 
 	out.UUID = sdkDev.GetUUID()
 	out.Services = sdkDev.GetServices()
-	out.Descriptor = sdkDev.FetchDescriptor(ctx)
+	out.Descriptor = sdkDev.FetchDeviceDescriptor(ctx)
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
