@@ -11,12 +11,21 @@ import (
 )
 
 type OnvifFullOutput struct {
-	Descriptor sdk.DeviceDescriptor
-	Device     sdk.Device
-	Media      sdk.Media
-	Ptz        sdk.Ptz
-	Profiles   sdk.Profiles
-	Events     sdk.Event
+	Descriptor     sdk.DeviceDescriptor
+	DeviceSystem   sdk.DeviceSystem
+	DeviceSecurity sdk.DeviceSecurity
+	DeviceNetwork  sdk.DeviceNetwork
+	Media          sdk.Media
+	Ptz            sdk.Ptz
+	Profiles       sdk.Profiles
+	Events         sdk.Event
+}
+
+type OnvifDeviceOutput struct {
+	Descriptor     sdk.DeviceDescriptor
+	DeviceSystem   sdk.DeviceSystem
+	DeviceSecurity sdk.DeviceSecurity
+	DeviceNetwork  sdk.DeviceNetwork
 }
 
 func dumpAll(ctx context.Context, params networking.ClientParams) error {
@@ -29,7 +38,9 @@ func dumpAll(ctx context.Context, params networking.ClientParams) error {
 
 	r := Runner{}
 	r.Async(func() { out.Descriptor = sdkDev.FetchDeviceDescriptor(ctx) })
-	r.Async(func() { out.Device = sdkDev.FetchDevice(ctx) })
+	r.Async(func() { out.DeviceNetwork = sdkDev.FetchDeviceNetwork(ctx) })
+	r.Async(func() { out.DeviceSystem = sdkDev.FetchDeviceSystem(ctx) })
+	r.Async(func() { out.DeviceSecurity = sdkDev.FetchDeviceSecurity(ctx) })
 	r.Async(func() { out.Media = sdkDev.FetchMedia(ctx) })
 	r.Async(func() { out.Ptz = sdkDev.FetchPTZ(ctx) })
 	r.Async(func() { out.Events = sdkDev.FetchEvent(ctx) })
@@ -108,7 +119,14 @@ func dumpDevice(ctx context.Context, params networking.ClientParams) error {
 		return err
 	}
 
-	out := sdkDev.FetchDevice(ctx)
+	out := OnvifDeviceOutput{}
+
+	r := Runner{}
+	r.Async(func() { out.Descriptor = sdkDev.FetchDeviceDescriptor(ctx) })
+	r.Async(func() { out.DeviceNetwork = sdkDev.FetchDeviceNetwork(ctx) })
+	r.Async(func() { out.DeviceSystem = sdkDev.FetchDeviceSystem(ctx) })
+	r.Async(func() { out.DeviceSecurity = sdkDev.FetchDeviceSecurity(ctx) })
+	r.Wait()
 
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")

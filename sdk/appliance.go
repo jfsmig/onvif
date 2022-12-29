@@ -45,7 +45,9 @@ type Appliance interface {
 	FetchPTZ(ctx context.Context) Ptz
 
 	// FetchDevice fetches from the Appliance a fully-hydrated Device structure
-	FetchDevice(ctx context.Context) Device
+	FetchDeviceNetwork(ctx context.Context) DeviceNetwork
+	FetchDeviceSecurity(ctx context.Context) DeviceSecurity
+	FetchDeviceSystem(ctx context.Context) DeviceSystem
 
 	// FetchEvent fetches from the Appliance a fully-hydrated Event structure
 	FetchEvent(ctx context.Context) Event
