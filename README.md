@@ -59,6 +59,14 @@ sdkDev, err := sdk.NewDevice(params)
 if err != nil { /* Not a reachable OnVif device */ }
 ```
 
+### Auto-generated code instead of generics
+
+The low level packages provide one function per OnVIF SOAP method.
+Their purpose is to ease the persing and unpacking of the replies.
+The problem was the requirement to name the reply field as the reply expected reply type.
+But Golang's generics do not provide any sophisticated way to generate the name of a type instead of a type, as the
+`#` modifier does with `cpp`. That's why they have all been generated instead of replying on templated functions.
+
 ## References
 
 * [OnVif](https://onvif.org)
