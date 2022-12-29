@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/beevik/etree"
@@ -32,22 +33,30 @@ type Appliance interface {
 	// TODO(jfs): determine the UUID for devices that do not requires discovery
 	GetUUID() string
 
+	GetDeviceEndpoint() string
+
 	GetEndpoint(name string) string
 
 	GetServices() map[string]string
 
+	FetchStreamURI(ctx context.Context) string
+
 	FetchDeviceDescriptor(ctx context.Context) DeviceDescriptor
+
+	// FetchDeviceNetwork fetches from the Appliance the network configuration from the Device
+	FetchDeviceNetwork(ctx context.Context) DeviceNetwork
+
+	// FetchDeviceNetwork fetches from the Appliance the security configuration from the Device
+	FetchDeviceSecurity(ctx context.Context) DeviceSecurity
+
+	// FetchDeviceNetwork fetches from the Appliance the core system configuration from the Device
+	FetchDeviceSystem(ctx context.Context) DeviceSystem
 
 	// FetchMedia fetches from the Appliance a fully-hydrated Media structure
 	FetchMedia(ctx context.Context) Media
 
 	// FetchPTZ fetches from the Appliance a fully-hydrated Ptz structure
 	FetchPTZ(ctx context.Context) Ptz
-
-	// FetchDevice fetches from the Appliance a fully-hydrated Device structure
-	FetchDeviceNetwork(ctx context.Context) DeviceNetwork
-	FetchDeviceSecurity(ctx context.Context) DeviceSecurity
-	FetchDeviceSystem(ctx context.Context) DeviceSystem
 
 	// FetchEvent fetches from the Appliance a fully-hydrated Event structure
 	FetchEvent(ctx context.Context) Event
@@ -118,3 +127,12 @@ func (dw *deviceWrapper) GetServices() map[string]string { return dw.client.GetS
 
 // GetEndpoint returns specific ONVIF service endpoint address
 func (dw *deviceWrapper) GetEndpoint(name string) string { return dw.client.GetEndpoint(name) }
+
+func (dw *deviceWrapper) GetDeviceEndpoint() string { return dw.GetEndpoint("device") }
+
+func (dw *deviceWrapper) FetchStreamURI(ctx context.Context) string {
+	profiles := dw.FetchProfiles(ctx)
+	streamURI := string(profiles.Profiles[0].Uris.Stream.Uri)
+	auth := dw.client.GetAuth()
+	return strings.Replace(streamURI, "rtsp://", "rtsp://"+auth.Username+":"+auth.Password+"@", 1)
+}

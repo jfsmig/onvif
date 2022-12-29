@@ -31,9 +31,11 @@ var (
 
 func main() {
 	params := networking.ClientParams{
-		Xaddr:      "",
-		Username:   envOrDefault("ONVIF_USERNAME", "admin"),
-		Password:   envOrDefault("ONVIF_PASSWORD", "admin"),
+		Xaddr: "",
+		Auth: networking.ClientAuth{
+			Username: envOrDefault("ONVIF_USERNAME", "admin"),
+			Password: envOrDefault("ONVIF_PASSWORD", "admin"),
+		},
 		HttpClient: nil,
 	}
 

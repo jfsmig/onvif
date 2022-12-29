@@ -40,10 +40,14 @@ type Client struct {
 	endpoints map[string]string
 }
 
+type ClientAuth struct {
+	Username string
+	Password string
+}
+
 type ClientParams struct {
 	Xaddr      string
-	Username   string
-	Password   string
+	Auth       ClientAuth
 	HttpClient *http.Client
 }
 
@@ -67,9 +71,10 @@ func (client *Client) GetUUID() string { return client.uuid }
 func (client *Client) SetUUID(uuid string) { client.uuid = uuid }
 
 func (client *Client) SetAuth(username, password string) {
-	client.params.Username = username
-	client.params.Password = password
+	client.params.Auth = ClientAuth{Username: username, Password: password}
 }
+
+func (client *Client) GetAuth() ClientAuth { return client.params.Auth }
 
 // GetServices return available endpoints
 func (client *Client) GetServices() map[string]string { return client.endpoints }
@@ -104,8 +109,8 @@ func (client Client) CallMethod(method interface{}) (*http.Response, error) {
 
 	return callMethodDo(client.params.HttpClient, callMethodParams{
 		endpoint,
-		client.params.Username,
-		client.params.Password,
+		client.params.Auth.Username,
+		client.params.Auth.Password,
 		method})
 }
 
