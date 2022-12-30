@@ -17,8 +17,10 @@ func Call_GetDot1XConfiguration(ctx context.Context, dev *networking.Client, req
 			GetDot1XConfigurationResponse GetDot1XConfigurationResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.GetDot1XConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDot1XConfiguration")

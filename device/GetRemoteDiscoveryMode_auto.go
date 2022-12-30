@@ -17,8 +17,10 @@ func Call_GetRemoteDiscoveryMode(ctx context.Context, dev *networking.Client, re
 			GetRemoteDiscoveryModeResponse GetRemoteDiscoveryModeResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.GetRemoteDiscoveryModeResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetRemoteDiscoveryMode")

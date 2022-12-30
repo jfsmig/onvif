@@ -17,8 +17,10 @@ func Call_GetDNS(ctx context.Context, dev *networking.Client, request GetDNS) (G
 			GetDNSResponse GetDNSResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.GetDNSResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDNS")

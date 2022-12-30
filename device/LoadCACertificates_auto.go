@@ -17,8 +17,10 @@ func Call_LoadCACertificates(ctx context.Context, dev *networking.Client, reques
 			LoadCACertificatesResponse LoadCACertificatesResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.LoadCACertificatesResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "LoadCACertificates")

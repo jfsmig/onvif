@@ -17,8 +17,10 @@ func Call_GetPresetTourOptions(ctx context.Context, dev *networking.Client, requ
 			GetPresetTourOptionsResponse GetPresetTourOptionsResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.GetPresetTourOptionsResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetPresetTourOptions")

@@ -17,8 +17,10 @@ func Call_StartMulticastStreaming(ctx context.Context, dev *networking.Client, r
 			StartMulticastStreamingResponse StartMulticastStreamingResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.StartMulticastStreamingResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "StartMulticastStreaming")

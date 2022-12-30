@@ -17,8 +17,10 @@ func Call_Renew(ctx context.Context, dev *networking.Client, request Renew) (Ren
 			RenewResponse RenewResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.RenewResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "Renew")

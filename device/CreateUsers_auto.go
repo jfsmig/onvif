@@ -17,8 +17,10 @@ func Call_CreateUsers(ctx context.Context, dev *networking.Client, request Creat
 			CreateUsersResponse CreateUsersResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.CreateUsersResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "CreateUsers")

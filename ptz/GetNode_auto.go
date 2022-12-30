@@ -17,8 +17,10 @@ func Call_GetNode(ctx context.Context, dev *networking.Client, request GetNode) 
 			GetNodeResponse GetNodeResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.GetNodeResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetNode")

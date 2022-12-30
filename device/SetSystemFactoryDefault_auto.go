@@ -17,8 +17,10 @@ func Call_SetSystemFactoryDefault(ctx context.Context, dev *networking.Client, r
 			SetSystemFactoryDefaultResponse SetSystemFactoryDefaultResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.SetSystemFactoryDefaultResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetSystemFactoryDefault")

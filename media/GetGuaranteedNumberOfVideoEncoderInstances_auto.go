@@ -17,8 +17,10 @@ func Call_GetGuaranteedNumberOfVideoEncoderInstances(ctx context.Context, dev *n
 			GetGuaranteedNumberOfVideoEncoderInstancesResponse GetGuaranteedNumberOfVideoEncoderInstancesResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.GetGuaranteedNumberOfVideoEncoderInstancesResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetGuaranteedNumberOfVideoEncoderInstances")

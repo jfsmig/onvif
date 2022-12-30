@@ -17,8 +17,10 @@ func Call_SetIPAddressFilter(ctx context.Context, dev *networking.Client, reques
 			SetIPAddressFilterResponse SetIPAddressFilterResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.SetIPAddressFilterResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetIPAddressFilter")

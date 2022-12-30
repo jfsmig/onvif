@@ -17,8 +17,10 @@ func Call_SetVideoAnalyticsConfiguration(ctx context.Context, dev *networking.Cl
 			SetVideoAnalyticsConfigurationResponse SetVideoAnalyticsConfigurationResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.SetVideoAnalyticsConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetVideoAnalyticsConfiguration")

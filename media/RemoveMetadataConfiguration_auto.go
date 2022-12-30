@@ -17,8 +17,10 @@ func Call_RemoveMetadataConfiguration(ctx context.Context, dev *networking.Clien
 			RemoveMetadataConfigurationResponse RemoveMetadataConfigurationResponse
 		}
 	}
-	var reply Envelope
-	if httpReply, err := dev.CallMethod(request); err != nil {
+	reply := Envelope{}
+	httpReply, err := dev.CallMethod(request)
+	defer httpReply.Body.Close()
+	if err != nil {
 		return reply.Body.RemoveMetadataConfigurationResponse, err
 	} else {
 		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveMetadataConfiguration")
