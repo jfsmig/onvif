@@ -81,8 +81,7 @@ func NewDevice(params networking.ClientParams) (Appliance, error) {
 	if err != nil {
 		return nil, err
 	}
-	dw := &deviceWrapper{client: client}
-	return dw.load()
+	return WrapClient(client)
 }
 
 func WrapClient(client *networking.Client) (Appliance, error) {
@@ -92,18 +91,19 @@ func WrapClient(client *networking.Client) (Appliance, error) {
 
 func (dw *deviceWrapper) load() (Appliance, error) {
 	resp, err := dw.client.CallMethod(device.GetSystemDateAndTime{})
+	resp.Body.Close()
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errorz.ErrNotOnvif
 	}
 
 	resp, err = dw.client.CallMethod(device.GetCapabilities{Category: "All"})
+	defer resp.Body.Close()
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errorz.ErrNotOnvif
 	}
 
 	doc := etree.NewDocument()
 	data, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
 
 	if err := doc.ReadFromBytes(data); err != nil {
 		return nil, err

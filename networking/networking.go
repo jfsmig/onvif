@@ -46,26 +46,3 @@ type callMethodParams struct {
 	Password string
 	Method   interface{}
 }
-
-// callMethodDo functions call a method, defined <method> struct with authentication data
-func callMethodDo(client *http.Client, params callMethodParams) (*http.Response, error) {
-	output, err := xml.MarshalIndent(params.Method, "  ", "    ")
-	if err != nil {
-		return nil, err
-	}
-
-	soap, err := buildMethodSOAP(string(output))
-	if err != nil {
-		return nil, err
-	}
-
-	soap.AddRootNamespaces(Xlmns)
-	soap.AddAction()
-
-	//Auth Handling
-	if params.Username != "" && params.Password != "" {
-		soap.AddWSSecurity(params.Username, params.Password)
-	}
-
-	return SendSoap(client, params.Endpoint, soap.String())
-}
