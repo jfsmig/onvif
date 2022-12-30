@@ -7,7 +7,6 @@ import (
 	"fmt"
 	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 	"net"
-	"net/url"
 )
 
 func discover(ctx context.Context) error {
@@ -22,16 +21,10 @@ func discover(ctx context.Context) error {
 			Logger.Warn().Str("itf", itf.Name).Msg("lan discovery failed")
 		} else {
 			for _, dev := range devices {
-				parsedUrl, err := url.Parse(dev.Xaddr)
-				if err != nil {
-					Logger.Warn().Err(err).Str("action", "parse").Msg("invalid device")
-				} else {
-					uuid := dev.Uuid
-					if uuid == "" {
-						uuid = "-"
-					}
-					fmt.Println(parsedUrl.Host, uuid)
+				if dev.Uuid == "" {
+					dev.Uuid = "-"
 				}
+				fmt.Println(dev.Xaddr, dev.Uuid)
 			}
 		}
 	}
