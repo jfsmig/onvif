@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"encoding/xml"
 	"errors"
 	"net/http"
 	"net/url"
@@ -53,7 +54,7 @@ type ClientParams struct {
 
 // NewClient function construct a ONVIF Client entity
 func NewClient(params ClientParams, uuid string) (*Client, error) {
-	dev := new(Client)
+	dev := &Client{}
 	dev.params = params
 	dev.uuid = uuid
 	dev.endpoints = make(map[string]string)
@@ -98,7 +99,7 @@ func (client *Client) AddEndpoint(Key, Value string) {
 
 // CallMethod functions call a method, defined <method> struct.
 // You should use Authenticate method to call authorized requests.
-func (client Client) CallMethod(method interface{}) (*http.Response, error) {
+func (client *Client) CallMethod(method interface{}) (*http.Response, error) {
 	pkgPath := strings.Split(reflect.TypeOf(method).PkgPath(), "/")
 	pkg := strings.ToLower(pkgPath[len(pkgPath)-1])
 
@@ -107,15 +108,29 @@ func (client Client) CallMethod(method interface{}) (*http.Response, error) {
 		return nil, err
 	}
 
-	return callMethodDo(client.params.HttpClient, callMethodParams{
-		endpoint,
-		client.params.Auth.Username,
-		client.params.Auth.Password,
-		method})
+	output, err := xml.MarshalIndent(method, "  ", "    ")
+	if err != nil {
+		return nil, err
+	}
+
+	soap, err := buildMethodSOAP(string(output))
+	if err != nil {
+		return nil, err
+	}
+
+	soap.AddRootNamespaces(Xlmns)
+	soap.AddAction()
+
+	//Auth Handling
+	if client.params.Auth.Username != "" && client.params.Auth.Password != "" {
+		soap.AddWSSecurity(client.params.Auth.Username, client.params.Auth.Password)
+	}
+
+	return SendSoap(client.params.HttpClient, endpoint, soap.String())
 }
 
 // getEndpoint functions get the target service endpoint in a better way
-func (client Client) getEndpoint(endpoint string) (string, error) {
+func (client *Client) getEndpoint(endpoint string) (string, error) {
 
 	// common condition, endpointMark in map we use this.
 	if endpointURL, bFound := client.endpoints[endpoint]; bFound {
