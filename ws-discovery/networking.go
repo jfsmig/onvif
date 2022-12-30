@@ -53,7 +53,7 @@ func (devType DeviceType) String() string {
 }
 
 // GetAvailableDevicesAtSpecificEthernetInterface ...
-func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]networking.Client, error) {
+func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]networking.ClientInfo, error) {
 	// Call a ws-discovery Probe Message to Discover NVT type Devices
 	devices, err := SendProbe(interfaceName, nil, []string{"dn:" + NVT.String()}, map[string]string{"dn": "http://www.onvif.org/ver10/network/wsdl"})
 	if err != nil {
@@ -61,7 +61,7 @@ func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]net
 	}
 
 	nvtDevicesSeen := make(map[string]bool)
-	nvtDevices := make([]networking.Client, 0)
+	nvtDevices := make([]networking.ClientInfo, 0)
 
 	for _, j := range devices {
 		doc := etree.NewDocument()
@@ -85,13 +85,11 @@ func GetAvailableDevicesAtSpecificEthernetInterface(interfaceName string) ([]net
 			rawXaddr := strings.TrimSpace(xaddr.Text())
 			xaddr := strings.Split(strings.Split(rawXaddr, " ")[0], "/")[2]
 			if !added && !nvtDevicesSeen[xaddr] {
-				dev, err := networking.NewClient(networking.ClientParams{Xaddr: strings.Split(xaddr, " ")[0]}, currentUuid)
-				if err != nil {
-					// TODO(jfsmig) print a warning
-				} else {
-					nvtDevices = append(nvtDevices, *dev)
-					added = true
-				}
+				nvtDevices = append(nvtDevices, networking.ClientInfo{
+					Xaddr: strings.Split(xaddr, " ")[0],
+					Uuid:  currentUuid,
+				})
+				added = true
 			}
 			nvtDevicesSeen[xaddr] = true
 		}

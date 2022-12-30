@@ -76,16 +76,17 @@ type deviceWrapper struct {
 	client *networking.Client
 }
 
-func NewDevice(params networking.ClientParams) (Appliance, error) {
-	client, err := networking.NewClient(params, "")
+func NewDevice(info networking.ClientInfo, auth networking.ClientAuth, httpClient *http.Client) (Appliance, error) {
+	client, err := networking.NewClient(info, httpClient)
 	if err != nil {
 		return nil, err
 	}
-	return WrapClient(client)
+	return WrapClient(client, auth)
 }
 
-func WrapClient(client *networking.Client) (Appliance, error) {
+func WrapClient(client *networking.Client, auth networking.ClientAuth) (Appliance, error) {
 	dw := &deviceWrapper{client: client}
+	dw.client.SetAuth(auth)
 	return dw.load()
 }
 

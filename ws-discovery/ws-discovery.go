@@ -20,8 +20,6 @@ func buildProbeMessage(uuidV4 string, scopes, types []string, nmsp map[string]st
 	//	probeMessage.AddRootNamespaces(nmsp)
 	//}
 
-	//fmt.Println(probeMessage.String())
-
 	//Содержимое Head
 	var headerContent []*etree.Element
 

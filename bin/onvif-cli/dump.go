@@ -28,8 +28,8 @@ type OnvifDeviceOutput struct {
 	DeviceNetwork  sdk.DeviceNetwork
 }
 
-func dumpAll(ctx context.Context, params networking.ClientParams) error {
-	sdkDev, err := sdk.NewDevice(params)
+func dumpAll(ctx context.Context, params networking.ClientInfo) error {
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
@@ -52,8 +52,8 @@ func dumpAll(ctx context.Context, params networking.ClientParams) error {
 	return encoder.Encode(out)
 }
 
-func dumpMedia(ctx context.Context, params networking.ClientParams) error {
-	sdkDev, err := sdk.NewDevice(params)
+func dumpMedia(ctx context.Context, params networking.ClientInfo) error {
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
@@ -65,13 +65,13 @@ func dumpMedia(ctx context.Context, params networking.ClientParams) error {
 	return encoder.Encode(out)
 }
 
-func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
+func dumpDescriptor(ctx context.Context, params networking.ClientInfo) error {
 	type Output struct {
 		Services   map[string]string
 		UUID       string
 		Descriptor sdk.DeviceDescriptor
 	}
-	sdkDev, err := sdk.NewDevice(params)
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
@@ -87,8 +87,8 @@ func dumpDescriptor(ctx context.Context, params networking.ClientParams) error {
 	return encoder.Encode(out)
 }
 
-func dumpPTZ(ctx context.Context, params networking.ClientParams) error {
-	sdkDev, err := sdk.NewDevice(params)
+func dumpPTZ(ctx context.Context, params networking.ClientInfo) error {
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
@@ -100,8 +100,8 @@ func dumpPTZ(ctx context.Context, params networking.ClientParams) error {
 	return encoder.Encode(out)
 }
 
-func dumpEvents(ctx context.Context, params networking.ClientParams) error {
-	sdkDev, err := sdk.NewDevice(params)
+func dumpEvents(ctx context.Context, params networking.ClientInfo) error {
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
@@ -113,8 +113,8 @@ func dumpEvents(ctx context.Context, params networking.ClientParams) error {
 	return encoder.Encode(out)
 }
 
-func dumpDevice(ctx context.Context, params networking.ClientParams) error {
-	sdkDev, err := sdk.NewDevice(params)
+func dumpDevice(ctx context.Context, params networking.ClientInfo) error {
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
@@ -133,8 +133,8 @@ func dumpDevice(ctx context.Context, params networking.ClientParams) error {
 	return encoder.Encode(out)
 }
 
-func dumpProfiles(ctx context.Context, params networking.ClientParams) error {
-	sdkDev, err := sdk.NewDevice(params)
+func dumpProfiles(ctx context.Context, params networking.ClientInfo) error {
+	sdkDev, err := sdk.NewDevice(params, auth, &httpClient)
 	if err != nil {
 		return err
 	}

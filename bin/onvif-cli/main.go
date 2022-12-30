@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -26,18 +27,19 @@ var (
 )
 
 var (
+	httpClient = http.Client{}
+
+	auth = networking.ClientAuth{
+		Username: envOrDefault("ONVIF_USERNAME", "admin"),
+		Password: envOrDefault("ONVIF_PASSWORD", "admin"),
+	}
+)
+
+var (
 	ErrMissingSubcommand = errors.New("missing sub-command")
 )
 
 func main() {
-	params := networking.ClientParams{
-		Xaddr: "",
-		Auth: networking.ClientAuth{
-			Username: envOrDefault("ONVIF_USERNAME", "admin"),
-			Password: envOrDefault("ONVIF_PASSWORD", "admin"),
-		},
-		HttpClient: nil,
-	}
 
 	cmd := &cobra.Command{
 		Use:   "main",
@@ -79,8 +81,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpAll(ctx, params)
+			return dumpAll(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 
@@ -92,8 +93,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpDescriptor(ctx, params)
+			return dumpDescriptor(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 
@@ -104,8 +104,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpMedia(ctx, params)
+			return dumpMedia(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 
@@ -117,8 +116,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpPTZ(ctx, params)
+			return dumpPTZ(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 
@@ -130,8 +128,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpEvents(ctx, params)
+			return dumpEvents(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 
@@ -143,8 +140,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpProfiles(ctx, params)
+			return dumpProfiles(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 
@@ -156,8 +152,7 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
 			defer cancel()
-			params.Xaddr = args[0]
-			return dumpDevice(ctx, params)
+			return dumpDevice(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
 

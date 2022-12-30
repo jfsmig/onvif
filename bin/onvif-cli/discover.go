@@ -22,12 +22,11 @@ func discover(ctx context.Context) error {
 			Logger.Warn().Str("itf", itf.Name).Msg("lan discovery failed")
 		} else {
 			for _, dev := range devices {
-				u := dev.GetEndpoint("device")
-				parsedUrl, err := url.Parse(u)
+				parsedUrl, err := url.Parse(dev.Xaddr)
 				if err != nil {
 					Logger.Warn().Err(err).Str("action", "parse").Msg("invalid device")
 				} else {
-					uuid := dev.GetUUID()
+					uuid := dev.Uuid
 					if uuid == "" {
 						uuid = "-"
 					}

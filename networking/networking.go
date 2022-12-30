@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
-	"fmt"
 	"github.com/beevik/etree"
+	"github.com/jfsmig/onvif/errorz"
 	"github.com/jfsmig/onvif/gosoap"
 	"io"
 	"net/http"
@@ -17,8 +17,8 @@ func SendSoap(httpClient *http.Client, endpoint, message string) (*http.Response
 }
 
 func ReadAndParse(ctx context.Context, httpReply *http.Response, reply interface{}, tag string) error {
-	if httpReply.StatusCode/100 != 2 {
-		return fmt.Errorf("unexpected status %v instead of 2XX", httpReply.StatusCode)
+	if httpReply.StatusCode != http.StatusOK {
+		return errorz.ErrHttp
 	}
 	if b, err := io.ReadAll(httpReply.Body); err != nil {
 		return err

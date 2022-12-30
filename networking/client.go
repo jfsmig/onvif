@@ -32,10 +32,14 @@ var Xlmns = map[string]string{
 // struct represents an abstract ONVIF device.
 // It contains methods, which helps to communicate with ONVIF device
 type Client struct {
-	params ClientParams
+	xaddr    string
+	username string
+	password string
 
 	// Discovered with the WS-discovery Probematch
 	uuid string
+
+	httpClient *http.Client
 
 	// Discovered with the WS-discovery ProbeMatch
 	endpoints map[string]string
@@ -46,22 +50,25 @@ type ClientAuth struct {
 	Password string
 }
 
-type ClientParams struct {
-	Xaddr      string
-	Auth       ClientAuth
-	HttpClient *http.Client
+type ClientInfo struct {
+	Xaddr string
+	Uuid  string
 }
 
 // NewClient function construct a ONVIF Client entity
-func NewClient(params ClientParams, uuid string) (*Client, error) {
-	dev := &Client{}
-	dev.params = params
-	dev.uuid = uuid
-	dev.endpoints = make(map[string]string)
-	dev.AddEndpoint("Device", "http://"+dev.params.Xaddr+"/onvif/device_service")
+func NewClient(ref ClientInfo, httpClient *http.Client) (*Client, error) {
+	dev := &Client{
+		xaddr:      ref.Xaddr,
+		uuid:       ref.Uuid,
+		username:   "",
+		password:   "",
+		httpClient: httpClient,
+		endpoints:  make(map[string]string),
+	}
 
-	if dev.params.HttpClient == nil {
-		dev.params.HttpClient = new(http.Client)
+	dev.AddEndpoint("Device", "http://"+dev.xaddr+"/onvif/device_service")
+	if dev.httpClient == nil {
+		dev.httpClient = &http.Client{}
 	}
 
 	return dev, nil
@@ -71,11 +78,12 @@ func (client *Client) GetUUID() string { return client.uuid }
 
 func (client *Client) SetUUID(uuid string) { client.uuid = uuid }
 
-func (client *Client) SetAuth(username, password string) {
-	client.params.Auth = ClientAuth{Username: username, Password: password}
+func (client *Client) SetAuth(auth ClientAuth) {
+	client.username = auth.Username
+	client.password = auth.Password
 }
 
-func (client *Client) GetAuth() ClientAuth { return client.params.Auth }
+func (client *Client) GetAuth() ClientAuth { return ClientAuth{client.username, client.password} }
 
 // GetServices return available endpoints
 func (client *Client) GetServices() map[string]string { return client.endpoints }
@@ -90,7 +98,7 @@ func (client *Client) AddEndpoint(Key, Value string) {
 
 	// Replace host with host from device params.
 	if u, err := url.Parse(Value); err == nil {
-		u.Host = client.params.Xaddr
+		u.Host = client.xaddr
 		Value = u.String()
 	}
 
@@ -122,11 +130,11 @@ func (client *Client) CallMethod(method interface{}) (*http.Response, error) {
 	soap.AddAction()
 
 	//Auth Handling
-	if client.params.Auth.Username != "" && client.params.Auth.Password != "" {
-		soap.AddWSSecurity(client.params.Auth.Username, client.params.Auth.Password)
+	if client.username != "" && client.password != "" {
+		soap.AddWSSecurity(client.username, client.password)
 	}
 
-	return SendSoap(client.params.HttpClient, endpoint, soap.String())
+	return SendSoap(client.httpClient, endpoint, soap.String())
 }
 
 // getEndpoint functions get the target service endpoint in a better way
