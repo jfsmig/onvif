@@ -18,7 +18,7 @@ func Call_AddScopes(ctx context.Context, dev *networking.Client, request AddScop
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.AddScopesResponse, err

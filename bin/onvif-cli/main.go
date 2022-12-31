@@ -41,14 +41,16 @@ var (
 
 func main() {
 
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+	defer cancel()
+	ctx, cancel = context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
 	cmd := &cobra.Command{
 		Use:   "main",
 		Short: "OnVif command Line Interface",
 		Long:  "CLI Client for OnVif devices",
-		//Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return ErrMissingSubcommand
-		},
+		RunE:  func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
 	}
 
 	cmdDiscover := &cobra.Command{
@@ -56,11 +58,7 @@ func main() {
 		Aliases: []string{"find", "crawl", "probe"},
 		Short:   "Discover the local cameras",
 		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
-			return discover(ctx)
-		},
+		RunE:    func(cmd *cobra.Command, args []string) error { return discover(ctx) },
 	}
 
 	cmdDump := &cobra.Command{
@@ -68,9 +66,7 @@ func main() {
 		Aliases: []string{"all", "detail", "details"},
 		Short:   "Dump the configuration of the given camera",
 		Args:    cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return ErrMissingSubcommand
-		},
+		RunE:    func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
 	}
 
 	cmdDumpAll := &cobra.Command{
@@ -79,8 +75,6 @@ func main() {
 		Short:   "Dump the configuration of the given camera",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpAll(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
@@ -91,8 +85,6 @@ func main() {
 		Short:   "Dump a general descriptor of the given camera",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpDescriptor(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
@@ -102,8 +94,6 @@ func main() {
 		Short: "Dump the information related to the Media service of the camera",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpMedia(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
@@ -114,8 +104,6 @@ func main() {
 		Short:   "Dump the information related to the PTZ service of the camera",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpPTZ(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
@@ -126,8 +114,6 @@ func main() {
 		Short:   "Dump the information related to the Events service of the camera",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpEvents(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
@@ -138,8 +124,6 @@ func main() {
 		Short:   "Dump the information related to the Profiles of the camera",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpProfiles(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}
@@ -150,8 +134,6 @@ func main() {
 		Short:   "Dump the information related to the core Device service of the camera",
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
 			return dumpDevice(ctx, networking.ClientInfo{Xaddr: args[0]})
 		},
 	}

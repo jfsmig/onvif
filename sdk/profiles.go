@@ -2,9 +2,9 @@ package sdk
 
 import (
 	"context"
-	"github.com/jfsmig/onvif/ptz"
 
 	"github.com/jfsmig/onvif/media"
+	"github.com/jfsmig/onvif/ptz"
 	"github.com/jfsmig/onvif/xsd/onvif"
 )
 

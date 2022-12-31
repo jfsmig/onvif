@@ -4,16 +4,23 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"io"
+	"net/http"
+
 	"github.com/beevik/etree"
 	"github.com/jfsmig/onvif/errorz"
 	"github.com/jfsmig/onvif/gosoap"
-	"io"
-	"net/http"
 )
 
 // SendSoap send soap message
-func SendSoap(httpClient *http.Client, endpoint, message string) (*http.Response, error) {
-	return httpClient.Post(endpoint, "application/soap+xml; charset=utf-8", bytes.NewBufferString(message))
+func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message string) (*http.Response, error) {
+	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(message))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/soap+xml; charset=utf-8")
+	req.WithContext(ctx)
+	return httpClient.Do(req)
 }
 
 func ReadAndParse(ctx context.Context, httpReply *http.Response, reply interface{}, tag string) error {

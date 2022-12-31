@@ -18,7 +18,7 @@ func Call_SetVideoSourceConfiguration(ctx context.Context, dev *networking.Clien
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.SetVideoSourceConfigurationResponse, err

@@ -2,8 +2,6 @@ package sdk
 
 import (
 	"context"
-	"github.com/jfsmig/onvif/errorz"
-	"github.com/jfsmig/onvif/networking"
 	"io"
 	"net/http"
 	"os"
@@ -11,10 +9,12 @@ import (
 	"time"
 
 	"github.com/beevik/etree"
-	"github.com/jfsmig/onvif/device"
-	"github.com/jfsmig/onvif/media"
-
 	"github.com/rs/zerolog"
+
+	"github.com/jfsmig/onvif/device"
+	"github.com/jfsmig/onvif/errorz"
+	"github.com/jfsmig/onvif/media"
+	"github.com/jfsmig/onvif/networking"
 )
 
 var (
@@ -76,28 +76,28 @@ type deviceWrapper struct {
 	client *networking.Client
 }
 
-func NewDevice(info networking.ClientInfo, auth networking.ClientAuth, httpClient *http.Client) (Appliance, error) {
+func NewDevice(ctx context.Context, info networking.ClientInfo, auth networking.ClientAuth, httpClient *http.Client) (Appliance, error) {
 	client, err := networking.NewClient(info, httpClient)
 	if err != nil {
 		return nil, err
 	}
-	return WrapClient(client, auth)
+	return WrapClient(ctx, client, auth)
 }
 
-func WrapClient(client *networking.Client, auth networking.ClientAuth) (Appliance, error) {
+func WrapClient(ctx context.Context, client *networking.Client, auth networking.ClientAuth) (Appliance, error) {
 	dw := &deviceWrapper{client: client}
 	dw.client.SetAuth(auth)
-	return dw.load()
+	return dw.load(ctx)
 }
 
-func (dw *deviceWrapper) load() (Appliance, error) {
-	resp, err := dw.client.CallMethod(device.GetSystemDateAndTime{})
+func (dw *deviceWrapper) load(ctx context.Context) (Appliance, error) {
+	resp, err := dw.client.CallMethod(ctx, device.GetSystemDateAndTime{})
 	resp.Body.Close()
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errorz.ErrNotOnvif
 	}
 
-	resp, err = dw.client.CallMethod(device.GetCapabilities{Category: "All"})
+	resp, err = dw.client.CallMethod(ctx, device.GetCapabilities{Category: "All"})
 	defer resp.Body.Close()
 	if err != nil || resp.StatusCode != http.StatusOK {
 		return nil, errorz.ErrNotOnvif

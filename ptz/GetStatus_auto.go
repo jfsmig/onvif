@@ -18,7 +18,7 @@ func Call_GetStatus(ctx context.Context, dev *networking.Client, request GetStat
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.GetStatusResponse, err

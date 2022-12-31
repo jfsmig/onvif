@@ -18,7 +18,7 @@ func Call_RelativeMove(ctx context.Context, dev *networking.Client, request Rela
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.RelativeMoveResponse, err

@@ -18,7 +18,7 @@ func Call_DeleteDot1XConfiguration(ctx context.Context, dev *networking.Client, 
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.DeleteDot1XConfigurationResponse, err

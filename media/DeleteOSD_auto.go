@@ -18,7 +18,7 @@ func Call_DeleteOSD(ctx context.Context, dev *networking.Client, request DeleteO
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.DeleteOSDResponse, err

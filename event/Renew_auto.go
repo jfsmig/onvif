@@ -18,7 +18,7 @@ func Call_Renew(ctx context.Context, dev *networking.Client, request Renew) (Ren
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.RenewResponse, err

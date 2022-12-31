@@ -18,7 +18,7 @@ func Call_Subscribe(ctx context.Context, dev *networking.Client, request Subscri
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.SubscribeResponse, err

@@ -5,8 +5,9 @@ package main
 import (
 	"context"
 	"fmt"
-	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 	"net"
+
+	wsdiscovery "github.com/jfsmig/onvif/ws-discovery"
 )
 
 func discover(ctx context.Context) error {

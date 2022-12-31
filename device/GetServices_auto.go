@@ -18,7 +18,7 @@ func Call_GetServices(ctx context.Context, dev *networking.Client, request GetSe
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.GetServicesResponse, err

@@ -18,7 +18,7 @@ func Call_GetPkcs10Request(ctx context.Context, dev *networking.Client, request 
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.GetPkcs10RequestResponse, err

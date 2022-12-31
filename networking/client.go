@@ -1,6 +1,7 @@
 package networking
 
 import (
+	"context"
 	"encoding/xml"
 	"errors"
 	"net/http"
@@ -107,7 +108,7 @@ func (client *Client) AddEndpoint(Key, Value string) {
 
 // CallMethod functions call a method, defined <method> struct.
 // You should use Authenticate method to call authorized requests.
-func (client *Client) CallMethod(method interface{}) (*http.Response, error) {
+func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http.Response, error) {
 	pkgPath := strings.Split(reflect.TypeOf(method).PkgPath(), "/")
 	pkg := strings.ToLower(pkgPath[len(pkgPath)-1])
 
@@ -134,7 +135,7 @@ func (client *Client) CallMethod(method interface{}) (*http.Response, error) {
 		soap.AddWSSecurity(client.username, client.password)
 	}
 
-	return SendSoap(client.httpClient, endpoint, soap.String())
+	return SendSoap(ctx, client.httpClient, endpoint, soap.String())
 }
 
 // getEndpoint functions get the target service endpoint in a better way

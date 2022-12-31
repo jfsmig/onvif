@@ -18,7 +18,7 @@ func Call_UpgradeSystemFirmware(ctx context.Context, dev *networking.Client, req
 		}
 	}
 	reply := Envelope{}
-	httpReply, err := dev.CallMethod(request)
+	httpReply, err := dev.CallMethod(ctx, request)
 	defer httpReply.Body.Close()
 	if err != nil {
 		return reply.Body.UpgradeSystemFirmwareResponse, err
