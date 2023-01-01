@@ -9,7 +9,7 @@ import (
 )
 
 type Profiles struct {
-	Profiles []XProfile
+	Profiles map[onvif.ReferenceToken]*XProfile
 }
 
 type XProfile struct {
@@ -47,15 +47,17 @@ type ProfilePTZ struct {
 }
 
 func (dw *deviceWrapper) FetchProfiles(ctx context.Context) Profiles {
-	out := Profiles{}
+	out := Profiles{
+		Profiles: make(map[onvif.ReferenceToken]*XProfile),
+	}
 
 	if profiles, err := media.Call_GetProfiles(ctx, dw.client, media.GetProfiles{}); err == nil {
 		for _, profile := range profiles.Profiles {
-			pe := XProfile{Profile: profile}
-			out.Profiles = append(out.Profiles, pe)
+			pe := dw.FetchProfile(ctx, profile.Token)
+			out.Profiles[profile.Token] = &pe
 		}
 	} else {
-		Logger.Trace().Err(err).Str("rpc", "GetProfiles").Msg("audio")
+		Logger.Trace().Err(err).Str("rpc", "GetProfiles").Msg("profile")
 	}
 
 	return out

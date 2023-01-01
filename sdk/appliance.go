@@ -133,7 +133,10 @@ func (dw *deviceWrapper) GetDeviceEndpoint() string { return dw.GetEndpoint("dev
 
 func (dw *deviceWrapper) FetchStreamURI(ctx context.Context) string {
 	profiles := dw.FetchProfiles(ctx)
-	streamURI := string(profiles.Profiles[0].Uris.Stream.Uri)
-	auth := dw.client.GetAuth()
-	return strings.Replace(streamURI, "rtsp://", "rtsp://"+auth.Username+":"+auth.Password+"@", 1)
+	for k, _ := range profiles.Profiles {
+		streamURI := string(profiles.Profiles[k].Uris.Stream.Uri)
+		auth := dw.client.GetAuth()
+		return strings.Replace(streamURI, "rtsp://", "rtsp://"+auth.Username+":"+auth.Password+"@", 1)
+	}
+	return ""
 }
