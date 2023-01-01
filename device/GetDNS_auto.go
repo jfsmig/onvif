@@ -19,7 +19,9 @@ func Call_GetDNS(ctx context.Context, dev *networking.Client, request GetDNS) (G
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.GetDNSResponse, err
 	} else {

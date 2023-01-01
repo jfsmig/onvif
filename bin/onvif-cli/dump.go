@@ -30,7 +30,7 @@ type OnvifDeviceOutput struct {
 }
 
 func dumpAll(ctx context.Context, params networking.ClientInfo) error {
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := OnvifFullOutput{}
 		r := Runner{}
 		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
@@ -47,8 +47,8 @@ func dumpAll(ctx context.Context, params networking.ClientInfo) error {
 }
 
 func dumpMedia(ctx context.Context, params networking.ClientInfo) error {
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
-		return app.FetchMedia(c)
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
+		return app.FetchMedia(ctx)
 	})
 }
 
@@ -58,55 +58,54 @@ func dumpDescriptor(ctx context.Context, params networking.ClientInfo) error {
 		UUID       string
 		Descriptor sdk.DeviceDescriptor
 	}
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := Output{}
 		r := Runner{}
 		out.UUID = app.GetUUID()
 		out.Services = app.GetServices()
-		out.Descriptor = app.FetchDeviceDescriptor(c)
+		out.Descriptor = app.FetchDeviceDescriptor(ctx)
 		r.Wait()
 		return out
 	})
 }
 
 func dumpPTZ(ctx context.Context, params networking.ClientInfo) error {
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
-		return app.FetchPTZ(c)
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
+		return app.FetchPTZ(ctx)
 	})
 }
 
 func dumpEvents(ctx context.Context, params networking.ClientInfo) error {
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
-		return app.FetchEvent(c)
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
+		return app.FetchEvent(ctx)
 	})
 }
 
 func dumpDevice(ctx context.Context, params networking.ClientInfo) error {
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := OnvifDeviceOutput{}
 		r := Runner{}
-		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(c) })
-		r.Async(func() { out.DeviceNetwork = app.FetchDeviceNetwork(c) })
-		r.Async(func() { out.DeviceSystem = app.FetchDeviceSystem(c) })
-		r.Async(func() { out.DeviceSecurity = app.FetchDeviceSecurity(c) })
+		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
+		r.Async(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
+		r.Async(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
+		r.Async(func() { out.DeviceSecurity = app.FetchDeviceSecurity(ctx) })
 		r.Wait()
 		return out
 	})
 }
 
 func dumpProfiles(ctx context.Context, params networking.ClientInfo) error {
-	return dumpSomething(ctx, params, func(c context.Context, app sdk.Appliance) interface{} {
-		return app.FetchProfiles(c)
+	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
+		return app.FetchProfiles(ctx)
 	})
 }
 
-func dumpSomething(ctx context.Context, params networking.ClientInfo, generate func(c context.Context, app sdk.Appliance) interface{}) error {
+func dumpSomething(ctx context.Context, params networking.ClientInfo, generate func(app sdk.Appliance) interface{}) error {
 	sdkDev, err := sdk.NewDevice(ctx, params, auth, &httpClient)
 	if err != nil {
 		return err
 	}
-
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(generate(ctx, sdkDev))
+	return encoder.Encode(generate(sdkDev))
 }

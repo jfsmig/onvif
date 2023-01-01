@@ -19,7 +19,9 @@ func Call_GetZeroConfiguration(ctx context.Context, dev *networking.Client, requ
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.GetZeroConfigurationResponse, err
 	} else {

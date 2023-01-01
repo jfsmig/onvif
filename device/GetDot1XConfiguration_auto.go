@@ -19,7 +19,9 @@ func Call_GetDot1XConfiguration(ctx context.Context, dev *networking.Client, req
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.GetDot1XConfigurationResponse, err
 	} else {

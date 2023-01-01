@@ -19,7 +19,9 @@ func Call_RemoveScopes(ctx context.Context, dev *networking.Client, request Remo
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.RemoveScopesResponse, err
 	} else {

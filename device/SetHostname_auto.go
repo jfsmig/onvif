@@ -19,7 +19,9 @@ func Call_SetHostname(ctx context.Context, dev *networking.Client, request SetHo
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.SetHostnameResponse, err
 	} else {

@@ -19,7 +19,9 @@ func Call_CreateCertificate(ctx context.Context, dev *networking.Client, request
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.CreateCertificateResponse, err
 	} else {

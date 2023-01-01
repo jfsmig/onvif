@@ -19,7 +19,9 @@ func Call_GetAudioEncoderConfiguration(ctx context.Context, dev *networking.Clie
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.GetAudioEncoderConfigurationResponse, err
 	} else {

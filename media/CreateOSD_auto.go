@@ -19,7 +19,9 @@ func Call_CreateOSD(ctx context.Context, dev *networking.Client, request CreateO
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.CreateOSDResponse, err
 	} else {

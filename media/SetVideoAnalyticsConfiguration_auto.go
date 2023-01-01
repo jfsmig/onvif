@@ -19,7 +19,9 @@ func Call_SetVideoAnalyticsConfiguration(ctx context.Context, dev *networking.Cl
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.SetVideoAnalyticsConfigurationResponse, err
 	} else {

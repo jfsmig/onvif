@@ -19,7 +19,9 @@ func Call_Stop(ctx context.Context, dev *networking.Client, request Stop) (StopR
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.StopResponse, err
 	} else {

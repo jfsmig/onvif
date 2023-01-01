@@ -19,7 +19,9 @@ func Call_GetVideoEncoderConfigurationOptions(ctx context.Context, dev *networki
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.GetVideoEncoderConfigurationOptionsResponse, err
 	} else {

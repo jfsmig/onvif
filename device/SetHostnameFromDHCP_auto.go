@@ -19,7 +19,9 @@ func Call_SetHostnameFromDHCP(ctx context.Context, dev *networking.Client, reque
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.SetHostnameFromDHCPResponse, err
 	} else {

@@ -19,7 +19,9 @@ func Call_DeleteUsers(ctx context.Context, dev *networking.Client, request Delet
 	}
 	reply := Envelope{}
 	httpReply, err := dev.CallMethod(ctx, request)
-	defer httpReply.Body.Close()
+	if httpReply != nil {
+		defer httpReply.Body.Close()
+	}
 	if err != nil {
 		return reply.Body.DeleteUsersResponse, err
 	} else {
