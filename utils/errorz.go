@@ -1,4 +1,4 @@
-package errorz
+package utils
 
 type constError string
 

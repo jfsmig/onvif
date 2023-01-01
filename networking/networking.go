@@ -8,8 +8,8 @@ import (
 	"net/http"
 
 	"github.com/beevik/etree"
-	"github.com/jfsmig/onvif/errorz"
 	"github.com/jfsmig/onvif/gosoap"
+	"github.com/jfsmig/onvif/utils"
 )
 
 // SendSoap send soap message
@@ -25,7 +25,7 @@ func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message st
 
 func ReadAndParse(ctx context.Context, httpReply *http.Response, reply interface{}, tag string) error {
 	if httpReply.StatusCode != http.StatusOK {
-		return errorz.ErrHttp
+		return utils.ErrHttp
 	}
 	if b, err := io.ReadAll(httpReply.Body); err != nil {
 		return err

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"time"
 
 	"github.com/jfsmig/onvif/networking"
@@ -149,25 +148,10 @@ func main() {
 	}
 }
 
-type Runner struct {
-	wg sync.WaitGroup
-}
-
-func (r *Runner) Async(fn func()) {
-	r.wg.Add(1)
-	go func() {
-		defer r.wg.Done()
-		fn()
-	}()
-}
-
-func (r *Runner) Wait() { r.wg.Wait() }
-
 func envOrDefault(key, defaultValue string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	} else {
 		return defaultValue
 	}
-
 }

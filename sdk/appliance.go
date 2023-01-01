@@ -2,6 +2,7 @@ package sdk
 
 import (
 	"context"
+	"github.com/jfsmig/onvif/utils"
 	"io"
 	"net/http"
 	"os"
@@ -12,7 +13,6 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/jfsmig/onvif/device"
-	"github.com/jfsmig/onvif/errorz"
 	"github.com/jfsmig/onvif/media"
 	"github.com/jfsmig/onvif/networking"
 )
@@ -94,13 +94,13 @@ func (dw *deviceWrapper) load(ctx context.Context) (Appliance, error) {
 	resp, err := dw.client.CallMethod(ctx, device.GetSystemDateAndTime{})
 	resp.Body.Close()
 	if err != nil || resp.StatusCode != http.StatusOK {
-		return nil, errorz.ErrNotOnvif
+		return nil, utils.ErrNotOnvif
 	}
 
 	resp, err = dw.client.CallMethod(ctx, device.GetCapabilities{Category: "All"})
 	defer resp.Body.Close()
 	if err != nil || resp.StatusCode != http.StatusOK {
-		return nil, errorz.ErrNotOnvif
+		return nil, utils.ErrNotOnvif
 	}
 
 	doc := etree.NewDocument()

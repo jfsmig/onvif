@@ -9,6 +9,7 @@ import (
 
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/sdk"
+	"github.com/jfsmig/onvif/utils"
 )
 
 type OnvifFullOutput struct {
@@ -32,7 +33,7 @@ type OnvifDeviceOutput struct {
 func dumpAll(ctx context.Context, params networking.ClientInfo) error {
 	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := OnvifFullOutput{}
-		r := Runner{}
+		r := utils.Runner{}
 		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
 		r.Async(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
 		r.Async(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
@@ -60,7 +61,7 @@ func dumpDescriptor(ctx context.Context, params networking.ClientInfo) error {
 	}
 	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := Output{}
-		r := Runner{}
+		r := utils.Runner{}
 		out.UUID = app.GetUUID()
 		out.Services = app.GetServices()
 		out.Descriptor = app.FetchDeviceDescriptor(ctx)
@@ -84,7 +85,7 @@ func dumpEvents(ctx context.Context, params networking.ClientInfo) error {
 func dumpDevice(ctx context.Context, params networking.ClientInfo) error {
 	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := OnvifDeviceOutput{}
-		r := Runner{}
+		r := utils.Runner{}
 		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
 		r.Async(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
 		r.Async(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
