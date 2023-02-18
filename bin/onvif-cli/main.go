@@ -57,7 +57,15 @@ func main() {
 		Aliases: []string{"find", "crawl", "probe"},
 		Short:   "Discover the local cameras",
 		Args:    cobra.NoArgs,
-		RunE:    func(cmd *cobra.Command, args []string) error { return discover(ctx) },
+		RunE:    func(cmd *cobra.Command, args []string) error { return discover(ctx, false) },
+	}
+
+	cmdStreams := &cobra.Command{
+		Use:     "streams",
+		Aliases: []string{"streams", "stream"},
+		Short:   "Print the stream URL for the cameras locally discovered",
+		Args:    cobra.NoArgs,
+		RunE:    func(cmd *cobra.Command, args []string) error { return discover(ctx, true) },
 	}
 
 	cmdDump := &cobra.Command{
@@ -139,7 +147,7 @@ func main() {
 
 	cmdDump.AddCommand(cmdDumpDescr, cmdDumpAll)
 	cmdDump.AddCommand(cmdDumpMedia, cmdDumpPtz, cmdDumpEvents, cmdDumpProfiles, cmdDumpDevice)
-	cmd.AddCommand(cmdDiscover, cmdDump)
+	cmd.AddCommand(cmdDiscover, cmdStreams, cmdDump)
 
 	if err := cmd.Execute(); err != nil {
 		Logger.Fatal().Err(err).Msg("Aborting")
