@@ -110,7 +110,9 @@ func (dw *deviceWrapper) FetchMediaVideo(ctx context.Context) Video {
 }
 
 func (dw *deviceWrapper) FetchMediaAudio(ctx context.Context) Audio {
-	out := Audio{}
+	out := Audio{
+		Outputs: make(map[onvif.ReferenceToken]*AudioOutput),
+	}
 
 	if sources, err := media.Call_GetAudioSources(ctx, dw.client, media.GetAudioSources{}); err == nil {
 		for _, src := range sources.AudioSources {
@@ -157,7 +159,12 @@ func (dw *deviceWrapper) FetchMediaAudio(ctx context.Context) Audio {
 	}
 	if configurations, err := media.Call_GetAudioOutputConfigurations(ctx, dw.client, media.GetAudioOutputConfigurations{}); err == nil {
 		for _, config := range configurations.Configurations {
-			out.Outputs[config.OutputToken].Configurations = append(out.Outputs[config.OutputToken].Configurations, config)
+			ao, found := out.Outputs[config.OutputToken]
+			if !found {
+				ao = &AudioOutput{}
+				out.Outputs[config.OutputToken] = ao
+			}
+			ao.Configurations = append(ao.Configurations, config)
 		}
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetAnalyticsConfiguration").Msg("audio")
