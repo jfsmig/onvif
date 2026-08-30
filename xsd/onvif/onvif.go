@@ -1213,15 +1213,19 @@ type NetworkHostType xsd.String
 
 type NetworkHostExtension xsd.String
 
+// Secrets below carry json:"-" so they are never serialised into a dump: sdk.DeviceSecurity
+// and DeviceNetwork are JSON-encoded to stdout by onvif-cli. The xml tags are untouched, so
+// requests that legitimately carry a secret to the device (CreateUsers, SetUser) still work,
+// and the fields stay readable from Go.
 type RemoteUser struct {
 	Username           string      `xml:"onvif:Username"`
-	Password           string      `xml:"onvif:Password"`
+	Password           string      `xml:"onvif:Password" json:"-"`
 	UseDerivedPassword xsd.Boolean `xml:"onvif:UseDerivedPassword"`
 }
 
 type User struct {
 	Username  string        `xml:"onvif:Username"`
-	Password  string        `xml:"onvif:Password"`
+	Password  string        `xml:"onvif:Password" json:"-"`
 	UserLevel UserLevel     `xml:"onvif:UserLevel"`
 	Extension UserExtension `xml:"onvif:Extension"`
 }
@@ -1541,8 +1545,8 @@ type Dot11SecurityConfiguration struct {
 type Dot11SecurityConfigurationExtension xsd.AnyType
 
 type Dot11PSKSet struct {
-	Key        Dot11PSK             `xml:"onvif:Key"`
-	Passphrase Dot11PSKPassphrase   `xml:"onvif:Passphrase"`
+	Key        Dot11PSK             `xml:"onvif:Key" json:"-"`
+	Passphrase Dot11PSKPassphrase   `xml:"onvif:Passphrase" json:"-"`
 	Extension  Dot11PSKSetExtension `xml:"onvif:Extension"`
 }
 
@@ -1725,7 +1729,7 @@ type RelayLogicalState xsd.String
 type CertificateWithPrivateKey struct {
 	CertificateID xsd.Token  `xml:"onvif:CertificateID"`
 	Certificate   BinaryData `xml:"onvif:Certificate"`
-	PrivateKey    BinaryData `xml:"onvif:PrivateKey"`
+	PrivateKey    BinaryData `xml:"onvif:PrivateKey" json:"-"`
 }
 
 type CertificateInformation struct {
@@ -1768,7 +1772,7 @@ type Dot1XConfigurationExtension xsd.AnyType
 
 type EAPMethodConfiguration struct {
 	TLSConfiguration TLSConfiguration   `xml:"onvif:TLSConfiguration,omitempty"`
-	Password         xsd.String         `xml:"onvif:Password,omitempty"`
+	Password         xsd.String         `xml:"onvif:Password,omitempty" json:"-"`
 	Extension        EapMethodExtension `xml:"onvif:Extension,omitempty"`
 }
 
