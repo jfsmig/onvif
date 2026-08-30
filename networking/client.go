@@ -128,7 +128,6 @@ func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http
 	}
 
 	soap.AddRootNamespaces(Xlmns)
-	soap.AddAction()
 
 	//Auth Handling
 	if client.username != "" && client.password != "" {

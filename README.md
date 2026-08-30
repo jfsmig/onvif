@@ -44,8 +44,8 @@ Low-Level go packages implement the OnVIF unitary SOAP calls. For each call :
 Helpers:
 - [github.com/jfsmig/onvif/networking](https://pkg.go.dev/github.com/jfsmig/onvif/networking)
   implements the low-level SOAP connectivity
-- [github.com/jfsmig/onvif/ws-discovery](https://pkg.go.dev/github.com/jfsmig/onvif/ws-discovery)
-  implements the probing of the LAN network interfaces. Please refer to the CLI tools `onvif-cli discover NIC`
+- [github.com/jfsmig/go-wsd/wsd](https://pkg.go.dev/github.com/jfsmig/go-wsd/wsd)
+  implements the probing of the LAN network interfaces. Please refer to the CLI tool `onvif-cli discover`
 
 ### Beginner's Guide
 

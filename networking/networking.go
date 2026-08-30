@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/beevik/etree"
-	"github.com/jfsmig/onvif/gosoap"
+	"github.com/jfsmig/go-wsd/gosoap"
 	"github.com/jfsmig/onvif/utils"
 )
 
@@ -34,10 +34,10 @@ func ReadAndParse(ctx context.Context, httpReply *http.Response, reply interface
 	}
 }
 
-func buildMethodSOAP(msg string) (gosoap.SoapMessage, error) {
+func buildMethodSOAP(msg string) (*gosoap.SoapMessage, error) {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromString(msg); err != nil {
-		return "", err
+		return nil, err
 	}
 	element := doc.Root()
 
