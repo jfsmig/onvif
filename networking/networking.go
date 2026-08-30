@@ -32,7 +32,25 @@ import (
 	"github.com/jfsmig/onvif/utils"
 )
 
-// SendSoap send soap message
+// refuseRedirect stops net/http from following a 3xx.
+//
+// The ONVIF credential travels in the SOAP body, not in a header. http.NewRequest gives a
+// *bytes.Buffer body a GetBody, so a 307 or 308 makes net/http replay the whole envelope —
+// WS-Security UsernameToken included — at whatever host the Location names. Do only strips
+// Authorization and Cookie across hosts, so its own protection does not cover this.
+//
+// Returning ErrUseLastResponse hands the 3xx back to the caller instead of erroring, so
+// ReadAndParse reports it as "http request error: 307 ..." and an operator can see that the
+// device asked to be redirected. A redirect is not part of the ONVIF SOAP binding anyway.
+func refuseRedirect(*http.Request, []*http.Request) error {
+	return http.ErrUseLastResponse
+}
+
+// SendSoap sends a SOAP message using the supplied client.
+//
+// The caller owns httpClient: a client obtained from NewClient refuses redirects, but one
+// built elsewhere follows them by default and will replay the credential-bearing body to
+// the redirect target. Set CheckRedirect on any client passed here directly.
 func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message string) (*http.Response, error) {
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(message))
 	if err != nil {
