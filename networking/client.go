@@ -23,7 +23,14 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 )
+
+// DefaultTimeout bounds a single SOAP exchange on the client NewClient builds for itself.
+// It is a backstop, not the primary mechanism: cancellation and deadlines normally arrive
+// through the context passed to CallMethod. It matters when a caller passes a context with
+// no deadline, which would otherwise leave a request with nothing to stop it.
+const DefaultTimeout = 30 * time.Second
 
 // Xlmns XML Schema
 var Xlmns = map[string]string{
@@ -92,7 +99,7 @@ func NewClient(ref ClientInfo, httpClient *http.Client) (*Client, error) {
 	dev.AddEndpoint("Device", "http://"+dev.xaddr+"/onvif/device_service")
 	switch {
 	case dev.httpClient == nil:
-		dev.httpClient = &http.Client{CheckRedirect: refuseRedirect}
+		dev.httpClient = &http.Client{CheckRedirect: refuseRedirect, Timeout: DefaultTimeout}
 	case dev.httpClient.CheckRedirect == nil:
 		clone := *dev.httpClient
 		clone.CheckRedirect = refuseRedirect

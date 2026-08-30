@@ -52,12 +52,16 @@ func refuseRedirect(*http.Request, []*http.Request) error {
 // built elsewhere follows them by default and will replay the credential-bearing body to
 // the redirect target. Set CheckRedirect on any client passed here directly.
 func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message string) (*http.Response, error) {
-	req, err := http.NewRequest("POST", endpoint, bytes.NewBufferString(message))
+	// NewRequestWithContext, not NewRequest followed by req.WithContext: the latter returns
+	// a copy, so discarding it left every request on context.Background() — the caller's
+	// deadline and cancellation reached nothing, and a device that accepted the connection
+	// then went silent blocked forever. The context bounds the whole exchange, the response
+	// body read included.
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewBufferString(message))
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/soap+xml; charset=utf-8")
-	req.WithContext(ctx)
 	return httpClient.Do(req)
 }
 
