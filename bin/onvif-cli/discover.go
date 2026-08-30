@@ -19,12 +19,12 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/jfsmig/go-wsd/wsd"
 
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/sdk"
-	"github.com/jfsmig/onvif/utils"
 )
 
 // probeOptions keeps the dialect the in-tree probe spoke: the zero Flavor is the
@@ -50,16 +50,16 @@ func discover(ctx context.Context, flagStreams bool) error {
 	// total grow with the number of interfaces: on a host carrying a dozen veth devices
 	// the deadline in main() expired before the real NIC had been reached.
 	probes := make([]*itfProbe, 0, len(interfaces))
-	runner := utils.Runner{}
+	var wg sync.WaitGroup
 	for _, itf := range interfaces {
 		if itf.Flags&net.FlagUp == 0 || itf.Flags&net.FlagLoopback != 0 {
 			continue
 		}
 		probe := &itfProbe{name: itf.Name}
 		probes = append(probes, probe)
-		runner.Async(func() { probe.devices, probe.err = wsd.Discover(ctx, probe.name, probeOptions) })
+		wg.Go(func() { probe.devices, probe.err = wsd.Discover(ctx, probe.name, probeOptions) })
 	}
-	runner.Wait()
+	wg.Wait()
 
 	for _, probe := range probes {
 		if probe.err != nil {

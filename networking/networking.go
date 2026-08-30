@@ -23,6 +23,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -44,7 +45,9 @@ func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message st
 
 func ReadAndParse(ctx context.Context, httpReply *http.Response, reply interface{}, tag string) error {
 	if httpReply.StatusCode != http.StatusOK {
-		return utils.ErrHttp
+		// Keep the status: telling 401 (wrong credentials) from 500 (device fault)
+		// otherwise needs a packet capture.
+		return fmt.Errorf("%w: %s", utils.ErrHTTP, httpReply.Status)
 	}
 	if b, err := io.ReadAll(httpReply.Body); err != nil {
 		return err

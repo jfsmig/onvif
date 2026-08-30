@@ -15,12 +15,18 @@
 
 package utils
 
+// constError is a string that satisfies error. Being a defined string type, it can be
+// declared const: a sentinel that no importer can reassign, and that stays comparable so
+// errors.Is keeps working through a wrapping chain.
 type constError string
 
 func (e constError) Error() string { return string(e) }
 
-var ErrUnreachable = constError("unreachable device")
-var ErrHttp = constError("http request error")
-var ErrNotOnvif = constError("not an OnVif device")
-var ErrUnsupportedPTZ = constError("unsupported PTZ")
-var ErrUnsupportedCall = constError("unsupported call")
+const (
+	// ErrHTTP reports a non-200 reply from the device. Callers wrap it with the status,
+	// so match it with errors.Is rather than ==.
+	ErrHTTP = constError("http request error")
+
+	// ErrNotOnvif reports a host that answered but does not speak ONVIF.
+	ErrNotOnvif = constError("not an ONVIF device")
+)
