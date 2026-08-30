@@ -2,7 +2,7 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/jfsmig/onvif/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/jfsmig/onvif/tree/master)
 [![CodeQL](https://github.com/jfsmig/onvif/actions/workflows/codeql.yml/badge.svg)](https://github.com/jfsmig/onvif/actions/workflows/codeql.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 Simple management IP-devices cameras that honor the [ONVIF Protocol](https://www.onvif.org/) protocol.
 
@@ -111,3 +111,13 @@ PHP
   * https://github.com/mapbuh/onvif-client-php
 
 ### Client Apps_
+
+## License
+
+AGPL-3.0-or-later, see [LICENSE](LICENSE). This project began as `goonvif`, later
+`use-go/onvif`, distributed under the MIT License; that notice is retained in
+[LICENSE.MIT](LICENSE.MIT) and the files derived from it carry both notices in their
+headers. See the git history for the full list of contributors.
+
+`docs/` holds ONVIF's own specification and WSDL files, which remain under ONVIF's terms
+and are not covered by the AGPL.
