@@ -74,7 +74,7 @@ type GetAnalyticsModuleOptions struct {
 }
 
 type CreateAnalyticsModules struct {
-	XMLName            string               `xml:"tev:CreateAnalyticsModules"`
+	XMLName            string               `xml:"tan:CreateAnalyticsModules"`
 	ConfigurationToken onvif.ReferenceToken `xml:"tan:ConfigurationToken"`
 	AnalyticsModule    onvif.Config         `xml:"tan:AnalyticsModule"`
 }
