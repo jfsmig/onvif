@@ -106,6 +106,8 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   restating the code, and cite the clause when behaviour comes from a spec (`ONVIF Core
   section 7.3.6`, `SOAP 1.2 Part 1 section 5.2.3`). Always comment in English.
 
+- No dead code, no commented-out code, no ignored errors.
+
 - **Never `log.Print*` to the standard logger.** Diagnostics go through a replaceable
   logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:36`) that an
   application can swap out, and the CLI has its own in `bin/onvif-cli/main.go`. Packages
