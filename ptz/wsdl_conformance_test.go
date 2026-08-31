@@ -40,3 +40,35 @@ func TestOperatePresetTourChildrenUseTheServiceNamespace(t *testing.T) {
 		}
 	}
 }
+
+// docs/wsdl/ptz.wsdl declares GetConfiguration's child as PTZConfigurationToken and
+// GetConfigurationOptions' as ConfigurationToken. Both structs sent ProfileToken, so the
+// device received no token it recognised — and the field name also mislabelled what these
+// operations take, which is a configuration token, not a profile token.
+func TestGetConfigurationSendsTheConfigurationToken(t *testing.T) {
+	b, err := xml.Marshal(GetConfiguration{PTZConfigurationToken: "PTZCfg_9"})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	got := string(b)
+	if strings.Contains(got, "ProfileToken") {
+		t.Fatalf("GetConfiguration still sends ProfileToken: %s", got)
+	}
+	if !strings.Contains(got, "<tptz:PTZConfigurationToken>PTZCfg_9</tptz:PTZConfigurationToken>") {
+		t.Fatalf("missing tptz:PTZConfigurationToken: %s", got)
+	}
+}
+
+func TestGetConfigurationOptionsSendsTheConfigurationToken(t *testing.T) {
+	b, err := xml.Marshal(GetConfigurationOptions{ConfigurationToken: "PTZCfg_9"})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	got := string(b)
+	if strings.Contains(got, "ProfileToken") {
+		t.Fatalf("GetConfigurationOptions still sends ProfileToken: %s", got)
+	}
+	if !strings.Contains(got, "<tptz:ConfigurationToken>PTZCfg_9</tptz:ConfigurationToken>") {
+		t.Fatalf("missing tptz:ConfigurationToken: %s", got)
+	}
+}
