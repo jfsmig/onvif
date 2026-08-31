@@ -528,8 +528,11 @@ type ItemList struct {
 }
 
 type SimpleItem struct {
-	Name  string            `xml:"http://www.onvif.org/ver10/schema Name,attr"`
-	Value xsd.AnySimpleType `xml:"http://www.onvif.org/ver10/schema Value,attr"`
+	// Unqualified: onvif.xsd declares these locally and sets no attributeFormDefault, so
+	// they belong to no namespace. Qualifying them broke both directions — a camera's plain
+	// Name= did not bind, and we emitted a namespaced one it would not recognise.
+	Name  string            `xml:"Name,attr"`
+	Value xsd.AnySimpleType `xml:"Value,attr"`
 }
 
 type ElementItem struct {
@@ -1167,7 +1170,9 @@ type SystemDateTimeExtension xsd.AnyType
 type FactoryDefaultType xsd.String
 
 type AttachmentData struct {
-	ContentType ContentType `xml:"contentType,attr"`
+	// ref="xmime:contentType" in onvif.xsd, the schema's only global attribute, so this one
+	// is qualified — same as BinaryData.X.
+	ContentType ContentType `xml:"http://www.w3.org/2005/05/xmlmime contentType,attr"`
 	Include     Include     `xml:"http://www.w3.org/2004/08/xop/include Include"`
 }
 

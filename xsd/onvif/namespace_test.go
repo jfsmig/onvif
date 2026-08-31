@@ -92,3 +92,92 @@ func TestMarshalKeepsTheSchemaNamespace(t *testing.T) {
 		t.Fatalf("marshalled User lost the ONVIF schema namespace: %s", b)
 	}
 }
+
+// --- attributes ---
+//
+// onvif.xsd declares no attributeFormDefault, so it takes the XSD default of "unqualified":
+// a locally declared attribute belongs to NO namespace. The one exception in the whole
+// schema is xmime:contentType, which is pulled in by ref= and therefore IS qualified.
+//
+// SimpleItem carries ONVIF's generic name/value pairs — every analytics module, rule and
+// metadata configuration passes its parameters through it — so getting this wrong breaks
+// configuration in both directions.
+
+// A camera sends the attributes unqualified, exactly as the schema specifies.
+const analyticsModule = `<Config xmlns:tt="http://www.onvif.org/ver10/schema" Name="MotionDetector" Type="tt:Motion">
+  <tt:Parameters>
+    <tt:SimpleItem Name="Sensitivity" Value="70"/>
+  </tt:Parameters>
+</Config>`
+
+func TestSimpleItemAttributesRoundTrip(t *testing.T) {
+	var c Config
+	if err := xml.Unmarshal([]byte(analyticsModule), &c); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if c.Name != "MotionDetector" {
+		t.Fatalf("Config.Name = %q, want MotionDetector", c.Name)
+	}
+	si := c.Parameters.SimpleItem
+	if si.Name != "Sensitivity" {
+		t.Fatalf("SimpleItem.Name = %q, want Sensitivity — analytics parameters do not bind", si.Name)
+	}
+	if got := string(si.Value); got != "70" {
+		t.Fatalf("SimpleItem.Value = %q, want 70", got)
+	}
+}
+
+// And on the way out the attributes must be unqualified too, or a camera looking for a
+// plain Name= will not find it.
+func TestSimpleItemMarshalsUnqualifiedAttributes(t *testing.T) {
+	b, err := xml.Marshal(SimpleItem{Name: "Sensitivity", Value: "70"})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	got := string(b)
+	if strings.Contains(got, ":Name=") || strings.Contains(got, ":Value=") {
+		t.Fatalf("SimpleItem attributes are namespace-qualified, but the schema declares them local: %s", got)
+	}
+	for _, want := range []string{`Name="Sensitivity"`, `Value="70"`} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %s in: %s", want, got)
+		}
+	}
+}
+
+// AttachmentData carries the same `ref="xmime:contentType"` as BinaryData, so it must be
+// qualified the same way. It was the only tag in the file tagged the other way round.
+//
+// Note the asymmetry that hid this: Go's unmarshal matches on local name alone when the tag
+// omits a namespace, so reading already worked. Only the marshal side was wrong, emitting a
+// bare contentType= where the schema calls for the xmime-qualified attribute.
+func TestAttachmentDataContentTypeIsQualified(t *testing.T) {
+	b, err := xml.Marshal(AttachmentData{ContentType: "image/jpeg"})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	if !strings.Contains(string(b), "http://www.w3.org/2005/05/xmlmime") {
+		t.Fatalf("AttachmentData.ContentType is not xmime-qualified on the wire: %s", b)
+	}
+	// Reading is lenient either way, but assert it keeps working.
+	const doc = `<AttachmentData xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmime:contentType="image/jpeg"/>`
+	var a AttachmentData
+	if err := xml.Unmarshal([]byte(doc), &a); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got := string(a.ContentType); got != "image/jpeg" {
+		t.Fatalf("AttachmentData.ContentType = %q, want image/jpeg", got)
+	}
+}
+
+// BinaryData was already right; make sure fixing its twin does not "normalise" it away.
+func TestBinaryDataContentTypeStaysQualified(t *testing.T) {
+	const doc = `<BinaryData xmlns:xmime="http://www.w3.org/2005/05/xmlmime" xmime:contentType="image/png"/>`
+	var b BinaryData
+	if err := xml.Unmarshal([]byte(doc), &b); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got := string(b.X); got != "image/png" {
+		t.Fatalf("BinaryData.X = %q, want image/png", got)
+	}
+}
