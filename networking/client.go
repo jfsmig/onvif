@@ -18,12 +18,14 @@ package networking
 import (
 	"context"
 	"encoding/xml"
-	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/jfsmig/onvif/utils"
 )
 
 // DefaultTimeout bounds a single SOAP exchange on the client NewClient builds for itself.
@@ -171,23 +173,69 @@ func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http
 	return SendSoap(ctx, client.httpClient, endpoint, soap.String())
 }
 
-// getEndpoint functions get the target service endpoint in a better way
-func (client *Client) getEndpoint(endpoint string) (string, error) {
+// serviceEndpointKeys names, per Go package, the endpoint keys that denote that service.
+//
+// Only `event` needs more than its own name: the package is event/ because that is what the
+// ONVIF WSDL calls the port type, while GetCapabilities reports the endpoint under `Events`,
+// which AddEndpoint lowercases.
+var serviceEndpointKeys = map[string][]string{
+	"event": {"events", "event"},
+}
 
-	// common condition, endpointMark in map we use this.
-	if endpointURL, bFound := client.endpoints[endpoint]; bFound {
-		return endpointURL, nil
-	}
+// knownServiceKeys is every endpoint key sdk.load can extract from a GetCapabilities reply:
+// the children of Capabilities, then those of Capabilities/Extension. Each names a distinct
+// ONVIF service, which is what makes them ineligible for the substring fallback below.
+var knownServiceKeys = map[string]bool{
+	"device": true, "media": true, "ptz": true, "events": true, "imaging": true,
+	"analytics": true, "deviceio": true, "display": true, "recording": true,
+	"search": true, "replay": true, "receiver": true, "analyticsdevice": true,
+}
 
-	//but ,if we have endpoint like event、analytic
-	//and sametime the Targetkey like : events、analytics
-	//we use fuzzy way to find the best match url
-	var endpointURL string
-	for targetKey := range client.endpoints {
-		if strings.Contains(targetKey, endpoint) {
-			endpointURL = client.endpoints[targetKey]
-			return endpointURL, nil
+// HasEndpoint resolves a service name to the endpoint the device advertised for it, and
+// reports whether one was found.
+//
+// The name is the one CallMethod derives from the request struct's package, so a caller can
+// ask in advance whether a service is reachable and get the same answer the call would.
+// ONVIF makes whole services conditional, and this is how a caller tests for one without
+// sending anything.
+//
+// Resolution is: the exact key, then the aliases in serviceEndpointKeys, then — only as a
+// concession to vendors who invent key names — a key that contains the service name and is
+// not itself a known ONVIF service.
+//
+// That last exclusion is the point. The previous implementation accepted any containing key,
+// so `analytics` resolved to `analyticsdevice` on a device advertising the latter alone:
+// two different services, one silently answering for the other. It also returned the first
+// match from a map range, so with several candidates the answer varied between runs.
+func (client *Client) HasEndpoint(name string) (string, bool) {
+	for _, key := range append([]string{name}, serviceEndpointKeys[name]...) {
+		if endpointURL, found := client.endpoints[key]; found {
+			return endpointURL, true
 		}
 	}
-	return endpointURL, errors.New("target endpoint service not found")
+
+	// Deterministic: shortest, then lexicographic, so a device advertising several odd keys
+	// resolves the same way every time.
+	best := ""
+	for key := range client.endpoints {
+		if knownServiceKeys[key] || !strings.Contains(key, name) {
+			continue
+		}
+		if best == "" || len(key) < len(best) || (len(key) == len(best) && key < best) {
+			best = key
+		}
+	}
+	if best == "" {
+		return "", false
+	}
+	return client.endpoints[best], true
+}
+
+// getEndpoint returns the endpoint for a service, or ErrNoService naming it.
+func (client *Client) getEndpoint(endpoint string) (string, error) {
+	endpointURL, found := client.HasEndpoint(endpoint)
+	if !found {
+		return "", fmt.Errorf("%w: %s", utils.ErrNoService, endpoint)
+	}
+	return endpointURL, nil
 }

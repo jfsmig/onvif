@@ -103,7 +103,11 @@ func TestPTZConfigurationIsFetchedByConfigurationToken(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDevice: %v", err)
 	}
-	dev.FetchProfiles(context.Background())
+	profileS, ok := dev.ProfileS()
+	if !ok {
+		t.Fatal("ProfileS reported false for a stub advertising Device, Media and PTZ")
+	}
+	profileS.FetchMediaProfiles(context.Background())
 
 	mu.Lock()
 	defer mu.Unlock()

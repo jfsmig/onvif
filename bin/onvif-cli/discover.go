@@ -77,8 +77,11 @@ func discover(ctx context.Context, flagStreams bool) error {
 			} else {
 				if cam, err := sdk.NewDevice(ctx, dev, auth, &httpClient); err != nil {
 					Logger.Error().Err(err).Msg("Camera instantiation failure")
+				} else if profileS, ok := cam.ProfileS(); !ok {
+					Logger.Warn().Str("xaddr", dev.Xaddr).
+						Msg("No ONVIF Profile S service advertised, no stream to report")
 				} else {
-					profiles := cam.FetchProfiles(ctx).Profiles
+					profiles := profileS.FetchMediaProfiles(ctx).Profiles
 					for id, profile := range profiles {
 						fmt.Println(dev.Xaddr, dev.Uuid, id, profile.Uris.Stream.Uri, profile.Uris.Snapshot.Uri)
 					}

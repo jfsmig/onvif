@@ -29,4 +29,12 @@ const (
 
 	// ErrNotOnvif reports a host that answered but does not speak ONVIF.
 	ErrNotOnvif = constError("not an ONVIF device")
+
+	// ErrNoService reports that the appliance advertises no endpoint for the service a
+	// request was addressed to. It is a property of the device, not a failure of the
+	// exchange: nothing was sent. Callers need to tell it apart from a rejected request
+	// because ONVIF makes whole services conditional — a camera without PTZ answers
+	// everything else perfectly well — so this is the error a conditional capability
+	// yields, and it must not be reported as a fault.
+	ErrNoService = constError("no endpoint for the service")
 )

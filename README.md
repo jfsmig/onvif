@@ -50,14 +50,25 @@ Helpers:
 ### Beginner's Guide
 
 ```go
-params := networking.ClientParams{
-    Xaddr:      "",
-    Username:   os.Getenv("ONVIF_USERNAME"),
-    Password:   os.Getenv("ONVIF_PASSWORD"),
-    HttpClient: nil,
+info := networking.ClientInfo{Xaddr: "192.168.1.70:8000"}
+auth := networking.ClientAuth{
+    Username: os.Getenv("ONVIF_USERNAME"),
+    Password: os.Getenv("ONVIF_PASSWORD"),
 }
-sdkDev, err := sdk.NewDevice(params)
-if err != nil { /* Not a reachable OnVif device */ }
+
+appliance, err := sdk.NewDevice(ctx, info, auth, nil)
+if err != nil { /* not a reachable ONVIF device */ }
+
+// The operations are grouped the way the norm groups them: by Profile.
+profileS, ok := appliance.ProfileS()
+if !ok { /* the appliance advertises no Profile S service */ }
+
+reply, err := profileS.GetProfiles(ctx, media.GetProfiles{})
+
+// PTZ is conditional in Profile S, so ask before assuming.
+if profileS.HasPTZ() {
+    _, err = profileS.ContinuousMove(ctx, ptz.ContinuousMove{ProfileToken: token})
+}
 ```
 
 ### Auto-generated code instead of generics
