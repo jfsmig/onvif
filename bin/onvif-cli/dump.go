@@ -19,10 +19,10 @@ import (
 	"context"
 	"encoding/json"
 	"os"
+	"sync"
 
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/sdk"
-	"github.com/jfsmig/onvif/utils"
 )
 
 type OnvifFullOutput struct {
@@ -46,16 +46,16 @@ type OnvifDeviceOutput struct {
 func dumpAll(ctx context.Context, params networking.ClientInfo) error {
 	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := OnvifFullOutput{}
-		r := utils.Runner{}
-		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
-		r.Async(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
-		r.Async(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
-		r.Async(func() { out.DeviceSecurity = app.FetchDeviceSecurity(ctx) })
-		r.Async(func() { out.Media = app.FetchMedia(ctx) })
-		r.Async(func() { out.Ptz = app.FetchPTZ(ctx) })
-		r.Async(func() { out.Events = app.FetchEvent(ctx) })
-		r.Async(func() { out.Profiles = app.FetchProfiles(ctx) })
-		r.Wait()
+		var wg sync.WaitGroup
+		wg.Go(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
+		wg.Go(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
+		wg.Go(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
+		wg.Go(func() { out.DeviceSecurity = app.FetchDeviceSecurity(ctx) })
+		wg.Go(func() { out.Media = app.FetchMedia(ctx) })
+		wg.Go(func() { out.Ptz = app.FetchPTZ(ctx) })
+		wg.Go(func() { out.Events = app.FetchEvent(ctx) })
+		wg.Go(func() { out.Profiles = app.FetchProfiles(ctx) })
+		wg.Wait()
 		return out
 	})
 }
@@ -74,11 +74,9 @@ func dumpDescriptor(ctx context.Context, params networking.ClientInfo) error {
 	}
 	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := Output{}
-		r := utils.Runner{}
 		out.UUID = app.GetUUID()
 		out.Services = app.GetServices()
 		out.Descriptor = app.FetchDeviceDescriptor(ctx)
-		r.Wait()
 		return out
 	})
 }
@@ -98,12 +96,12 @@ func dumpEvents(ctx context.Context, params networking.ClientInfo) error {
 func dumpDevice(ctx context.Context, params networking.ClientInfo) error {
 	return dumpSomething(ctx, params, func(app sdk.Appliance) interface{} {
 		out := OnvifDeviceOutput{}
-		r := utils.Runner{}
-		r.Async(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
-		r.Async(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
-		r.Async(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
-		r.Async(func() { out.DeviceSecurity = app.FetchDeviceSecurity(ctx) })
-		r.Wait()
+		var wg sync.WaitGroup
+		wg.Go(func() { out.Descriptor = app.FetchDeviceDescriptor(ctx) })
+		wg.Go(func() { out.DeviceNetwork = app.FetchDeviceNetwork(ctx) })
+		wg.Go(func() { out.DeviceSystem = app.FetchDeviceSystem(ctx) })
+		wg.Go(func() { out.DeviceSecurity = app.FetchDeviceSecurity(ctx) })
+		wg.Wait()
 		return out
 	})
 }

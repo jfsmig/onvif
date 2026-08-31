@@ -39,7 +39,9 @@ var (
 )
 
 var (
-	httpClient = http.Client{}
+	// Per-request backstop. The one-minute context in main() bounds the whole run; this
+	// bounds any single exchange so one slow camera cannot consume the entire budget.
+	httpClient = http.Client{Timeout: networking.DefaultTimeout}
 
 	auth = networking.ClientAuth{
 		Username: envOrDefault("ONVIF_USERNAME", "admin"),

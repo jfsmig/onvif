@@ -23,7 +23,14 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 )
+
+// DefaultTimeout bounds a single SOAP exchange on the client NewClient builds for itself.
+// It is a backstop, not the primary mechanism: cancellation and deadlines normally arrive
+// through the context passed to CallMethod. It matters when a caller passes a context with
+// no deadline, which would otherwise leave a request with nothing to stop it.
+const DefaultTimeout = 30 * time.Second
 
 // Xlmns XML Schema
 var Xlmns = map[string]string{
@@ -71,7 +78,14 @@ type ClientInfo struct {
 	Uuid  string
 }
 
-// NewClient function construct a ONVIF Client entity
+// NewClient constructs an ONVIF Client entity.
+//
+// The client used is guaranteed to refuse HTTP redirects, because a 307 or 308 would replay
+// the credential-bearing SOAP body at the redirect target (see refuseRedirect). If the
+// supplied httpClient has no CheckRedirect of its own, a shallow copy carrying the policy is
+// stored rather than mutating the caller's struct, which would be a surprising side effect
+// and a data race if they share it. The copy keeps the same Transport, so connection pooling
+// and any Timeout are preserved. A caller who has set CheckRedirect is left alone.
 func NewClient(ref ClientInfo, httpClient *http.Client) (*Client, error) {
 	dev := &Client{
 		xaddr:      ref.Xaddr,
@@ -83,8 +97,13 @@ func NewClient(ref ClientInfo, httpClient *http.Client) (*Client, error) {
 	}
 
 	dev.AddEndpoint("Device", "http://"+dev.xaddr+"/onvif/device_service")
-	if dev.httpClient == nil {
-		dev.httpClient = &http.Client{}
+	switch {
+	case dev.httpClient == nil:
+		dev.httpClient = &http.Client{CheckRedirect: refuseRedirect, Timeout: DefaultTimeout}
+	case dev.httpClient.CheckRedirect == nil:
+		clone := *dev.httpClient
+		clone.CheckRedirect = refuseRedirect
+		dev.httpClient = &clone
 	}
 
 	return dev, nil

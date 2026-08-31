@@ -17,6 +17,7 @@ package sdk
 
 import (
 	"context"
+	"fmt"
 	"github.com/jfsmig/onvif/utils"
 	"io"
 	"net/http"
@@ -106,16 +107,24 @@ func WrapClient(ctx context.Context, client *networking.Client, auth networking.
 }
 
 func (dw *deviceWrapper) load(ctx context.Context) (Appliance, error) {
+	// CallMethod returns a nil response together with its error, so the body must not be
+	// touched before err is checked: an unreachable device used to panic here.
 	resp, err := dw.client.CallMethod(ctx, device.GetSystemDateAndTime{})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", utils.ErrNotOnvif, err)
+	}
 	resp.Body.Close()
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return nil, utils.ErrNotOnvif
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: %s", utils.ErrNotOnvif, resp.Status)
 	}
 
 	resp, err = dw.client.CallMethod(ctx, device.GetCapabilities{Category: "All"})
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", utils.ErrNotOnvif, err)
+	}
 	defer resp.Body.Close()
-	if err != nil || resp.StatusCode != http.StatusOK {
-		return nil, utils.ErrNotOnvif
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("%w: %s", utils.ErrNotOnvif, resp.Status)
 	}
 
 	doc := etree.NewDocument()

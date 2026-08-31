@@ -17,9 +17,10 @@ package sdk
 
 import (
 	"context"
+	"sync"
+
 	"github.com/jfsmig/onvif/media"
 	"github.com/jfsmig/onvif/ptz"
-	"github.com/jfsmig/onvif/utils"
 	"github.com/jfsmig/onvif/xsd/onvif"
 )
 
@@ -134,48 +135,48 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, profileToken onvif.Re
 func (dw *deviceWrapper) loadProfilePTZ(ctx context.Context, profileToken onvif.ReferenceToken) ProfilePTZ {
 	out := ProfilePTZ{}
 
-	r := utils.Runner{}
+	var wg sync.WaitGroup
 
-	r.Async(func() {
+	wg.Go(func() {
 		if x, err := ptz.Call_GetStatus(ctx, dw.client, ptz.GetStatus{ProfileToken: profileToken}); err == nil {
 			out.Status = x.PTZStatus
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if x, err := ptz.Call_GetConfiguration(ctx, dw.client, ptz.GetConfiguration{ProfileToken: profileToken}); err == nil {
 			out.Configuration = x.PTZConfiguration
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if x, err := ptz.Call_GetConfigurationOptions(ctx, dw.client, ptz.GetConfigurationOptions{ProfileToken: profileToken}); err == nil {
 			out.Options = x.PTZConfigurationOptions
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if x, err := ptz.Call_GetPresets(ctx, dw.client, ptz.GetPresets{ProfileToken: profileToken}); err == nil {
 			out.Preset = x.Preset
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if x, err := ptz.Call_GetPresetTours(ctx, dw.client, ptz.GetPresetTours{ProfileToken: profileToken}); err == nil {
 			out.PresetTour = x.PresetTour
 		}
 	})
 
-	r.Wait()
+	wg.Wait()
 	return out
 }
 
 func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvif.ReferenceToken) ProfileMedia {
 	out := ProfileMedia{}
 
-	r := utils.Runner{}
+	var wg sync.WaitGroup
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleMetadataConfigurations(ctx, dw.client, media.GetCompatibleMetadataConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleMetadata = append(out.CompatibleMetadata, x.Token)
@@ -185,7 +186,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleVideoSourceConfigurations(ctx, dw.client, media.GetCompatibleVideoSourceConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleVideoSources = append(out.CompatibleVideoSources, x.Token)
@@ -195,7 +196,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleVideoEncoderConfigurations(ctx, dw.client, media.GetCompatibleVideoEncoderConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleVideoEncoders = append(out.CompatibleVideoEncoders, x.Token)
@@ -205,7 +206,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleVideoAnalyticsConfigurations(ctx, dw.client, media.GetCompatibleVideoAnalyticsConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleVideoAnalytics = append(out.CompatibleVideoAnalytics, x.Token)
@@ -215,7 +216,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleAudioSourceConfigurations(ctx, dw.client, media.GetCompatibleAudioSourceConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleAudioSources = append(out.CompatibleAudioSources, x.Token)
@@ -225,7 +226,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleAudioEncoderConfigurations(ctx, dw.client, media.GetCompatibleAudioEncoderConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleAudioEncoders = append(out.CompatibleAudioEncoders, x.Token)
@@ -235,7 +236,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 		if all, err := media.Call_GetCompatibleAudioOutputConfigurations(ctx, dw.client, media.GetCompatibleAudioOutputConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
 				out.CompatibleAudioOutputs = append(out.CompatibleAudioOutputs, x.Token)
@@ -245,7 +246,7 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Async(func() {
+	wg.Go(func() {
 
 		if all, err := media.Call_GetCompatibleAudioDecoderConfigurations(ctx, dw.client, media.GetCompatibleAudioDecoderConfigurations{ProfileToken: profileToken}); err == nil {
 			for _, x := range all.Configurations {
@@ -256,6 +257,6 @@ func (dw *deviceWrapper) loadProfileMedia(ctx context.Context, profileToken onvi
 		}
 	})
 
-	r.Wait()
+	wg.Wait()
 	return out
 }
