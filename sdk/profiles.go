@@ -127,12 +127,17 @@ func (dw *deviceWrapper) FetchProfile(ctx context.Context, profileToken onvif.Re
 
 	out.Uris = dw.FetchMediaProfileUris(ctx, ProtocolRTSP, profileToken, StreamTypeDefault)
 	out.Media = dw.loadProfileMedia(ctx, profileToken)
-	out.PTZ = dw.loadProfilePTZ(ctx, profileToken)
+	out.PTZ = dw.loadProfilePTZ(ctx, profileToken, out.Profile.PTZConfiguration.Token)
 
 	return out
 }
 
-func (dw *deviceWrapper) loadProfilePTZ(ctx context.Context, profileToken onvif.ReferenceToken) ProfilePTZ {
+// loadProfilePTZ needs two different tokens. GetStatus, GetPresets and GetPresetTours are
+// keyed by the profile; GetConfiguration and GetConfigurationOptions are keyed by the PTZ
+// *configuration* the profile references. Passing the profile token to the latter two --
+// which is what this did -- means the device is asked for a configuration that does not
+// exist, so PTZ configuration never populated.
+func (dw *deviceWrapper) loadProfilePTZ(ctx context.Context, profileToken, ptzConfigToken onvif.ReferenceToken) ProfilePTZ {
 	out := ProfilePTZ{}
 
 	var wg sync.WaitGroup
@@ -143,17 +148,25 @@ func (dw *deviceWrapper) loadProfilePTZ(ctx context.Context, profileToken onvif.
 		}
 	})
 
-	wg.Go(func() {
-		if x, err := ptz.Call_GetConfiguration(ctx, dw.client, ptz.GetConfiguration{ProfileToken: profileToken}); err == nil {
-			out.Configuration = x.PTZConfiguration
-		}
-	})
+	if ptzConfigToken != "" {
+		wg.Go(func() {
+			if x, err := ptz.Call_GetConfiguration(ctx, dw.client,
+				ptz.GetConfiguration{PTZConfigurationToken: ptzConfigToken}); err == nil {
+				out.Configuration = x.PTZConfiguration
+			} else {
+				Logger.Trace().Err(err).Str("rpc", "GetConfiguration").Msg("profile")
+			}
+		})
 
-	wg.Go(func() {
-		if x, err := ptz.Call_GetConfigurationOptions(ctx, dw.client, ptz.GetConfigurationOptions{ProfileToken: profileToken}); err == nil {
-			out.Options = x.PTZConfigurationOptions
-		}
-	})
+		wg.Go(func() {
+			if x, err := ptz.Call_GetConfigurationOptions(ctx, dw.client,
+				ptz.GetConfigurationOptions{ConfigurationToken: ptzConfigToken}); err == nil {
+				out.Options = x.PTZConfigurationOptions
+			} else {
+				Logger.Trace().Err(err).Str("rpc", "GetConfigurationOptions").Msg("profile")
+			}
+		})
+	}
 
 	wg.Go(func() {
 		if x, err := ptz.Call_GetPresets(ctx, dw.client, ptz.GetPresets{ProfileToken: profileToken}); err == nil {

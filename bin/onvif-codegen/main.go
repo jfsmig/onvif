@@ -17,10 +17,10 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"errors"
+	"fmt"
+	"go/token"
 	"os"
-	"os/signal"
 	"strings"
 	"time"
 
@@ -44,21 +44,21 @@ var (
 
 func main() {
 	cmd := &cobra.Command{
-		Use:   "codegen",
-		Short: "",
+		Use:   "onvif-codegen",
+		Short: "Generate the ONVIF SOAP call wrappers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return ErrMissingSubcommand
 		},
 	}
 
 	sdk := &cobra.Command{
-		Use:   "sdk",
-		Short: "Generate the files of a SDK package",
-		Args:  cobra.ExactArgs(2),
+		Use:   "sdk PACKAGE CALLS_FILE",
+		Short: "Generate one Call_<Method> wrapper per method listed in CALLS_FILE",
+		Long: "Generate one <Method>_auto.go per method listed in CALLS_FILE, in the\n" +
+			"directory holding CALLS_FILE. That directory must be named PACKAGE.",
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
-			defer cancel()
-			return codegenSdk(ctx, args[0], args[1])
+			return codegenSdk(args[0], args[1])
 		},
 	}
 
@@ -71,37 +71,52 @@ func main() {
 	}
 }
 
-func getwd() string {
-	path, _ := os.Getwd()
-	return path
-}
-
 type Method struct {
 	Name string
-	// TODO(jfsmig): optional fields?
 }
 
-func getMethods(sourceFile string) []Method {
-	out := make([]Method, 0)
-
+// getMethods reads the list of ONVIF method names from sourceFile, one per line, with '#'
+// introducing a comment line and anything after the first blank on a line ignored.
+//
+// Every failure is reported rather than logged and skipped. Silence here used to be
+// indistinguishable from success: the scanner error was dropped, so an unreadable source
+// yielded an empty method list, the generator wrote no file at all, and `go generate`
+// exited 0. Pointing the tool at a directory did exactly that.
+func getMethods(sourceFile string) ([]Method, error) {
 	fin, err := os.Open(sourceFile)
 	if err != nil {
-		Logger.Fatal().Err(err).Str("wd", getwd()).Str("file", sourceFile).Msg("Failed to open the configuration file")
+		return nil, fmt.Errorf("opening %s: %w", sourceFile, err)
 	}
 	defer func() { _ = fin.Close() }()
 
+	out := make([]Method, 0)
 	scanner := bufio.NewScanner(fin)
 	scanner.Split(bufio.ScanLines)
-	for scanner.Scan() {
+	for lineno := 1; scanner.Scan(); lineno++ {
 		line := strings.TrimSpace(scanner.Text())
-		tokens := strings.SplitN(line, " ", 2)
-		method := tokens[0]
+
+		// The second token is deliberately ignored, not absent: it lets a line carry a
+		// trailing comment, and it is where a per-method attribute would go.
+		method := strings.SplitN(line, " ", 2)[0]
 		if method == "" || strings.HasPrefix(method, "#") {
 			continue
 		}
 
+		// The name becomes both a Go type reference and a file name, so an entry that is
+		// not an identifier would produce either an uncompilable file or, with a '/' or
+		// "..", a write outside the target directory.
+		if !token.IsIdentifier(method) || !token.IsExported(method) {
+			return nil, fmt.Errorf("%s:%d: %q is not an exported Go identifier", sourceFile, lineno, method)
+		}
+
 		out = append(out, Method{Name: method})
 	}
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("reading %s: %w", sourceFile, err)
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("%s: no method listed", sourceFile)
+	}
 
-	return out
+	return out, nil
 }

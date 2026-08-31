@@ -104,21 +104,21 @@ type MiscCapabilities struct {
 
 type StorageConfiguration struct {
 	onvif.DeviceEntity
-	Data StorageConfigurationData `xml:"tds:Data"`
+	Data StorageConfigurationData `xml:"http://www.onvif.org/ver10/device/wsdl Data"`
 }
 
 type StorageConfigurationData struct {
 	Type       xsd.String     `xml:"type,attr"`
-	LocalPath  xsd.AnyURI     `xml:"tds:LocalPath"`
-	StorageUri xsd.AnyURI     `xml:"tds:StorageUri"`
-	User       UserCredential `xml:"tds:User"`
-	Extension  xsd.AnyURI     `xml:"tds:Extension"`
+	LocalPath  xsd.AnyURI     `xml:"http://www.onvif.org/ver10/device/wsdl LocalPath"`
+	StorageUri xsd.AnyURI     `xml:"http://www.onvif.org/ver10/device/wsdl StorageUri"`
+	User       UserCredential `xml:"http://www.onvif.org/ver10/device/wsdl User"`
+	Extension  xsd.AnyURI     `xml:"http://www.onvif.org/ver10/device/wsdl Extension"`
 }
 
 type UserCredential struct {
-	UserName  xsd.String  `xml:"tds:UserName"`
-	Password  xsd.String  `xml:"tds:Password"`
-	Extension xsd.AnyType `xml:"tds:Extension"`
+	UserName  xsd.String  `xml:"http://www.onvif.org/ver10/device/wsdl UserName"`
+	Password  xsd.String  `xml:"http://www.onvif.org/ver10/device/wsdl Password" json:"-"`
+	Extension xsd.AnyType `xml:"http://www.onvif.org/ver10/device/wsdl Extension"`
 }
 
 //Device main types
@@ -259,7 +259,7 @@ type AddScopesResponse struct {
 // TODO: One or more repetitions
 type RemoveScopes struct {
 	XMLName   string     `xml:"tds:RemoveScopes"`
-	ScopeItem xsd.AnyURI `xml:"onvif:ScopeItem"`
+	ScopeItem xsd.AnyURI `xml:"http://www.onvif.org/ver10/device/wsdl ScopeItem"`
 }
 
 type RemoveScopesResponse struct {
@@ -564,7 +564,7 @@ type AddIPAddressFilterResponse struct {
 
 type RemoveIPAddressFilter struct {
 	XMLName         string                `xml:"tds:RemoveIPAddressFilter"`
-	IPAddressFilter onvif.IPAddressFilter `xml:"onvif:IPAddressFilter"`
+	IPAddressFilter onvif.IPAddressFilter `xml:"http://www.onvif.org/ver10/device/wsdl IPAddressFilter"`
 }
 
 type RemoveIPAddressFilterResponse struct {

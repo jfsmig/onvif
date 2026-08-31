@@ -56,17 +56,23 @@ type AbsoluteOrRelativeTimeType struct { //wsnt http://docs.oasis-open.org/wsn/b
 	xsd.Duration
 }
 
-// EndpointReferenceType in ws-addr
+// EndpointReferenceType in ws-addr.
+//
+// The children live in the WS-Addressing namespace, not WS-Notification: the tags used to
+// read wsnt:, which was wrong twice over — Go's tag separator is a space, not a colon, so
+// the whole string became the element name and a device's <wsa:Address> never bound. That
+// left CreatePullPointSubscriptionResponse.SubscriptionReference.Address empty, and with it
+// the pull-point flow.
 type EndpointReferenceType struct { //wsa http://www.w3.org/2005/08/addressing/ws-addr.xsd
-	Address             AttributedURIType       `xml:"wsnt:Address"`
-	ReferenceParameters ReferenceParametersType `xml:"wsnt:ReferenceParameters"`
-	Metadata            MetadataType            `xml:"wsnt:Metadata"`
+	Address             AttributedURIType       `xml:"http://www.w3.org/2005/08/addressing Address"`
+	ReferenceParameters ReferenceParametersType `xml:"http://www.w3.org/2005/08/addressing ReferenceParameters"`
+	Metadata            MetadataType            `xml:"http://www.w3.org/2005/08/addressing Metadata"`
 }
 
 // FilterType struct
 type FilterType struct {
-	TopicExpression TopicExpressionType `xml:"wsnt:TopicExpression"`
-	MessageContent  QueryExpressionType `xml:"wsnt:MessageContent"`
+	TopicExpression TopicExpressionType `xml:"http://docs.oasis-open.org/wsn/b-2 TopicExpression"`
+	MessageContent  QueryExpressionType `xml:"http://docs.oasis-open.org/wsn/b-2 MessageContent"`
 }
 
 // EndpointReference alais

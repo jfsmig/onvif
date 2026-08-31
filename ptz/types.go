@@ -62,8 +62,11 @@ type GetNodeResponse struct {
 }
 
 type GetConfiguration struct {
-	XMLName      string               `xml:"tptz:GetConfiguration"`
-	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
+	XMLName string `xml:"tptz:GetConfiguration"`
+	// ptz.wsdl names this child PTZConfigurationToken, and it is a PTZ *configuration*
+	// token, not a profile token. It used to be both misnamed and mistagged, so the device
+	// received no token it recognised.
+	PTZConfigurationToken onvif.ReferenceToken `xml:"tptz:PTZConfigurationToken"`
 }
 
 type GetConfigurationResponse struct {
@@ -88,8 +91,10 @@ type SetConfigurationResponse struct {
 }
 
 type GetConfigurationOptions struct {
-	XMLName      string               `xml:"tptz:GetConfigurationOptions"`
-	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
+	XMLName string `xml:"tptz:GetConfigurationOptions"`
+	// ptz.wsdl names this child ConfigurationToken -- note it differs from
+	// GetConfiguration's PTZConfigurationToken -- and it too takes a configuration token.
+	ConfigurationToken onvif.ReferenceToken `xml:"tptz:ConfigurationToken"`
 }
 
 type GetConfigurationOptionsResponse struct {
@@ -273,8 +278,8 @@ type ModifyPresetTourResponse struct {
 type OperatePresetTour struct {
 	XMLName         string                       `xml:"tptz:OperatePresetTour"`
 	ProfileToken    onvif.ReferenceToken         `xml:"tptz:ProfileToken"`
-	PresetTourToken onvif.ReferenceToken         `xml:"onvif:PresetTourToken"`
-	Operation       onvif.PTZPresetTourOperation `xml:"onvif:Operation"`
+	PresetTourToken onvif.ReferenceToken         `xml:"tptz:PresetTourToken"`
+	Operation       onvif.PTZPresetTourOperation `xml:"tptz:Operation"`
 }
 
 type OperatePresetTourResponse struct {

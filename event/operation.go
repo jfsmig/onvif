@@ -49,9 +49,12 @@ type Subscribe struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 
 // SubscribeResponse message for subscribe event topic
 type SubscribeResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
-	ConsumerReference EndpointReferenceType `xml:"wsnt:ConsumerReference"`
-	CurrentTime       CurrentTime           `xml:"wsnt:CurrentTime"`
-	TerminationTime   TerminationTime       `xml:"wsnt:TerminationTime"`
+	// SubscriptionReference, not ConsumerReference: b-2.xsd declares the response's local
+	// element as SubscriptionReference (ConsumerReference belongs to the Subscribe request).
+	// The old field carried the wrong name and an unmatchable tag, so it never bound.
+	SubscriptionReference EndpointReferenceType `xml:"http://docs.oasis-open.org/wsn/b-2 SubscriptionReference"`
+	CurrentTime           CurrentTime           `xml:"http://docs.oasis-open.org/wsn/b-2 CurrentTime"`
+	TerminationTime       TerminationTime       `xml:"http://docs.oasis-open.org/wsn/b-2 TerminationTime"`
 }
 
 // Renew action for refresh event topic subscription
@@ -61,8 +64,8 @@ type Renew struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 
 // RenewResponse for Renew action
 type RenewResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
-	TerminationTime TerminationTime `xml:"wsnt:TerminationTime"`
-	CurrentTime     CurrentTime     `xml:"wsnt:CurrentTime"`
+	TerminationTime TerminationTime `xml:"http://docs.oasis-open.org/wsn/b-2 TerminationTime"`
+	CurrentTime     CurrentTime     `xml:"http://docs.oasis-open.org/wsn/b-2 CurrentTime"`
 }
 
 // Unsubscribe action for Unsubscribe event topic
@@ -80,8 +83,8 @@ type UnsubscribeResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 type CreatePullPointSubscription struct {
 	XMLName                string                     `xml:"tev:CreatePullPointSubscription"`
 	Filter                 FilterType                 `xml:"tev:Filter"`
-	InitialTerminationTime AbsoluteOrRelativeTimeType `xml:"wsnt:InitialTerminationTime"`
-	SubscriptionPolicy     SubscriptionPolicy         `xml:"wsnt:sSubscriptionPolicy"`
+	InitialTerminationTime AbsoluteOrRelativeTimeType `xml:"http://www.onvif.org/ver10/events/wsdl InitialTerminationTime"`
+	SubscriptionPolicy     SubscriptionPolicy         `xml:"http://www.onvif.org/ver10/events/wsdl SubscriptionPolicy"`
 }
 
 // CreatePullPointSubscriptionResponse action
