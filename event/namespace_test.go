@@ -96,3 +96,94 @@ func TestFilterUnmarshalsFromTheNotificationNamespace(t *testing.T) {
 		t.Fatalf("TopicExpression.TopicKinds = %q, want it to carry the topic", got)
 	}
 }
+
+// --- event/operation.go ---
+//
+// Verified against the authoritative OASIS b-2 schema (targetNamespace
+// http://docs.oasis-open.org/wsn/b-2, elementFormDefault="qualified") and against
+// docs/wsdl/event.wsdl, rather than from memory.
+
+const subscribeResponse = `<?xml version="1.0"?>
+<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope"
+            xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2"
+            xmlns:wsa="http://www.w3.org/2005/08/addressing">
+ <s:Body><wsnt:SubscribeResponse>
+   <wsnt:SubscriptionReference><wsa:Address>http://cam/onvif/Subscription?Idx=3</wsa:Address></wsnt:SubscriptionReference>
+   <wsnt:CurrentTime>2026-08-31T10:00:00Z</wsnt:CurrentTime>
+   <wsnt:TerminationTime>2026-08-31T10:05:00Z</wsnt:TerminationTime>
+ </wsnt:SubscribeResponse></s:Body></s:Envelope>`
+
+func TestSubscribeResponseUnmarshals(t *testing.T) {
+	type Envelope struct {
+		Header struct{}
+		Body   struct{ SubscribeResponse SubscribeResponse }
+	}
+	var e Envelope
+	if err := xml.Unmarshal([]byte(subscribeResponse), &e); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	r := e.Body.SubscribeResponse
+	// b-2.xsd names this local element SubscriptionReference; the field used to be called
+	// ConsumerReference, which is the Subscribe *request*'s field.
+	if got := string(r.SubscriptionReference.Address); got != "http://cam/onvif/Subscription?Idx=3" {
+		t.Fatalf("SubscriptionReference.Address = %q, want the subscription URL", got)
+	}
+	if got := string(r.CurrentTime); !strings.Contains(got, "2026-08-31") {
+		t.Fatalf("CurrentTime = %q", got)
+	}
+	if got := string(r.TerminationTime); !strings.Contains(got, "10:05") {
+		t.Fatalf("TerminationTime = %q", got)
+	}
+}
+
+func TestRenewResponseUnmarshals(t *testing.T) {
+	const doc = `<RenewResponse xmlns:wsnt="http://docs.oasis-open.org/wsn/b-2">
+	  <wsnt:TerminationTime>2026-08-31T11:00:00Z</wsnt:TerminationTime>
+	  <wsnt:CurrentTime>2026-08-31T10:00:00Z</wsnt:CurrentTime>
+	</RenewResponse>`
+	var r RenewResponse
+	if err := xml.Unmarshal([]byte(doc), &r); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got := string(r.TerminationTime); !strings.Contains(got, "11:00") {
+		t.Fatalf("TerminationTime = %q, want the renewed expiry", got)
+	}
+	if got := string(r.CurrentTime); !strings.Contains(got, "10:00") {
+		t.Fatalf("CurrentTime = %q", got)
+	}
+}
+
+// event.wsdl declares both of these as local elements of the tev schema, so they belong to
+// tev — and the policy element name had a stray leading 's', so a camera silently ignored it.
+func TestCreatePullPointRequestElementNames(t *testing.T) {
+	b, err := xml.Marshal(CreatePullPointSubscription{})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	got := string(b)
+	if strings.Contains(got, "sSubscriptionPolicy") {
+		t.Fatalf("the sSubscriptionPolicy typo is back: %s", got)
+	}
+	for _, want := range []string{
+		`<SubscriptionPolicy xmlns="http://www.onvif.org/ver10/events/wsdl"`,
+		`<InitialTerminationTime xmlns="http://www.onvif.org/ver10/events/wsdl"`,
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("missing %s in: %s", want, got)
+		}
+	}
+}
+
+// The remaining 17 tags are request-only and verified correct; pin their wire format so a
+// future blanket rewrite cannot change them silently.
+func TestSubscribeRequestWireFormatUnchanged(t *testing.T) {
+	b, err := xml.Marshal(Subscribe{})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	for _, want := range []string{"<wsnt:Subscribe>", "<wsnt:ConsumerReference>", "<wsnt:Filter>"} {
+		if !strings.Contains(string(b), want) {
+			t.Fatalf("Subscribe wire format changed, missing %s: %s", want, b)
+		}
+	}
+}
