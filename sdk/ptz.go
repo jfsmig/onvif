@@ -28,18 +28,18 @@ type Ptz struct {
 	Configuration []onvif.PTZConfiguration
 }
 
-func (dw *deviceWrapper) FetchPTZ(ctx context.Context) Ptz {
+func (p *ProfileS) FetchPTZ(ctx context.Context) Ptz {
 	out := Ptz{}
 
-	if caps, err := ptz.Call_GetServiceCapabilities(ctx, dw.client, ptz.GetServiceCapabilities{}); err == nil {
+	if caps, err := ptz.Call_GetServiceCapabilities(ctx, p.client, ptz.GetServiceCapabilities{}); err == nil {
 		out.Capabilities = caps.Capabilities
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("ptz")
 	}
 
-	if nodes, err := ptz.Call_GetNodes(ctx, dw.client, ptz.GetNodes{}); err == nil {
+	if nodes, err := ptz.Call_GetNodes(ctx, p.client, ptz.GetNodes{}); err == nil {
 		for _, n := range nodes.PTZNode {
-			if node, err := ptz.Call_GetNode(ctx, dw.client, ptz.GetNode{NodeToken: n.Token}); err == nil {
+			if node, err := ptz.Call_GetNode(ctx, p.client, ptz.GetNode{NodeToken: n.Token}); err == nil {
 				out.Nodes = append(out.Nodes, node.PTZNode)
 			} else {
 				Logger.Trace().Err(err).Str("rpc", "GetNode").Msg("ptz")
@@ -49,7 +49,7 @@ func (dw *deviceWrapper) FetchPTZ(ctx context.Context) Ptz {
 		Logger.Trace().Err(err).Str("rpc", "GetNodes").Msg("ptz")
 	}
 
-	if cfgs, err := ptz.Call_GetConfigurations(ctx, dw.client, ptz.GetConfigurations{}); err == nil {
+	if cfgs, err := ptz.Call_GetConfigurations(ctx, p.client, ptz.GetConfigurations{}); err == nil {
 		out.Configuration = cfgs.PTZConfiguration
 	} else {
 		Logger.Trace().Err(err).Str("rpc", "GetConfigurations").Msg("ptz")

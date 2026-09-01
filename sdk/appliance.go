@@ -33,6 +33,8 @@ import (
 	"github.com/jfsmig/onvif/networking"
 )
 
+//go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen profile sdk ./profiles
+
 var (
 	// Logger is a zerolog logger, that can be safely used from any part of the application.
 	// It gathers the format and the output. The application can replace the default Logger
@@ -43,6 +45,16 @@ var (
 		Logger()
 )
 
+// Appliance is one connection to one ONVIF device.
+//
+// It carries what belongs to the connection itself -- identity and the service endpoints
+// learnt at load time -- and hands out one client per ONVIF Profile. The operations live on
+// those clients rather than here, so that the API follows the shape of the norm: a caller
+// asks the appliance which Profiles it can speak, then works inside one.
+//
+// Do not implement this interface outside the package. It gains a method for every Profile
+// that becomes supported, so an outside implementation would break on a minor release; build
+// one with NewDevice or WrapClient instead.
 type Appliance interface {
 	// GetUUID return the unique identifier of the remote appliance.
 	// The UUID is Usually known after the discovery.
@@ -55,31 +67,10 @@ type Appliance interface {
 
 	GetServices() map[string]string
 
-	FetchStreamURI(ctx context.Context) string
-
-	FetchDeviceDescriptor(ctx context.Context) DeviceDescriptor
-
-	// FetchDeviceNetwork fetches from the Appliance the network configuration from the Device
-	FetchDeviceNetwork(ctx context.Context) DeviceNetwork
-
-	// FetchDeviceNetwork fetches from the Appliance the security configuration from the Device
-	FetchDeviceSecurity(ctx context.Context) DeviceSecurity
-
-	// FetchDeviceNetwork fetches from the Appliance the core system configuration from the Device
-	FetchDeviceSystem(ctx context.Context) DeviceSystem
-
-	// FetchMedia fetches from the Appliance a fully-hydrated Media structure
-	FetchMedia(ctx context.Context) Media
-
-	// FetchPTZ fetches from the Appliance a fully-hydrated Ptz structure
-	FetchPTZ(ctx context.Context) Ptz
-
-	// FetchEvent fetches from the Appliance a fully-hydrated Event structure
-	FetchEvent(ctx context.Context) Event
-
-	// FetchMediaProfiles fetches from the Appliance only the Profile related information,
-	// otherwise part from the Media information
-	FetchProfiles(ctx context.Context) Profiles
+	// ProfileS returns a client for the operations of ONVIF Profile S, and reports whether
+	// the appliance advertises the services that Profile requires unconditionally. See
+	// ProfileS for what the result does and does not assert.
+	ProfileS() (*ProfileS, bool)
 }
 
 type Media struct {
@@ -155,12 +146,21 @@ func (dw *deviceWrapper) GetEndpoint(name string) string { return dw.client.GetE
 
 func (dw *deviceWrapper) GetDeviceEndpoint() string { return dw.GetEndpoint("device") }
 
-func (dw *deviceWrapper) FetchStreamURI(ctx context.Context) string {
-	profiles := dw.FetchProfiles(ctx)
-	for k, _ := range profiles.Profiles {
+// FetchStreamURI returns a stream URI with the credentials interpolated into it.
+//
+// Two long-standing defects, kept as they were because fixing them here would hide a
+// behaviour change inside an API move: the profile is chosen by map iteration order, so an
+// appliance with several profiles yields a different answer between runs; and the password
+// is written into a URL the caller is likely to log.
+func (p *ProfileS) FetchStreamURI(ctx context.Context) string {
+	profiles := p.FetchMediaProfiles(ctx)
+	for k := range profiles.Profiles {
 		streamURI := string(profiles.Profiles[k].Uris.Stream.Uri)
-		auth := dw.client.GetAuth()
+		auth := p.client.GetAuth()
 		return strings.Replace(streamURI, "rtsp://", "rtsp://"+auth.Username+":"+auth.Password+"@", 1)
 	}
 	return ""
 }
+
+// ProfileS returns the Profile S client for this appliance.
+func (dw *deviceWrapper) ProfileS() (*ProfileS, bool) { return NewProfileS(dw.client) }

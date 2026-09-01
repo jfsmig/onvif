@@ -62,7 +62,20 @@ func main() {
 		},
 	}
 
-	cmd.AddCommand(sdk)
+	profile := &cobra.Command{
+		Use:   "profile PACKAGE MANIFEST_DIR",
+		Short: "Generate one Profile client per manifest in MANIFEST_DIR",
+		Long: "Generate one profile_<Letter>_auto.go per *.profile manifest found in\n" +
+			"MANIFEST_DIR, written to its parent directory, which must be named PACKAGE.\n" +
+			"All the manifests are read together: the whole set decides how an ambiguous\n" +
+			"operation name is spelled.",
+		Args: cobra.ExactArgs(2),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return codegenProfile(args[0], args[1])
+		},
+	}
+
+	cmd.AddCommand(sdk, profile)
 
 	if err := cmd.Execute(); err != nil {
 		Logger.Fatal().Err(err).Msg("Aborting")

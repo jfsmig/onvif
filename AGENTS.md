@@ -45,7 +45,7 @@ running the CLI against a real camera.
 
 ## The generator — read this before touching `device/`, `media/`, `ptz/`, `event/`
 
-205 of the 231 `.go` files are generated. **Never hand-edit a `*_auto.go` file**; CI
+206 of the 232 `.go` files are generated. **Never hand-edit a `*_auto.go` file**; CI
 regenerates them and diffs, so an edit is reverted and the build fails.
 
 The pipeline: each package has a `calls.txt` (one ONVIF method name per line, `#`
@@ -58,6 +58,22 @@ entry, writing `<Method>_auto.go`.
 - To change the shape of every wrapper, or its licence header: edit `mainTemplate`, then
   regenerate. Editing the template without regenerating breaks CI.
 - Counts must stay 1:1 — `device` 89, `media` 79, `ptz` 28, `event` 9.
+
+There is a second generator, for the Profile clients. `onvif-codegen profile sdk ./profiles`
+reads every `sdk/profiles/*.profile` manifest and writes one `sdk/profile_<Letter>_auto.go`.
+All the manifests are read together, because the whole set decides how an operation name that
+several services share is spelled.
+
+- A manifest is **curated by hand** from the Profile specification in `docs/`, and every
+  operation line must cite the section it came from. Nothing verifies membership but the
+  citation, so an uncited line is not reviewable.
+- Take the **client** column of the specification's function lists, not the device column.
+  They differ: Profile S §7.11 is Device MANDATORY but Client CONDITIONAL.
+- The generator rejects an operation that is not in the matching `<service>/calls.txt`. That
+  is what catches the specification's informal names — §7.5 says `Reboot`, the operation is
+  `SystemReboot`.
+- Only the services a manifest marks `M` gate the constructor. A conditional service must
+  never gate it, or a camera without PTZ loses the whole client.
 
 ## Licence header on every `.go` file
 
