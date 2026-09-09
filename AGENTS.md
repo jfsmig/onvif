@@ -24,8 +24,9 @@ Supporting packages: `xsd/` (XSD primitives and the generated ONVIF schema types
 Discovery is **not** in this repository. It lives in `github.com/jfsmig/go-wsd`, which
 also provides the `gosoap` envelope builder this project uses.
 
-`bin/` is source, not build output: `bin/onvif-cli` is the CLI (`discover`, `streams`,
-`dump <section> IP:PORT`, credentials from `ONVIF_USERNAME` / `ONVIF_PASSWORD`), and
+`bin/` is source, not build output: `bin/onvif-cli` is the CLI (`discover [-a]`,
+`streams [-a]`, `dump <section> IP:PORT`, credentials from `ONVIF_USERNAME` /
+`ONVIF_PASSWORD`), and
 `bin/onvif-codegen` is the generator.
 
 ## Commands
@@ -33,15 +34,26 @@ also provides the `gosoap` envelope builder this project uses.
 ```sh
 go build ./...
 go vet ./...
-go test -race ./...              # only utils/ is covered so far; keep it green
+go test -race ./...              # 42 regression tests over 10 packages; keep it green
 gofmt -l .                       # must print nothing
 go generate ./... && git diff --quiet --exit-code   # generated files must match the template
 go run ./bin/onvif-cli discover  # smoke-test against the LAN
 ```
 
 `.circleci/config.yml` gates on `go install`, `go test`, `go vet`, and that last
-generate-then-diff check. There is no test suite; a change is verified by building and by
-running the CLI against a real camera.
+generate-then-diff check.
+
+The tests are a regression suite rather than coverage: 42 tests over 10 packages, each one
+pinning a bug that was actually found. They marshal a struct and assert what goes on the
+wire (`media/wsdl_conformance_test.go`, `device/namespace_test.go`,
+`xsd/onvif/namespace_test.go`), or pin a decision that is easy to undo by accident
+(`networking/redirect_test.go`, `xsd/onvif/redaction_test.go`). **Follow the habit: a
+fixed bug leaves behind one focused test whose comment says what the slip was and names
+the WSDL file or specification clause it was verified against.** They are the only
+automated defence this codebase has.
+
+No camera runs in CI, so nothing there exercises a real exchange. A change is still
+verified by building and by running the CLI against a real camera.
 
 ## The generator — read this before touching `device/`, `media/`, `ptz/`, `event/`
 
@@ -93,6 +105,7 @@ package doc, `package onvif`.
 `docs/` is out of scope for all of this. It holds ONVIF's own specification and WSDL
 files, which carry ONVIF's terms — *"No license is granted to modify this document"* — as
 do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit them.
+`docs/README.md` is the inventory, giving the version and scope of each document.
 
 ## Conventions and traps
 
@@ -118,11 +131,33 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   siblings would turn a partial result into an empty one. The fan-out closures handle
   their own errors and return nothing, so `WaitGroup` states the intent exactly.
 
+- **The discovery probe set is filtered by interface *name*, and that is not laziness.**
+  `bin/onvif-cli/interfaces.go` drops the well-known container, VM and overlay devices,
+  because on a host running containers they outnumber the real NIC by an order of
+  magnitude and every probe waits out a fixed collection window. Three things there are
+  decisions rather than accidents, and the reasoning sits in the file: the criterion is
+  the **name** and never a structural test, or probing from inside a container breaks;
+  the table is a **denylist**, because an allowlist would silently drop `br0` and
+  `bond0`; and `br-` is matched only in Docker's `br-<12 hex>` shape, never as a prefix.
+  `--all` lifts the name filter *and* the multicast test. `bin/onvif-cli/interfaces_test.go`
+  pins all of it, the container case included.
+
 - Prefer short functions. Comment functions rather than lines, explain *why* rather than
   restating the code, and cite the clause when behaviour comes from a spec (`ONVIF Core
   section 7.3.6`, `SOAP 1.2 Part 1 section 5.2.3`). Always comment in English.
 
 - No dead code, no commented-out code, no ignored errors.
+
+- **Secrets must not reach a dump.** `onvif-cli dump` JSON-encodes camera replies
+  wholesale to stdout, and cameras do return passwords that ONVIF says they should not.
+  So a secret-bearing field carries `json:"-"` while keeping its `xml:` tag — the request
+  path legitimately sends a secret, `CreateUsers` and `SetUser` need it. Seven fields are
+  tagged today: six in `xsd/onvif/onvif.go` (the rationale sits at `:1221`) plus
+  `UserCredential.Password` in `device/types.go`. `xsd/onvif/redaction_test.go` pins both
+  directions — dropped from JSON, kept in XML — so a new type carrying a password, key,
+  passphrase or private key needs the tag *and* a new case in that test. For the same
+  reason, never log a `ClientAuth` (it has no redacting `String()`, so `%v` prints the
+  password) or a SOAP envelope (it carries the UsernameToken digest and nonce).
 
 - **Never `log.Print*` to the standard logger.** Diagnostics go through a replaceable
   logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:36`) that an

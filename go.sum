@@ -7,8 +7,8 @@ github.com/gofrs/uuid v4.4.0+incompatible h1:3qXRTX8/NbyulANqlc0lchS1gqAVxRgsuW1
 github.com/gofrs/uuid v4.4.0+incompatible/go.mod h1:b2aQJv3Z4Fp6yNu3cdSllBxTCLRxnplIgP/c0N/04lM=
 github.com/inconshreveable/mousetrap v1.0.1 h1:U3uMjPSQEBMNp1lFxmllqCPM6P5u/Xq7Pgzkat/bFNc=
 github.com/inconshreveable/mousetrap v1.0.1/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
-github.com/jfsmig/go-wsd v0.0.0-20260830081952-b9a8dd1faf33 h1:jboKxiEqkIPbAe0txeLQJ8iCT71faXMk4s0PALp0olA=
-github.com/jfsmig/go-wsd v0.0.0-20260830081952-b9a8dd1faf33/go.mod h1:Og/QAMSOjF3xH1HNazv7mRpRfMxLwXUHAySaNffCCnk=
+github.com/jfsmig/go-wsd v0.0.0-20260909203613-3b695454b0e3 h1:fvGeFE2EkDu3qda/3rxybVnsSPsw1z3tEcEwNSvzU/A=
+github.com/jfsmig/go-wsd v0.0.0-20260909203613-3b695454b0e3/go.mod h1:Og/QAMSOjF3xH1HNazv7mRpRfMxLwXUHAySaNffCCnk=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/rs/xid v1.3.0/go.mod h1:trrq9SKmegXys3aeAKXMUTdJsYXVwGY3RLcfgqegfbg=
 github.com/rs/zerolog v1.26.1 h1:/ihwxqH+4z8UxyI70wM1z9yCvkWcfz/a3mj48k/Zngc=

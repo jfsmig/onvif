@@ -61,27 +61,44 @@ func main() {
 	defer cancel()
 
 	cmd := &cobra.Command{
-		Use:   "main",
+		// cobra takes the first word of Use as the command name and builds every usage
+		// line from it, so "main" — the package name — had the help of every subcommand
+		// telling the operator to run a binary that does not exist.
+		Use:   "onvif-cli",
 		Short: "OnVif command Line Interface",
 		Long:  "CLI Client for OnVif devices",
-		RunE:  func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
+		// Now that there are flags there are usage errors, and cobra already prints
+		// "Error: ..." with the usage block; the Fatal below would say it a second time.
+		SilenceErrors: true,
+		RunE:          func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
 	}
+
+	// Each command owns its variable: cobra binds a flag to an address, and sharing one
+	// address across two commands would couple their defaults for no gain. Reading the
+	// value back with Flags().GetBool would instead hand us an error to ignore.
+	var discoverAll, streamsAll bool
 
 	cmdDiscover := &cobra.Command{
 		Use:     "discover",
 		Aliases: []string{"find", "crawl", "probe"},
 		Short:   "Discover the local cameras",
 		Args:    cobra.NoArgs,
-		RunE:    func(cmd *cobra.Command, args []string) error { return discover(ctx, false) },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return discover(ctx, discoverOptions{allInterfaces: discoverAll})
+		},
 	}
+	cmdDiscover.Flags().BoolVarP(&discoverAll, "all", "a", false, allInterfacesHelp)
 
 	cmdStreams := &cobra.Command{
 		Use:     "streams",
-		Aliases: []string{"streams", "stream"},
+		Aliases: []string{"stream"},
 		Short:   "Print the stream URL for the cameras locally discovered",
 		Args:    cobra.NoArgs,
-		RunE:    func(cmd *cobra.Command, args []string) error { return discover(ctx, true) },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return discover(ctx, discoverOptions{streams: true, allInterfaces: streamsAll})
+		},
 	}
+	cmdStreams.Flags().BoolVarP(&streamsAll, "all", "a", false, allInterfacesHelp)
 
 	cmdDump := &cobra.Command{
 		Use:     "dump",

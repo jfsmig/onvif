@@ -15,19 +15,59 @@ For the convenience and testing purposes, a [CLI](https://en.wikipedia.org/wiki/
 with the repository to help discovering and fetching information from devices.
 
 ```console
-onvif-cli COMMAND [SUBCOMAND] [ARGUMENTS...]
+onvif-cli COMMAND [SUBCOMMAND] [OPTIONS] [ARGUMENTS...]
+
 COMMAND:
-  discover                 perform a web-service discovery on the local networks and
-                           reports one line (IP:PORT CRLF) per device that responded
-  dump SUBCOMMAND IP:PORT  Prints a single JSON object with a configuration dump
-                           for the given camera
-  SUBCOMMAND: 
-    all         Prints the full configuration dump, all sections included
-    media       Prints only the media section
-    event       ...
-    ptz         ...
-    device      ...
+  discover [-a]            probe the local networks with WS-Discovery and print one
+                           whitespace-separated line per device that answered:
+                             INTERFACE XADDR UUID
+                           XADDR is the IP:PORT to pass to `dump`; UUID is "-" when the
+                           device reported none
+  streams [-a]             the same probe, then one line per media profile of every
+                           device found:
+                             INTERFACE XADDR UUID PROFILE STREAM_URI SNAPSHOT_URI
+  dump SUBCOMMAND IP:PORT  print a single JSON object holding a configuration dump of
+                           the given camera
+
+  SUBCOMMAND:
+    all         the full dump: Descriptor, DeviceSystem, DeviceSecurity, DeviceNetwork,
+                Media, Ptz, Profiles, Events
+    descriptor  the service endpoints, the UUID and the device descriptor only
+    device      the core Device service: Descriptor, DeviceSystem, DeviceSecurity,
+                DeviceNetwork
+    media       the Media service
+    ptz         the PTZ service
+    event       the Events service
+    profile     the media profiles
+
+OPTIONS (they follow the command — `onvif-cli discover -a`, never precede it):
+  -a, --all       for `discover` and `streams`: probe every interface that is up and not
+                  loopback. By default a candidate must also be multicast-capable —
+                  WS-Discovery is multicast-only — and must not be one of the well-known
+                  virtual devices (docker0, br-<id>, veth*, virbr*, cali*, flannel.*,
+                  ...). An interface that is down or loopback is never probed either way.
+                  A container's eth0 is not in that table, so probing from inside a
+                  container needs no option.
+
+ENVIRONMENT:
+  ONVIF_USERNAME  credential sent to every camera, "admin" when unset
+  ONVIF_PASSWORD  credential sent to every camera, "admin" when unset
 ```
+
+Data goes to stdout and diagnostics to stderr, so `onvif-cli dump all IP:PORT | jq` works
+as it looks. Most commands accept aliases — `find` for `discover`, `events` for `event`,
+`prof` for `profile` — which `onvif-cli COMMAND --help` lists.
+
+The default probe set matters on a host running containers, where the virtual interfaces
+outnumber the real one by an order of magnitude. Each of them cost a socket, a multicast
+join and a line of diagnostics, and none of them can reach a camera.
+
+It also matters for `streams`, and that is worth stating plainly. WS-Discovery replies are
+unauthenticated, and `streams` sends `ONVIF_USERNAME` / `ONVIF_PASSWORD` to whatever
+answered, over plain HTTP. On the container and VM links the peer that answers is a
+container or a guest rather than a camera, so `streams -a` on such a host lets anything
+running there collect those credentials. Prefer `-a` on `discover`, which authenticates
+nothing.
 
 ## SDK
 
@@ -84,44 +124,6 @@ But Golang's generics do not provide any sophisticated way to generate the name 
 * [OnVif](https://onvif.org)
 * [OnVif Specs](https://github.com/onvif/specs)
 * [OnVif Discussions](https://github.com/onvif/specs/discussions)
-
-### Clients SDK
-
-References
-  * https://github.com/topics/onvif-client
-  * https://github.com/topics/onvif-camera
-
-Go
-  * https://github.com/jfsmig/onvif
-  * https://github.com/use-go/onvif
-  * https://github.com/yakovlevdmv/goonvif
-
-Python
-  * https://github.com/quatanium/python-onvif
-  * https://github.com/abhi40308/onvif-django-client
-
-C
-  * https://github.com/mpromonet/v4l2onvif
-  * https://github.com/RichardoMrMu/gsoap-onvif
-  * https://github.com/torturelabs/monvif
-  * https://github.com/Quedale/OnvifDeviceManager
-
-Rust
-
-Swift
-  * https://github.com/ms2138/ONVIFDiscovery
-  * https://github.com/ms2138/DahuaEvents
-  * https://github.com/rvi/ONVIFCamera
-
-Javascript
-  * https://github.com/patrickmichalina/onvif-rx
-  * https://github.com/ampretia/onvif-mqtt
-  * https://github.com/snow-tree/camera-probe
-
-PHP
-  * https://github.com/mapbuh/onvif-client-php
-
-### Client Apps_
 
 ## License
 
