@@ -38,7 +38,7 @@ func Call_OperatePresetTour(ctx context.Context, dev *networking.Client, request
 	if err != nil {
 		return reply.Body.OperatePresetTourResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "OperatePresetTour")
+		err = networking.ReadAndParse(httpReply, &reply, "OperatePresetTour")
 		return reply.Body.OperatePresetTourResponse, err
 	}
 }

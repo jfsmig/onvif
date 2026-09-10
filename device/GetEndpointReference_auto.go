@@ -38,7 +38,7 @@ func Call_GetEndpointReference(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.GetEndpointReferenceResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetEndpointReference")
+		err = networking.ReadAndParse(httpReply, &reply, "GetEndpointReference")
 		return reply.Body.GetEndpointReferenceResponse, err
 	}
 }

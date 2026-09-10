@@ -38,7 +38,7 @@ func Call_GetOSDOptions(ctx context.Context, dev *networking.Client, request Get
 	if err != nil {
 		return reply.Body.GetOSDOptionsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetOSDOptions")
+		err = networking.ReadAndParse(httpReply, &reply, "GetOSDOptions")
 		return reply.Body.GetOSDOptionsResponse, err
 	}
 }

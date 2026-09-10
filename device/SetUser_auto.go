@@ -38,7 +38,7 @@ func Call_SetUser(ctx context.Context, dev *networking.Client, request SetUser) 
 	if err != nil {
 		return reply.Body.SetUserResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetUser")
+		err = networking.ReadAndParse(httpReply, &reply, "SetUser")
 		return reply.Body.SetUserResponse, err
 	}
 }

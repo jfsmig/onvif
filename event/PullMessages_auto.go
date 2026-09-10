@@ -38,7 +38,7 @@ func Call_PullMessages(ctx context.Context, dev *networking.Client, request Pull
 	if err != nil {
 		return reply.Body.PullMessagesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "PullMessages")
+		err = networking.ReadAndParse(httpReply, &reply, "PullMessages")
 		return reply.Body.PullMessagesResponse, err
 	}
 }

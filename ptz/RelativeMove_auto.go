@@ -38,7 +38,7 @@ func Call_RelativeMove(ctx context.Context, dev *networking.Client, request Rela
 	if err != nil {
 		return reply.Body.RelativeMoveResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RelativeMove")
+		err = networking.ReadAndParse(httpReply, &reply, "RelativeMove")
 		return reply.Body.RelativeMoveResponse, err
 	}
 }

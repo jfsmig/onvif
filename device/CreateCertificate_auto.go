@@ -38,7 +38,7 @@ func Call_CreateCertificate(ctx context.Context, dev *networking.Client, request
 	if err != nil {
 		return reply.Body.CreateCertificateResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "CreateCertificate")
+		err = networking.ReadAndParse(httpReply, &reply, "CreateCertificate")
 		return reply.Body.CreateCertificateResponse, err
 	}
 }

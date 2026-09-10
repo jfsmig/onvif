@@ -38,7 +38,7 @@ func Call_RemoveScopes(ctx context.Context, dev *networking.Client, request Remo
 	if err != nil {
 		return reply.Body.RemoveScopesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveScopes")
+		err = networking.ReadAndParse(httpReply, &reply, "RemoveScopes")
 		return reply.Body.RemoveScopesResponse, err
 	}
 }

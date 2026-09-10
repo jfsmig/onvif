@@ -38,7 +38,7 @@ func Call_AddScopes(ctx context.Context, dev *networking.Client, request AddScop
 	if err != nil {
 		return reply.Body.AddScopesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "AddScopes")
+		err = networking.ReadAndParse(httpReply, &reply, "AddScopes")
 		return reply.Body.AddScopesResponse, err
 	}
 }

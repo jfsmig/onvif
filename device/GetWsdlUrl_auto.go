@@ -38,7 +38,7 @@ func Call_GetWsdlUrl(ctx context.Context, dev *networking.Client, request GetWsd
 	if err != nil {
 		return reply.Body.GetWsdlUrlResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetWsdlUrl")
+		err = networking.ReadAndParse(httpReply, &reply, "GetWsdlUrl")
 		return reply.Body.GetWsdlUrlResponse, err
 	}
 }

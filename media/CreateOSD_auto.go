@@ -38,7 +38,7 @@ func Call_CreateOSD(ctx context.Context, dev *networking.Client, request CreateO
 	if err != nil {
 		return reply.Body.CreateOSDResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "CreateOSD")
+		err = networking.ReadAndParse(httpReply, &reply, "CreateOSD")
 		return reply.Body.CreateOSDResponse, err
 	}
 }

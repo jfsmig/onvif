@@ -38,7 +38,7 @@ func Call_DeleteStorageConfiguration(ctx context.Context, dev *networking.Client
 	if err != nil {
 		return reply.Body.DeleteStorageConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteStorageConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "DeleteStorageConfiguration")
 		return reply.Body.DeleteStorageConfigurationResponse, err
 	}
 }

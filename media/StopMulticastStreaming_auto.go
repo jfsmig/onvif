@@ -38,7 +38,7 @@ func Call_StopMulticastStreaming(ctx context.Context, dev *networking.Client, re
 	if err != nil {
 		return reply.Body.StopMulticastStreamingResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "StopMulticastStreaming")
+		err = networking.ReadAndParse(httpReply, &reply, "StopMulticastStreaming")
 		return reply.Body.StopMulticastStreamingResponse, err
 	}
 }

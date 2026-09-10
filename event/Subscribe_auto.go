@@ -38,7 +38,7 @@ func Call_Subscribe(ctx context.Context, dev *networking.Client, request Subscri
 	if err != nil {
 		return reply.Body.SubscribeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "Subscribe")
+		err = networking.ReadAndParse(httpReply, &reply, "Subscribe")
 		return reply.Body.SubscribeResponse, err
 	}
 }

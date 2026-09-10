@@ -38,7 +38,7 @@ func Call_SetGeoLocation(ctx context.Context, dev *networking.Client, request Se
 	if err != nil {
 		return reply.Body.SetGeoLocationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetGeoLocation")
+		err = networking.ReadAndParse(httpReply, &reply, "SetGeoLocation")
 		return reply.Body.SetGeoLocationResponse, err
 	}
 }

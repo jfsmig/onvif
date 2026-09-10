@@ -1156,13 +1156,30 @@ type TimeZone struct {
 	TZ xsd.Token `xml:"http://www.onvif.org/ver10/schema TZ"`
 }
 
+// SystemDateTime is the body of a GetSystemDateAndTime reply.
+//
+// UTCDateTime and LocalDateTime are tt:DateTime -- the structured element declared just
+// below as DateTime, with Date and Time children -- and not a lexical xs:dateTime. They
+// were typed xsd.DateTime, which is a string alias, and encoding/xml collects only
+// character data for a string-kind target: both fields bound to the whitespace between
+// <tt:Date> and <tt:Time> and never held a value, so onvif-cli reported every camera's
+// clock as blank. The request side, device.SetSystemDateAndTime.UTCDateTime, was already
+// onvif.DateTime.
+//
+// Verified against docs/wsdl/devicemgmt.wsdl:447, which declares
+// <xs:element name="SystemDateAndTime" type="tt:SystemDateTime">, and :2688, which says
+// "A device shall provide the UTCDateTime information."
+//
+// The tags are explicit because onvif.xsd is elementFormDefault="qualified", so a real
+// camera sends these children in the schema namespace -- as the neighbouring TimeZone.TZ
+// already records.
 type SystemDateTime struct {
-	DateTimeType    SetDateTimeType
-	DaylightSavings xsd.Boolean
-	TimeZone        TimeZone
-	UTCDateTime     xsd.DateTime
-	LocalDateTime   xsd.DateTime
-	Extension       SystemDateTimeExtension
+	DateTimeType    SetDateTimeType         `xml:"http://www.onvif.org/ver10/schema DateTimeType"`
+	DaylightSavings xsd.Boolean             `xml:"http://www.onvif.org/ver10/schema DaylightSavings"`
+	TimeZone        TimeZone                `xml:"http://www.onvif.org/ver10/schema TimeZone"`
+	UTCDateTime     DateTime                `xml:"http://www.onvif.org/ver10/schema UTCDateTime"`
+	LocalDateTime   DateTime                `xml:"http://www.onvif.org/ver10/schema LocalDateTime"`
+	Extension       SystemDateTimeExtension `xml:"http://www.onvif.org/ver10/schema Extension"`
 }
 
 type SystemDateTimeExtension xsd.AnyType

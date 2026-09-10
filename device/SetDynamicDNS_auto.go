@@ -38,7 +38,7 @@ func Call_SetDynamicDNS(ctx context.Context, dev *networking.Client, request Set
 	if err != nil {
 		return reply.Body.SetDynamicDNSResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetDynamicDNS")
+		err = networking.ReadAndParse(httpReply, &reply, "SetDynamicDNS")
 		return reply.Body.SetDynamicDNSResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_Seek(ctx context.Context, dev *networking.Client, request Seek) (SeekR
 	if err != nil {
 		return reply.Body.SeekResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "Seek")
+		err = networking.ReadAndParse(httpReply, &reply, "Seek")
 		return reply.Body.SeekResponse, err
 	}
 }

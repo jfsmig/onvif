@@ -38,7 +38,7 @@ func Call_RemoveIPAddressFilter(ctx context.Context, dev *networking.Client, req
 	if err != nil {
 		return reply.Body.RemoveIPAddressFilterResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveIPAddressFilter")
+		err = networking.ReadAndParse(httpReply, &reply, "RemoveIPAddressFilter")
 		return reply.Body.RemoveIPAddressFilterResponse, err
 	}
 }

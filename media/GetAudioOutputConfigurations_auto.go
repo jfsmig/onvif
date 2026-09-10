@@ -38,7 +38,7 @@ func Call_GetAudioOutputConfigurations(ctx context.Context, dev *networking.Clie
 	if err != nil {
 		return reply.Body.GetAudioOutputConfigurationsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetAudioOutputConfigurations")
+		err = networking.ReadAndParse(httpReply, &reply, "GetAudioOutputConfigurations")
 		return reply.Body.GetAudioOutputConfigurationsResponse, err
 	}
 }

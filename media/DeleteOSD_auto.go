@@ -38,7 +38,7 @@ func Call_DeleteOSD(ctx context.Context, dev *networking.Client, request DeleteO
 	if err != nil {
 		return reply.Body.DeleteOSDResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteOSD")
+		err = networking.ReadAndParse(httpReply, &reply, "DeleteOSD")
 		return reply.Body.DeleteOSDResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_Stop(ctx context.Context, dev *networking.Client, request Stop) (StopR
 	if err != nil {
 		return reply.Body.StopResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "Stop")
+		err = networking.ReadAndParse(httpReply, &reply, "Stop")
 		return reply.Body.StopResponse, err
 	}
 }

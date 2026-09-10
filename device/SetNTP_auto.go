@@ -38,7 +38,7 @@ func Call_SetNTP(ctx context.Context, dev *networking.Client, request SetNTP) (S
 	if err != nil {
 		return reply.Body.SetNTPResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetNTP")
+		err = networking.ReadAndParse(httpReply, &reply, "SetNTP")
 		return reply.Body.SetNTPResponse, err
 	}
 }

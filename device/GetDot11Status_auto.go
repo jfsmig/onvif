@@ -38,7 +38,7 @@ func Call_GetDot11Status(ctx context.Context, dev *networking.Client, request Ge
 	if err != nil {
 		return reply.Body.GetDot11StatusResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDot11Status")
+		err = networking.ReadAndParse(httpReply, &reply, "GetDot11Status")
 		return reply.Body.GetDot11StatusResponse, err
 	}
 }

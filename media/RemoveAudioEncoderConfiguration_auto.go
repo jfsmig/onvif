@@ -38,7 +38,7 @@ func Call_RemoveAudioEncoderConfiguration(ctx context.Context, dev *networking.C
 	if err != nil {
 		return reply.Body.RemoveAudioEncoderConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveAudioEncoderConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "RemoveAudioEncoderConfiguration")
 		return reply.Body.RemoveAudioEncoderConfigurationResponse, err
 	}
 }

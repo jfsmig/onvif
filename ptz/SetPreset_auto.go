@@ -38,7 +38,7 @@ func Call_SetPreset(ctx context.Context, dev *networking.Client, request SetPres
 	if err != nil {
 		return reply.Body.SetPresetResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetPreset")
+		err = networking.ReadAndParse(httpReply, &reply, "SetPreset")
 		return reply.Body.SetPresetResponse, err
 	}
 }

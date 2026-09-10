@@ -38,7 +38,7 @@ func Call_GetStreamUri(ctx context.Context, dev *networking.Client, request GetS
 	if err != nil {
 		return reply.Body.GetStreamUriResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetStreamUri")
+		err = networking.ReadAndParse(httpReply, &reply, "GetStreamUri")
 		return reply.Body.GetStreamUriResponse, err
 	}
 }

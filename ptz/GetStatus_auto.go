@@ -38,7 +38,7 @@ func Call_GetStatus(ctx context.Context, dev *networking.Client, request GetStat
 	if err != nil {
 		return reply.Body.GetStatusResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetStatus")
+		err = networking.ReadAndParse(httpReply, &reply, "GetStatus")
 		return reply.Body.GetStatusResponse, err
 	}
 }

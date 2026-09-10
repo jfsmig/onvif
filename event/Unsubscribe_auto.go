@@ -38,7 +38,7 @@ func Call_Unsubscribe(ctx context.Context, dev *networking.Client, request Unsub
 	if err != nil {
 		return reply.Body.UnsubscribeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "Unsubscribe")
+		err = networking.ReadAndParse(httpReply, &reply, "Unsubscribe")
 		return reply.Body.UnsubscribeResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_GetStorageConfiguration(ctx context.Context, dev *networking.Client, r
 	if err != nil {
 		return reply.Body.GetStorageConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetStorageConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "GetStorageConfiguration")
 		return reply.Body.GetStorageConfigurationResponse, err
 	}
 }

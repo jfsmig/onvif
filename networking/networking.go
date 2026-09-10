@@ -65,17 +65,46 @@ func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message st
 	return httpClient.Do(req)
 }
 
-func ReadAndParse(ctx context.Context, httpReply *http.Response, reply interface{}, tag string) error {
+// MaxResponseBytes bounds one SOAP reply.
+//
+// io.ReadAll grows without limit, so a device that streams forever -- broken firmware or a
+// hostile host answering a discovery probe -- could exhaust the caller's memory. The cap is
+// deliberately generous: the largest legitimate ONVIF reply is not a configuration but a
+// log, since GetSystemLog and GetSystemSupportInformation return device text wholesale, and
+// a tight limit would truncate a real answer.
+const MaxResponseBytes = 32 << 20
+
+// ReadAndParse consumes the reply body and unmarshals it into reply.
+//
+// tag names the ONVIF operation and appears in every error. It was accepted and discarded
+// before, which left an operator with "expected element type <Envelope>" and no way to tell
+// which of the SDK's ~75 calls produced it -- and sdk.Fetch* returns no error to inspect
+// either, so that message was the only evidence.
+//
+// The context that used to be the first parameter is gone: the exchange is already bound by
+// http.NewRequestWithContext in SendSoap, which covers this body read, so checking ctx here
+// would have been theatre.
+func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error {
 	if httpReply.StatusCode != http.StatusOK {
 		// Keep the status: telling 401 (wrong credentials) from 500 (device fault)
-		// otherwise needs a packet capture.
-		return fmt.Errorf("%w: %s", utils.ErrHTTP, httpReply.Status)
+		// otherwise needs a packet capture. ErrHTTP stays the first wrapped error so
+		// errors.Is keeps matching it.
+		return fmt.Errorf("%w: %s: %s", utils.ErrHTTP, tag, httpReply.Status)
 	}
-	if b, err := io.ReadAll(httpReply.Body); err != nil {
-		return err
-	} else {
-		return xml.Unmarshal(b, reply)
+
+	// One byte past the cap, so a reply that sits exactly on it is still accepted and only
+	// a genuinely oversized one is refused.
+	b, err := io.ReadAll(io.LimitReader(httpReply.Body, MaxResponseBytes+1))
+	if err != nil {
+		return fmt.Errorf("%s: %w", tag, err)
 	}
+	if len(b) > MaxResponseBytes {
+		return fmt.Errorf("%s: reply exceeds %d bytes", tag, MaxResponseBytes)
+	}
+	if err := xml.Unmarshal(b, reply); err != nil {
+		return fmt.Errorf("%s: %w", tag, err)
+	}
+	return nil
 }
 
 func buildMethodSOAP(msg string) (*gosoap.SoapMessage, error) {
@@ -89,11 +118,4 @@ func buildMethodSOAP(msg string) (*gosoap.SoapMessage, error) {
 	soap.AddBodyContent(element)
 
 	return soap, nil
-}
-
-type callMethodParams struct {
-	Endpoint string
-	Username string
-	Password string
-	Method   interface{}
 }

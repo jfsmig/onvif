@@ -38,7 +38,7 @@ func Call_StartFirmwareUpgrade(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.StartFirmwareUpgradeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "StartFirmwareUpgrade")
+		err = networking.ReadAndParse(httpReply, &reply, "StartFirmwareUpgrade")
 		return reply.Body.StartFirmwareUpgradeResponse, err
 	}
 }

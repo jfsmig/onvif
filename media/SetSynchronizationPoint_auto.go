@@ -38,7 +38,7 @@ func Call_SetSynchronizationPoint(ctx context.Context, dev *networking.Client, r
 	if err != nil {
 		return reply.Body.SetSynchronizationPointResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetSynchronizationPoint")
+		err = networking.ReadAndParse(httpReply, &reply, "SetSynchronizationPoint")
 		return reply.Body.SetSynchronizationPointResponse, err
 	}
 }

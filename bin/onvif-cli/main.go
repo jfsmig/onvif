@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/jfsmig/onvif/networking"
@@ -41,7 +42,24 @@ var (
 var (
 	// Per-request backstop. The one-minute context in main() bounds the whole run; this
 	// bounds any single exchange so one slow camera cannot consume the entire budget.
-	httpClient = http.Client{Timeout: networking.DefaultTimeout}
+	//
+	// The connection cap is the counterpart of the sdk fan-out. Every Fetch* now issues its
+	// independent calls at once, so `dump all` offers dozens of requests simultaneously,
+	// and http.Transport defaults to no per-host limit with only two idle connections kept.
+	// An embedded camera web server accepts a handful of connections and resets the rest,
+	// which would make the concurrent dump slower and flakier than the sequential one it
+	// replaced. MaxConnsPerHost queues the surplus inside Do -- still honouring the
+	// context -- instead of letting the device refuse it.
+	//
+	// The policy lives here rather than in the library: sdk takes the caller's *http.Client
+	// as given, and a caller with a different device deserves a different number.
+	httpClient = http.Client{
+		Timeout: networking.DefaultTimeout,
+		Transport: &http.Transport{
+			MaxConnsPerHost:     4,
+			MaxIdleConnsPerHost: 4,
+		},
+	}
 
 	auth = networking.ClientAuth{
 		Username: envOrDefault("ONVIF_USERNAME", "admin"),
@@ -53,9 +71,20 @@ var (
 	ErrMissingSubcommand = errors.New("missing sub-command")
 )
 
+// shutdownSignals is what a graceful stop can be built on.
+//
+// os.Kill was listed here and could never fire: os/signal documents that "SIGKILL and
+// SIGSTOP may not be caught by a program", so the entry cost nothing while SIGTERM -- what
+// `kill <pid>`, systemd and a container stop actually send -- reached nothing, and a run
+// under a one-minute deadline kept probing until the deadline instead of stopping.
+//
+// A package-level var rather than a literal in the call, so a test can assert the set
+// without sending signals to the test binary.
+var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
+
 func main() {
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Kill, os.Interrupt)
+	ctx, cancel := signal.NotifyContext(context.Background(), shutdownSignals...)
 	defer cancel()
 	ctx, cancel = context.WithTimeout(ctx, time.Minute)
 	defer cancel()

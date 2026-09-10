@@ -38,7 +38,7 @@ func Call_GetDeviceInformation(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.GetDeviceInformationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDeviceInformation")
+		err = networking.ReadAndParse(httpReply, &reply, "GetDeviceInformation")
 		return reply.Body.GetDeviceInformationResponse, err
 	}
 }

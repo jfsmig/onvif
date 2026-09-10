@@ -19,10 +19,12 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/jfsmig/onvif/utils"
@@ -53,9 +55,15 @@ var Xlmns = map[string]string{
 	"wsaw":    "http://www.w3.org/2006/05/addressing/wsdl",
 }
 
-// Client for a new device of onvif and DeviceInfo
-// struct represents an abstract ONVIF device.
-// It contains methods, which helps to communicate with ONVIF device
+// Client is one connection to one ONVIF device: its identity, its credentials and the
+// service endpoints it advertises.
+//
+// Ownership rule, which the sdk fan-outs depend on and nothing else enforces: xaddr,
+// username, password, uuid and endpoints are written during construction and by
+// sdk.load(), both of which complete before the Appliance is handed to a caller, so that
+// return orders every write against every later read. AddEndpoint, SetAuth and SetUUID are
+// construction-time setters -- calling one while Fetch* calls are in flight is a data race.
+// clockOffset is the exception and is atomic; see its comment.
 type Client struct {
 	xaddr    string
 	username string
@@ -68,6 +76,18 @@ type Client struct {
 
 	// Discovered with the WS-discovery ProbeMatch
 	endpoints map[string]string
+
+	// clockOffset is deviceUTC - localUTC, learnt once at load time and applied to every
+	// UsernameToken Created stamp. An offset rather than an absolute instant, because the
+	// local clock keeps advancing: a constant offset stays correct for the whole life of a
+	// long-lived client, which a stored device timestamp would not.
+	//
+	// Atomic, unlike the fields above. Those are written during construction and by
+	// sdk.load(), both of which complete before the Appliance is handed to a caller, so
+	// the return itself orders them against every later read. This one has an exported
+	// setter and is read by every concurrent CallMethod, so it is the one field where that
+	// argument does not hold. An atomic costs nothing on this path and settles it.
+	clockOffset atomic.Int64
 }
 
 type ClientAuth struct {
@@ -122,8 +142,34 @@ func (client *Client) SetAuth(auth ClientAuth) {
 
 func (client *Client) GetAuth() ClientAuth { return ClientAuth{client.username, client.password} }
 
-// GetServices return available endpoints
-func (client *Client) GetServices() map[string]string { return client.endpoints }
+// SetClockOffset records deviceUTC - localUTC for this device.
+//
+// sdk.WrapClient computes it from the GetSystemDateAndTime it already issues as its
+// liveness probe. A caller driving this package directly can set it by hand; leaving it at
+// zero reproduces the behaviour of stamping in local time.
+func (client *Client) SetClockOffset(offset time.Duration) {
+	client.clockOffset.Store(int64(offset))
+}
+
+// ClockOffset returns the offset SetClockOffset recorded, zero if none was.
+func (client *Client) ClockOffset() time.Duration {
+	return time.Duration(client.clockOffset.Load())
+}
+
+// deviceNow is the current instant as the device sees it.
+//
+// The Location stays UTC deliberately: AddWSSecurityAt formats Created with
+// time.RFC3339Nano, so a non-UTC Location would emit "+02:00" where a device expects "Z".
+func (client *Client) deviceNow() time.Time {
+	return time.Now().UTC().Add(client.ClockOffset())
+}
+
+// GetServices returns a copy of the endpoints the device advertised.
+//
+// A copy, because the map is the client's own routing table: CallMethod resolves against
+// it, and bin/onvif-cli/dump.go hands this result straight to a json.Encoder, so a caller
+// that adjusted what it had just printed would silently reroute the client's calls.
+func (client *Client) GetServices() map[string]string { return maps.Clone(client.endpoints) }
 
 // GetEndpoint returns specific ONVIF service endpoint address
 func (client *Client) GetEndpoint(name string) string { return client.endpoints[name] }
@@ -140,6 +186,17 @@ func (client *Client) AddEndpoint(Key, Value string) {
 	}
 
 	client.endpoints[lowCaseKey] = Value
+}
+
+// WSAActor is implemented by a request struct that must travel with a wsa:Action header.
+//
+// The action string belongs to the operation, so it lives next to the request types rather
+// than in this package or in calls.txt: keeping it out of calls.txt keeps that file a pure
+// list of names, leaves the generated wrappers untouched, and keeps the generator's 1:1
+// invariant out of the question entirely. See event/actions.go.
+type WSAActor interface {
+	// WSAAction returns the wsaw:Action of the operation, as the service WSDL declares it.
+	WSAAction() string
 }
 
 // CallMethod functions call a method, defined <method> struct.
@@ -165,9 +222,34 @@ func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http
 
 	soap.AddRootNamespaces(Xlmns)
 
-	//Auth Handling
-	if client.username != "" && client.password != "" {
-		soap.AddWSSecurity(client.username, client.password)
+	// WS-Addressing, for the services that require it and only those.
+	//
+	// ONVIF requires WS-Addressing for the event service, whose operations are
+	// WS-BaseNotification ones; the device, media and PTZ examples in the specification
+	// carry no addressing header at all. So the action is opt-in per request type -- a
+	// request struct declares one by implementing WSAActor -- rather than emitted for all
+	// 205 operations, where it would be unrequested risk against devices that work today.
+	//
+	// gosoap deliberately does not mark the header mustUnderstand, so a device that
+	// ignores WS-Addressing keeps working.
+	if actor, ok := method.(WSAActor); ok {
+		soap.AddAction(actor.WSAAction())
+	}
+
+	// Auth handling.
+	//
+	// Stamped in device time, not local time. A device compares Created against its own
+	// clock and rejects a token more than a few seconds out -- which is why gosoap exposes
+	// AddWSSecurityAt at all -- and camera clocks drift. Stamping locally meant that on a
+	// skewed camera the unauthenticated probe succeeded and then every real call failed
+	// 401, which is the most confusing failure this library can produce. With no offset
+	// learnt, deviceNow() is time.Now().UTC() and the header is byte-identical to before.
+	//
+	// The guard is on the username alone. Requiring a non-empty password too meant an
+	// account with an empty password got no wsse:Security header at all, rather than a
+	// token carrying an empty password. An empty ClientAuth still sends nothing.
+	if client.username != "" {
+		soap.AddWSSecurityAt(client.username, client.password, client.deviceNow())
 	}
 
 	return SendSoap(ctx, client.httpClient, endpoint, soap.String())

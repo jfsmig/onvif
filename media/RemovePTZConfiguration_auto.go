@@ -38,7 +38,7 @@ func Call_RemovePTZConfiguration(ctx context.Context, dev *networking.Client, re
 	if err != nil {
 		return reply.Body.RemovePTZConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemovePTZConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "RemovePTZConfiguration")
 		return reply.Body.RemovePTZConfigurationResponse, err
 	}
 }

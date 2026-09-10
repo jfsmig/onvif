@@ -38,7 +38,7 @@ func Call_ScanAvailableDot11Networks(ctx context.Context, dev *networking.Client
 	if err != nil {
 		return reply.Body.ScanAvailableDot11NetworksResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "ScanAvailableDot11Networks")
+		err = networking.ReadAndParse(httpReply, &reply, "ScanAvailableDot11Networks")
 		return reply.Body.ScanAvailableDot11NetworksResponse, err
 	}
 }

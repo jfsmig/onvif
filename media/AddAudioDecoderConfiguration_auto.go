@@ -38,7 +38,7 @@ func Call_AddAudioDecoderConfiguration(ctx context.Context, dev *networking.Clie
 	if err != nil {
 		return reply.Body.AddAudioDecoderConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "AddAudioDecoderConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "AddAudioDecoderConfiguration")
 		return reply.Body.AddAudioDecoderConfigurationResponse, err
 	}
 }

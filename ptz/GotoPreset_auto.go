@@ -38,7 +38,7 @@ func Call_GotoPreset(ctx context.Context, dev *networking.Client, request GotoPr
 	if err != nil {
 		return reply.Body.GotoPresetResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GotoPreset")
+		err = networking.ReadAndParse(httpReply, &reply, "GotoPreset")
 		return reply.Body.GotoPresetResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_GetPkcs10Request(ctx context.Context, dev *networking.Client, request 
 	if err != nil {
 		return reply.Body.GetPkcs10RequestResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetPkcs10Request")
+		err = networking.ReadAndParse(httpReply, &reply, "GetPkcs10Request")
 		return reply.Body.GetPkcs10RequestResponse, err
 	}
 }

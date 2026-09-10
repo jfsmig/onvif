@@ -38,7 +38,7 @@ func Call_GetConfiguration(ctx context.Context, dev *networking.Client, request 
 	if err != nil {
 		return reply.Body.GetConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "GetConfiguration")
 		return reply.Body.GetConfigurationResponse, err
 	}
 }

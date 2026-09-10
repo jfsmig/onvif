@@ -38,7 +38,7 @@ func Call_SetNetworkDefaultGateway(ctx context.Context, dev *networking.Client, 
 	if err != nil {
 		return reply.Body.SetNetworkDefaultGatewayResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetNetworkDefaultGateway")
+		err = networking.ReadAndParse(httpReply, &reply, "SetNetworkDefaultGateway")
 		return reply.Body.SetNetworkDefaultGatewayResponse, err
 	}
 }

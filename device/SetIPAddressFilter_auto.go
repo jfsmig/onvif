@@ -38,7 +38,7 @@ func Call_SetIPAddressFilter(ctx context.Context, dev *networking.Client, reques
 	if err != nil {
 		return reply.Body.SetIPAddressFilterResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetIPAddressFilter")
+		err = networking.ReadAndParse(httpReply, &reply, "SetIPAddressFilter")
 		return reply.Body.SetIPAddressFilterResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_RemovePreset(ctx context.Context, dev *networking.Client, request Remo
 	if err != nil {
 		return reply.Body.RemovePresetResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemovePreset")
+		err = networking.ReadAndParse(httpReply, &reply, "RemovePreset")
 		return reply.Body.RemovePresetResponse, err
 	}
 }

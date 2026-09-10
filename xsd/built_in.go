@@ -24,7 +24,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"net/url"
 	"regexp"
 	"strings"
@@ -202,9 +201,16 @@ func (tp Decimal) NewDecimal(data string) Decimal {
 type Duration AnySimpleType
 
 /*
-Construct an instance of xsd duration type
+Construct an instance of xsd duration type.
+
+Reports a malformed component instead of calling log.Fatalln, which killed the calling
+process from inside a library. Returning (Duration, error) is what the other fallible
+constructors in this file already do -- see NewNormalizedString, NewToken, NewLanguage.
+
+Named NewDuration, not NewDateTime: it builds an xsd:duration, and the name it carried
+belongs to the DateTime constructor below.
 */
-func (tp Duration) NewDateTime(years, months, days, hours, minutes, seconds string) Duration {
+func (tp Duration) NewDuration(years, months, days, hours, minutes, seconds string) (Duration, error) {
 	i, err := iso8601.NewDuration(
 		years,
 		months,
@@ -213,14 +219,11 @@ func (tp Duration) NewDateTime(years, months, days, hours, minutes, seconds stri
 		minutes,
 		seconds,
 	)
-
 	if err != nil {
-		log.Fatalln(err)
+		return Duration(""), err
 	}
 
-	//fmt.Println(i.ISO8601Duration())
-
-	return Duration(i.ISO8601Duration())
+	return Duration(i.ISO8601Duration()), nil
 }
 
 /*
@@ -252,7 +255,11 @@ type DateTime AnySimpleType
 Construct an instance of xsd dateTime type
 */
 func (tp DateTime) NewDateTime(time time.Time) DateTime {
-	return DateTime(time.Format("2002-10-10T12:00:00-05:00"))
+	// The layout is RFC3339 spelled out, because the parameter name shadows the time
+	// package here. It was "2002-10-10T12:00:00-05:00": Go's reference instant is
+	// 2006-01-02T15:04:05Z07:00, so that string matched no field and the argument was
+	// discarded -- every call returned the literal with the same wrong date.
+	return DateTime(time.Format("2006-01-02T15:04:05Z07:00"))
 }
 
 /*
@@ -280,8 +287,11 @@ type Time AnySimpleType
 /*
 Construct an instance of xsd time type
 */
-func (tp DateTime) NewTime(time time.Time) DateTime {
-	return DateTime(time.Format("15:04:05"))
+func (tp Time) NewTime(time time.Time) Time {
+	// Receiver and result are Time, the type declared just above. This was declared on
+	// DateTime and returned DateTime, so xsd:time had no constructor and xsd:dateTime had
+	// two, one of which produced a time of day.
+	return Time(time.Format("15:04:05"))
 }
 
 /*
@@ -300,7 +310,9 @@ type Date AnySimpleType
 Construct an instance of xsd date type
 */
 func (tp Date) NewDate(time time.Time) Date {
-	return Date(time.Format("2004-04-12-05:00"))
+	// "2006-01-02", not "2004-04-12-05:00": the latter is not a Go layout, so the argument
+	// was discarded. xsd:date is CCYY-MM-DD, https://www.w3.org/TR/xmlschema-2/#date
+	return Date(time.Format("2006-01-02"))
 }
 
 /*
@@ -323,7 +335,6 @@ Construct an instance of xsd GYearMonth type
 */
 func (tp GYearMonth) NewGYearMonth(time time.Time) GYearMonth {
 	return GYearMonth(fmt.Sprint(time.Year(), "-", time.Month()))
-	//return GYearMonth(time.Format("2004-04-05:00"))
 }
 
 /*
@@ -345,7 +356,6 @@ Construct an instance of xsd GYear type
 */
 func (tp GYear) NewGYear(time time.Time) GYear {
 	return GYear(fmt.Sprint(time.Year()))
-	//return GYearMonth(time.Format("2004-04-05:00"))
 }
 
 /*

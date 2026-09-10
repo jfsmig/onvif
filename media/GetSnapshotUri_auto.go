@@ -38,7 +38,7 @@ func Call_GetSnapshotUri(ctx context.Context, dev *networking.Client, request Ge
 	if err != nil {
 		return reply.Body.GetSnapshotUriResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSnapshotUri")
+		err = networking.ReadAndParse(httpReply, &reply, "GetSnapshotUri")
 		return reply.Body.GetSnapshotUriResponse, err
 	}
 }

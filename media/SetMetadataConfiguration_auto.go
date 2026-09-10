@@ -38,7 +38,7 @@ func Call_SetMetadataConfiguration(ctx context.Context, dev *networking.Client, 
 	if err != nil {
 		return reply.Body.SetMetadataConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetMetadataConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "SetMetadataConfiguration")
 		return reply.Body.SetMetadataConfigurationResponse, err
 	}
 }

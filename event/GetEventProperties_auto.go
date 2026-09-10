@@ -38,7 +38,7 @@ func Call_GetEventProperties(ctx context.Context, dev *networking.Client, reques
 	if err != nil {
 		return reply.Body.GetEventPropertiesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetEventProperties")
+		err = networking.ReadAndParse(httpReply, &reply, "GetEventProperties")
 		return reply.Body.GetEventPropertiesResponse, err
 	}
 }

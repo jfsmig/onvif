@@ -38,7 +38,7 @@ func Call_DeleteGeoLocation(ctx context.Context, dev *networking.Client, request
 	if err != nil {
 		return reply.Body.DeleteGeoLocationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteGeoLocation")
+		err = networking.ReadAndParse(httpReply, &reply, "DeleteGeoLocation")
 		return reply.Body.DeleteGeoLocationResponse, err
 	}
 }

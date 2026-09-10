@@ -38,7 +38,7 @@ func Call_SetRemoteDiscoveryMode(ctx context.Context, dev *networking.Client, re
 	if err != nil {
 		return reply.Body.SetRemoteDiscoveryModeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetRemoteDiscoveryMode")
+		err = networking.ReadAndParse(httpReply, &reply, "SetRemoteDiscoveryMode")
 		return reply.Body.SetRemoteDiscoveryModeResponse, err
 	}
 }

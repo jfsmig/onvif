@@ -38,7 +38,7 @@ func Call_GetNTP(ctx context.Context, dev *networking.Client, request GetNTP) (G
 	if err != nil {
 		return reply.Body.GetNTPResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetNTP")
+		err = networking.ReadAndParse(httpReply, &reply, "GetNTP")
 		return reply.Body.GetNTPResponse, err
 	}
 }

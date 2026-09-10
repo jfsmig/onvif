@@ -78,8 +78,15 @@ Low-Level go packages implement the OnVIF unitary SOAP calls. For each call :
 - [github.com/jfsmig/onvif/device](https://pkg.go.dev/github.com/jfsmig/onvif/device)
 - [github.com/jfsmig/onvif/event](https://pkg.go.dev/github.com/jfsmig/onvif/event)
 - [github.com/jfsmig/onvif/ptz](https://pkg.go.dev/github.com/jfsmig/onvif/ptz)
-- [github.com/jfsmig/onvif/Imaging](https://pkg.go.dev/github.com/jfsmig/onvif/Imaging)
 - [github.com/jfsmig/onvif/media](https://pkg.go.dev/github.com/jfsmig/onvif/media)
+
+Two more packages carry the request and reply **types only** — they have no `calls.txt` and
+so no `Call_*` wrappers, which means their operations cannot be issued yet:
+- [github.com/jfsmig/onvif/Imaging](https://pkg.go.dev/github.com/jfsmig/onvif/Imaging)
+- [github.com/jfsmig/onvif/analytics](https://pkg.go.dev/github.com/jfsmig/onvif/analytics)
+
+`imaging` and `analytics` are already among the service names `networking` will route, so
+what is missing is the wrappers rather than the plumbing.
 
 Helpers:
 - [github.com/jfsmig/onvif/networking](https://pkg.go.dev/github.com/jfsmig/onvif/networking)

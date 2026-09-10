@@ -38,7 +38,7 @@ func Call_SetRelayOutputSettings(ctx context.Context, dev *networking.Client, re
 	if err != nil {
 		return reply.Body.SetRelayOutputSettingsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetRelayOutputSettings")
+		err = networking.ReadAndParse(httpReply, &reply, "SetRelayOutputSettings")
 		return reply.Body.SetRelayOutputSettingsResponse, err
 	}
 }

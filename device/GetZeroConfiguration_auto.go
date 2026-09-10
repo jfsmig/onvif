@@ -38,7 +38,7 @@ func Call_GetZeroConfiguration(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.GetZeroConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetZeroConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "GetZeroConfiguration")
 		return reply.Body.GetZeroConfigurationResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_SystemReboot(ctx context.Context, dev *networking.Client, request Syst
 	if err != nil {
 		return reply.Body.SystemRebootResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SystemReboot")
+		err = networking.ReadAndParse(httpReply, &reply, "SystemReboot")
 		return reply.Body.SystemRebootResponse, err
 	}
 }

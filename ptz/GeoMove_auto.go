@@ -38,7 +38,7 @@ func Call_GeoMove(ctx context.Context, dev *networking.Client, request GeoMove) 
 	if err != nil {
 		return reply.Body.GeoMoveResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GeoMove")
+		err = networking.ReadAndParse(httpReply, &reply, "GeoMove")
 		return reply.Body.GeoMoveResponse, err
 	}
 }

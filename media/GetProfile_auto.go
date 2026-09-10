@@ -38,7 +38,7 @@ func Call_GetProfile(ctx context.Context, dev *networking.Client, request GetPro
 	if err != nil {
 		return reply.Body.GetProfileResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetProfile")
+		err = networking.ReadAndParse(httpReply, &reply, "GetProfile")
 		return reply.Body.GetProfileResponse, err
 	}
 }

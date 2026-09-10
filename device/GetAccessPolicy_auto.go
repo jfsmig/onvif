@@ -38,7 +38,7 @@ func Call_GetAccessPolicy(ctx context.Context, dev *networking.Client, request G
 	if err != nil {
 		return reply.Body.GetAccessPolicyResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetAccessPolicy")
+		err = networking.ReadAndParse(httpReply, &reply, "GetAccessPolicy")
 		return reply.Body.GetAccessPolicyResponse, err
 	}
 }

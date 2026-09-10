@@ -38,7 +38,7 @@ func Call_GetVideoEncoderConfiguration(ctx context.Context, dev *networking.Clie
 	if err != nil {
 		return reply.Body.GetVideoEncoderConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetVideoEncoderConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "GetVideoEncoderConfiguration")
 		return reply.Body.GetVideoEncoderConfigurationResponse, err
 	}
 }
