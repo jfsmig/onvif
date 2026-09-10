@@ -59,3 +59,14 @@ So a reviewer's finding is not finished as prose. Where it can be pinned, it com
 the test written out, in the style of the target package, with a comment saying what the
 slip was and what it was verified against. Apply the test with the fix, in the same
 change.
+
+### The attribution trailer is configured, not remembered
+
+`AGENTS.md` states the rule for every agent: an LLM-assisted commit ends with
+`Assisted-By: <tool>`, and never `Co-authored-by:` or `Authored-by:`. For Claude Code it
+is mechanical — `.claude/settings.json` sets `attribution.commit` and `attribution.pr` to
+`Assisted-By: Claude Code`, which replaces both shipped defaults, the `Co-Authored-By:`
+trailer and the "Generated with Claude Code" pull-request footer.
+
+That file is tracked, and holds the attribution block and nothing else. Do not reintroduce
+`includeCoAuthoredBy`: it is deprecated and can only suppress the default, not reword it.

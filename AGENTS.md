@@ -170,3 +170,24 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   which is what the other fallible constructors in that file already did, and
   `xsd/built_in_test.go` pins it.
 
+## Attribution: `Assisted-By:`, never `Co-authored-by:`
+
+A commit written with the help of a language model says so, in a trailer on its own line
+at the end of the message:
+
+```
+Assisted-By: Claude Code
+Assisted-By: GitHub Copilot
+```
+
+Name the tool, not the model version: the tool outlives the model, and a version pinned in
+a trailer is stale by the next release. One line per tool that actually contributed.
+
+**Never `Co-authored-by:` or `Authored-by:` for a model.** Those trailers credit people —
+GitHub reads them as authorship and attaches them to a human account. A model assists, a
+person authors, and holding that line is the whole point of the rule. A pull-request
+description carries the same single `Assisted-By:` line, and no "Generated with" footer.
+
+`45bbd6a` predates the rule and keeps its `Co-authored-by: Copilot` trailer, the one
+exception left in the log. For Claude Code the trailer is not left to memory —
+`.claude/settings.json` sets it, see `CLAUDE.md`.
