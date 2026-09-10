@@ -38,7 +38,7 @@ func Call_SendAuxiliaryCommand(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.SendAuxiliaryCommandResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SendAuxiliaryCommand")
+		err = networking.ReadAndParse(httpReply, &reply, "SendAuxiliaryCommand")
 		return reply.Body.SendAuxiliaryCommandResponse, err
 	}
 }

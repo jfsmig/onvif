@@ -73,7 +73,7 @@ func Call_{{.TypeRequest}}(ctx context.Context, dev *networking.Client, request 
 	if err != nil {
 		return reply.Body.{{.TypeReply}}, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "{{.TypeRequest}}")
+		err = networking.ReadAndParse(httpReply, &reply, "{{.TypeRequest}}")
 		return reply.Body.{{.TypeReply}}, err
 	}
 }

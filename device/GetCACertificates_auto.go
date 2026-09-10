@@ -38,7 +38,7 @@ func Call_GetCACertificates(ctx context.Context, dev *networking.Client, request
 	if err != nil {
 		return reply.Body.GetCACertificatesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCACertificates")
+		err = networking.ReadAndParse(httpReply, &reply, "GetCACertificates")
 		return reply.Body.GetCACertificatesResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_DeleteUsers(ctx context.Context, dev *networking.Client, request Delet
 	if err != nil {
 		return reply.Body.DeleteUsersResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteUsers")
+		err = networking.ReadAndParse(httpReply, &reply, "DeleteUsers")
 		return reply.Body.DeleteUsersResponse, err
 	}
 }

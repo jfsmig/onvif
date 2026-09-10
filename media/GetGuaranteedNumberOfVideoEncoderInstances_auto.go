@@ -38,7 +38,7 @@ func Call_GetGuaranteedNumberOfVideoEncoderInstances(ctx context.Context, dev *n
 	if err != nil {
 		return reply.Body.GetGuaranteedNumberOfVideoEncoderInstancesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetGuaranteedNumberOfVideoEncoderInstances")
+		err = networking.ReadAndParse(httpReply, &reply, "GetGuaranteedNumberOfVideoEncoderInstances")
 		return reply.Body.GetGuaranteedNumberOfVideoEncoderInstancesResponse, err
 	}
 }

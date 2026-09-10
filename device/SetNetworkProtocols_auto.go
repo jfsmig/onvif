@@ -38,7 +38,7 @@ func Call_SetNetworkProtocols(ctx context.Context, dev *networking.Client, reque
 	if err != nil {
 		return reply.Body.SetNetworkProtocolsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetNetworkProtocols")
+		err = networking.ReadAndParse(httpReply, &reply, "SetNetworkProtocols")
 		return reply.Body.SetNetworkProtocolsResponse, err
 	}
 }

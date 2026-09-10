@@ -38,7 +38,7 @@ func Call_DeleteDot1XConfiguration(ctx context.Context, dev *networking.Client, 
 	if err != nil {
 		return reply.Body.DeleteDot1XConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteDot1XConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "DeleteDot1XConfiguration")
 		return reply.Body.DeleteDot1XConfigurationResponse, err
 	}
 }

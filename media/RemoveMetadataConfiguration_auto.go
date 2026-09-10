@@ -38,7 +38,7 @@ func Call_RemoveMetadataConfiguration(ctx context.Context, dev *networking.Clien
 	if err != nil {
 		return reply.Body.RemoveMetadataConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveMetadataConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "RemoveMetadataConfiguration")
 		return reply.Body.RemoveMetadataConfigurationResponse, err
 	}
 }

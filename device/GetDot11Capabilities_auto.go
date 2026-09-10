@@ -38,7 +38,7 @@ func Call_GetDot11Capabilities(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.GetDot11CapabilitiesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDot11Capabilities")
+		err = networking.ReadAndParse(httpReply, &reply, "GetDot11Capabilities")
 		return reply.Body.GetDot11CapabilitiesResponse, err
 	}
 }

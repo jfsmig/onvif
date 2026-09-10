@@ -38,7 +38,7 @@ func Call_SetHostname(ctx context.Context, dev *networking.Client, request SetHo
 	if err != nil {
 		return reply.Body.SetHostnameResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetHostname")
+		err = networking.ReadAndParse(httpReply, &reply, "SetHostname")
 		return reply.Body.SetHostnameResponse, err
 	}
 }

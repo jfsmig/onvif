@@ -38,7 +38,7 @@ func Call_AbsoluteMove(ctx context.Context, dev *networking.Client, request Abso
 	if err != nil {
 		return reply.Body.AbsoluteMoveResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "AbsoluteMove")
+		err = networking.ReadAndParse(httpReply, &reply, "AbsoluteMove")
 		return reply.Body.AbsoluteMoveResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_GetVideoSourceModes(ctx context.Context, dev *networking.Client, reque
 	if err != nil {
 		return reply.Body.GetVideoSourceModesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetVideoSourceModes")
+		err = networking.ReadAndParse(httpReply, &reply, "GetVideoSourceModes")
 		return reply.Body.GetVideoSourceModesResponse, err
 	}
 }

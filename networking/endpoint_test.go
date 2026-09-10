@@ -118,3 +118,32 @@ func TestGetEndpointReportsErrNoService(t *testing.T) {
 		t.Fatalf("error %q does not name the service %q", err, want)
 	}
 }
+
+// TestGetServicesReturnsACopy pins D1: the accessor used to hand back the client's own
+// routing table. CallMethod resolves service names against that map, and
+// bin/onvif-cli/dump.go encodes the result straight to stdout, so a caller that adjusted
+// what it had printed silently rerouted -- or unrouted -- every later call.
+func TestGetServicesReturnsACopy(t *testing.T) {
+	client := clientWithEndpoints("device", "media")
+
+	services := client.GetServices()
+	if len(services) != 2 {
+		t.Fatalf("GetServices returned %d endpoints, want 2", len(services))
+	}
+
+	// Everything a caller might plausibly do to a map it believes it owns.
+	services["media"] = "http://attacker.example/onvif/media"
+	delete(services, "device")
+	services["ptz"] = "http://attacker.example/onvif/ptz"
+
+	if got := client.GetEndpoint("media"); got != "http://192.0.2.1/onvif/media" {
+		t.Errorf("GetEndpoint(media) = %q after the caller rewrote its copy; the client's "+
+			"routing table is reachable from outside", got)
+	}
+	if _, found := client.HasEndpoint("device"); !found {
+		t.Error("device disappeared after the caller deleted it from its copy")
+	}
+	if _, found := client.HasEndpoint("ptz"); found {
+		t.Error("ptz became resolvable after the caller added it to its copy")
+	}
+}

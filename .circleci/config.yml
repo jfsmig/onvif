@@ -9,8 +9,21 @@ jobs:
     steps:
       - checkout
       - run: go install ./...
-      - run: go test ./...
+      # -race, because the sdk fans out every independent fetch against one camera and
+      # nothing else here can catch a data race: no camera runs in CI, so the race
+      # detector over the stub-device tests is the only automated check on the fan-out.
+      - run: go test -race ./...
       - run: go vet ./...
+      - run:
+          name: "Check the formatting"
+          command: |
+            set -euo pipefail
+            unformatted="$(gofmt -l .)"
+            if [ -n "${unformatted}" ]; then
+              echo "gofmt -l reported:" >&2
+              echo "${unformatted}" >&2
+              exit 1
+            fi
       - run:
           name: "Check the generated files have been commit"
           command: |
@@ -22,4 +35,3 @@ workflows:
   build-and-test-workflow:
     jobs:
       - build-and-test
-

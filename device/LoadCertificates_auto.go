@@ -38,7 +38,7 @@ func Call_LoadCertificates(ctx context.Context, dev *networking.Client, request 
 	if err != nil {
 		return reply.Body.LoadCertificatesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "LoadCertificates")
+		err = networking.ReadAndParse(httpReply, &reply, "LoadCertificates")
 		return reply.Body.LoadCertificatesResponse, err
 	}
 }

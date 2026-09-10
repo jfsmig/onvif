@@ -38,7 +38,7 @@ func Call_CreatePullPointSubscription(ctx context.Context, dev *networking.Clien
 	if err != nil {
 		return reply.Body.CreatePullPointSubscriptionResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "CreatePullPointSubscription")
+		err = networking.ReadAndParse(httpReply, &reply, "CreatePullPointSubscription")
 		return reply.Body.CreatePullPointSubscriptionResponse, err
 	}
 }

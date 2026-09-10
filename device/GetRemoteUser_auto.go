@@ -38,7 +38,7 @@ func Call_GetRemoteUser(ctx context.Context, dev *networking.Client, request Get
 	if err != nil {
 		return reply.Body.GetRemoteUserResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetRemoteUser")
+		err = networking.ReadAndParse(httpReply, &reply, "GetRemoteUser")
 		return reply.Body.GetRemoteUserResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_GetCapabilities(ctx context.Context, dev *networking.Client, request G
 	if err != nil {
 		return reply.Body.GetCapabilitiesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCapabilities")
+		err = networking.ReadAndParse(httpReply, &reply, "GetCapabilities")
 		return reply.Body.GetCapabilitiesResponse, err
 	}
 }

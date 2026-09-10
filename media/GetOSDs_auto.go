@@ -38,7 +38,7 @@ func Call_GetOSDs(ctx context.Context, dev *networking.Client, request GetOSDs) 
 	if err != nil {
 		return reply.Body.GetOSDsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetOSDs")
+		err = networking.ReadAndParse(httpReply, &reply, "GetOSDs")
 		return reply.Body.GetOSDsResponse, err
 	}
 }

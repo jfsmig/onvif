@@ -38,7 +38,7 @@ func Call_RemoveVideoAnalyticsConfiguration(ctx context.Context, dev *networking
 	if err != nil {
 		return reply.Body.RemoveVideoAnalyticsConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveVideoAnalyticsConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "RemoveVideoAnalyticsConfiguration")
 		return reply.Body.RemoveVideoAnalyticsConfigurationResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_AddPTZConfiguration(ctx context.Context, dev *networking.Client, reque
 	if err != nil {
 		return reply.Body.AddPTZConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "AddPTZConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "AddPTZConfiguration")
 		return reply.Body.AddPTZConfigurationResponse, err
 	}
 }

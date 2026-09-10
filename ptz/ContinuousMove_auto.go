@@ -38,7 +38,7 @@ func Call_ContinuousMove(ctx context.Context, dev *networking.Client, request Co
 	if err != nil {
 		return reply.Body.ContinuousMoveResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "ContinuousMove")
+		err = networking.ReadAndParse(httpReply, &reply, "ContinuousMove")
 		return reply.Body.ContinuousMoveResponse, err
 	}
 }

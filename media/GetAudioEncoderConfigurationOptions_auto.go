@@ -38,7 +38,7 @@ func Call_GetAudioEncoderConfigurationOptions(ctx context.Context, dev *networki
 	if err != nil {
 		return reply.Body.GetAudioEncoderConfigurationOptionsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetAudioEncoderConfigurationOptions")
+		err = networking.ReadAndParse(httpReply, &reply, "GetAudioEncoderConfigurationOptions")
 		return reply.Body.GetAudioEncoderConfigurationOptionsResponse, err
 	}
 }

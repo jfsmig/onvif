@@ -38,7 +38,7 @@ func Call_GetDiscoveryMode(ctx context.Context, dev *networking.Client, request 
 	if err != nil {
 		return reply.Body.GetDiscoveryModeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDiscoveryMode")
+		err = networking.ReadAndParse(httpReply, &reply, "GetDiscoveryMode")
 		return reply.Body.GetDiscoveryModeResponse, err
 	}
 }

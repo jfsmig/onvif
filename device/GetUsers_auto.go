@@ -38,7 +38,7 @@ func Call_GetUsers(ctx context.Context, dev *networking.Client, request GetUsers
 	if err != nil {
 		return reply.Body.GetUsersResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetUsers")
+		err = networking.ReadAndParse(httpReply, &reply, "GetUsers")
 		return reply.Body.GetUsersResponse, err
 	}
 }

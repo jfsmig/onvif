@@ -38,7 +38,7 @@ func Call_GetDPAddresses(ctx context.Context, dev *networking.Client, request Ge
 	if err != nil {
 		return reply.Body.GetDPAddressesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDPAddresses")
+		err = networking.ReadAndParse(httpReply, &reply, "GetDPAddresses")
 		return reply.Body.GetDPAddressesResponse, err
 	}
 }

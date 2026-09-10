@@ -38,7 +38,7 @@ func Call_CreateUsers(ctx context.Context, dev *networking.Client, request Creat
 	if err != nil {
 		return reply.Body.CreateUsersResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "CreateUsers")
+		err = networking.ReadAndParse(httpReply, &reply, "CreateUsers")
 		return reply.Body.CreateUsersResponse, err
 	}
 }

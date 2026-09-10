@@ -38,7 +38,7 @@ func Call_LoadCertificateWithPrivateKey(ctx context.Context, dev *networking.Cli
 	if err != nil {
 		return reply.Body.LoadCertificateWithPrivateKeyResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "LoadCertificateWithPrivateKey")
+		err = networking.ReadAndParse(httpReply, &reply, "LoadCertificateWithPrivateKey")
 		return reply.Body.LoadCertificateWithPrivateKeyResponse, err
 	}
 }

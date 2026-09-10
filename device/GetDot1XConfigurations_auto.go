@@ -38,7 +38,7 @@ func Call_GetDot1XConfigurations(ctx context.Context, dev *networking.Client, re
 	if err != nil {
 		return reply.Body.GetDot1XConfigurationsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetDot1XConfigurations")
+		err = networking.ReadAndParse(httpReply, &reply, "GetDot1XConfigurations")
 		return reply.Body.GetDot1XConfigurationsResponse, err
 	}
 }

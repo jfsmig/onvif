@@ -38,7 +38,7 @@ func Call_StartSystemRestore(ctx context.Context, dev *networking.Client, reques
 	if err != nil {
 		return reply.Body.StartSystemRestoreResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "StartSystemRestore")
+		err = networking.ReadAndParse(httpReply, &reply, "StartSystemRestore")
 		return reply.Body.StartSystemRestoreResponse, err
 	}
 }

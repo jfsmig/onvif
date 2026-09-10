@@ -18,11 +18,11 @@ package sdk
 import (
 	"context"
 	"fmt"
-	"github.com/jfsmig/onvif/utils"
 	"io"
+	"maps"
 	"net/http"
 	"os"
-	"strings"
+	"slices"
 	"time"
 
 	"github.com/beevik/etree"
@@ -31,6 +31,7 @@ import (
 	"github.com/jfsmig/onvif/device"
 	"github.com/jfsmig/onvif/media"
 	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/utils"
 )
 
 //go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen profile sdk ./profiles
@@ -46,6 +47,13 @@ var (
 )
 
 // Appliance is one connection to one ONVIF device.
+//
+// A note on the http.Client a caller supplies to NewDevice: every Fetch* method issues its
+// independent operations concurrently, so one call can offer a dozen or more requests to
+// the device at once, and a full dump several dozen. http.Transport defaults to no
+// per-host connection limit, while embedded camera web servers accept only a handful and
+// reset the rest. Set Transport.MaxConnsPerHost to something small -- bin/onvif-cli uses 4
+// -- or the concurrency costs more than it saves.
 //
 // It carries what belongs to the connection itself -- identity and the service endpoints
 // learnt at load time -- and hands out one client per ONVIF Profile. The operations live on
@@ -98,18 +106,24 @@ func WrapClient(ctx context.Context, client *networking.Client, auth networking.
 }
 
 func (dw *deviceWrapper) load(ctx context.Context) (Appliance, error) {
-	// CallMethod returns a nil response together with its error, so the body must not be
-	// touched before err is checked: an unreachable device used to panic here.
-	resp, err := dw.client.CallMethod(ctx, device.GetSystemDateAndTime{})
+	// GetSystemDateAndTime is both the liveness probe and the clock probe. It is issued
+	// through the generated wrapper rather than by hand so that its reply is parsed: the
+	// device's own clock is what the WS-Security Created stamp has to be expressed in, and
+	// this exchange used to fetch it and close the body unread.
+	//
+	// This request does carry a UsernameToken, stamped in local time because no offset is
+	// known yet. It still works as a bootstrap because ONVIF places GetSystemDateAndTime
+	// in the pre-authentication access class, so a camera answers it whether or not the
+	// token validates -- which is exactly the situation on a device whose clock is skewed
+	// enough to reject every other call. If that access class ever turns out not to hold,
+	// this has to become an explicitly unauthenticated exchange instead.
+	dt, err := device.Call_GetSystemDateAndTime(ctx, dw.client, device.GetSystemDateAndTime{})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", utils.ErrNotOnvif, err)
 	}
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", utils.ErrNotOnvif, resp.Status)
-	}
+	dw.client.SetClockOffset(deviceClockOffset(time.Now(), dt.SystemDateAndTime))
 
-	resp, err = dw.client.CallMethod(ctx, device.GetCapabilities{Category: "All"})
+	resp, err := dw.client.CallMethod(ctx, device.GetCapabilities{Category: "All"})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", utils.ErrNotOnvif, err)
 	}
@@ -118,11 +132,19 @@ func (dw *deviceWrapper) load(ctx context.Context) (Appliance, error) {
 		return nil, fmt.Errorf("%w: %s", utils.ErrNotOnvif, resp.Status)
 	}
 
+	// Bounded and checked: this body is whatever the device chose to send, and the error
+	// used to be discarded, so a truncated read surfaced later as a puzzling etree parse
+	// failure or -- worse -- as an endpoint map that silently came back empty.
 	doc := etree.NewDocument()
-	data, _ := io.ReadAll(resp.Body)
-
+	data, err := io.ReadAll(io.LimitReader(resp.Body, networking.MaxResponseBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("GetCapabilities: %w", err)
+	}
+	if len(data) > networking.MaxResponseBytes {
+		return nil, fmt.Errorf("GetCapabilities: reply exceeds %d bytes", networking.MaxResponseBytes)
+	}
 	if err := doc.ReadFromBytes(data); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("GetCapabilities: %w", err)
 	}
 	services := doc.FindElements("./Envelope/Body/GetCapabilitiesResponse/Capabilities/*/XAddr")
 	for _, j := range services {
@@ -146,18 +168,23 @@ func (dw *deviceWrapper) GetEndpoint(name string) string { return dw.client.GetE
 
 func (dw *deviceWrapper) GetDeviceEndpoint() string { return dw.GetEndpoint("device") }
 
-// FetchStreamURI returns a stream URI with the credentials interpolated into it.
+// FetchStreamURI returns the stream URI of the appliance's first media profile, or "" when
+// it has none.
 //
-// Two long-standing defects, kept as they were because fixing them here would hide a
-// behaviour change inside an API move: the profile is chosen by map iteration order, so an
-// appliance with several profiles yields a different answer between runs; and the password
-// is written into a URL the caller is likely to log.
+// It carries no credentials. It used to interpolate the username and password into the
+// RTSP URL, which put a password into a string callers log, print and pass to other
+// processes -- against the rule in AGENTS.md that a secret must not reach a dump. A caller
+// that needs authenticated RTSP should add its own credentials at the point of use, where
+// it can decide how they are handled.
+//
+// "First" is now the lowest profile token in lexicographic order. It used to be whichever
+// key the map yielded first, so an appliance with several profiles answered differently
+// between runs -- the same defect HasEndpoint was fixed for.
 func (p *ProfileS) FetchStreamURI(ctx context.Context) string {
 	profiles := p.FetchMediaProfiles(ctx)
-	for k := range profiles.Profiles {
-		streamURI := string(profiles.Profiles[k].Uris.Stream.Uri)
-		auth := p.client.GetAuth()
-		return strings.Replace(streamURI, "rtsp://", "rtsp://"+auth.Username+":"+auth.Password+"@", 1)
+
+	for _, token := range slices.Sorted(maps.Keys(profiles.Profiles)) {
+		return string(profiles.Profiles[token].Uris.Stream.Uri)
 	}
 	return ""
 }

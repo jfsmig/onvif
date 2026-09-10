@@ -38,7 +38,7 @@ func Call_SetHomePosition(ctx context.Context, dev *networking.Client, request S
 	if err != nil {
 		return reply.Body.SetHomePositionResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetHomePosition")
+		err = networking.ReadAndParse(httpReply, &reply, "SetHomePosition")
 		return reply.Body.SetHomePositionResponse, err
 	}
 }

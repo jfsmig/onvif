@@ -38,7 +38,7 @@ func Call_GetSystemUris(ctx context.Context, dev *networking.Client, request Get
 	if err != nil {
 		return reply.Body.GetSystemUrisResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSystemUris")
+		err = networking.ReadAndParse(httpReply, &reply, "GetSystemUris")
 		return reply.Body.GetSystemUrisResponse, err
 	}
 }

@@ -48,8 +48,9 @@ An edit is reverted by CI and the build fails.
 
 Expected counts: **`device` 89, `media` 79, `ptz` 28, `event` 9.**
 
-Use this, and not `grep -c` or `wc -l`: `device/calls.txt` has **no trailing newline**, so
-a naive line count reports 88 and invents a discrepancy that is not there.
+All four `calls.txt` now end with a newline, so a plain `wc -l` agrees with the counts
+above. Prefer the comparison below anyway: a matching total says nothing about *which*
+names match, and it is a rename or a duplicate that this check exists to catch.
 
 ```sh
 for p in device media ptz event; do

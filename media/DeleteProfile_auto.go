@@ -38,7 +38,7 @@ func Call_DeleteProfile(ctx context.Context, dev *networking.Client, request Del
 	if err != nil {
 		return reply.Body.DeleteProfileResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "DeleteProfile")
+		err = networking.ReadAndParse(httpReply, &reply, "DeleteProfile")
 		return reply.Body.DeleteProfileResponse, err
 	}
 }

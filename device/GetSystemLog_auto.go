@@ -38,7 +38,7 @@ func Call_GetSystemLog(ctx context.Context, dev *networking.Client, request GetS
 	if err != nil {
 		return reply.Body.GetSystemLogResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSystemLog")
+		err = networking.ReadAndParse(httpReply, &reply, "GetSystemLog")
 		return reply.Body.GetSystemLogResponse, err
 	}
 }

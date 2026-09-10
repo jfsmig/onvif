@@ -38,7 +38,7 @@ func Call_SetHostnameFromDHCP(ctx context.Context, dev *networking.Client, reque
 	if err != nil {
 		return reply.Body.SetHostnameFromDHCPResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetHostnameFromDHCP")
+		err = networking.ReadAndParse(httpReply, &reply, "SetHostnameFromDHCP")
 		return reply.Body.SetHostnameFromDHCPResponse, err
 	}
 }

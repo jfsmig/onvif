@@ -38,7 +38,7 @@ func Call_GetHostname(ctx context.Context, dev *networking.Client, request GetHo
 	if err != nil {
 		return reply.Body.GetHostnameResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetHostname")
+		err = networking.ReadAndParse(httpReply, &reply, "GetHostname")
 		return reply.Body.GetHostnameResponse, err
 	}
 }

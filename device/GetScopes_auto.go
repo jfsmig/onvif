@@ -38,7 +38,7 @@ func Call_GetScopes(ctx context.Context, dev *networking.Client, request GetScop
 	if err != nil {
 		return reply.Body.GetScopesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetScopes")
+		err = networking.ReadAndParse(httpReply, &reply, "GetScopes")
 		return reply.Body.GetScopesResponse, err
 	}
 }

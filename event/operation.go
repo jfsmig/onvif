@@ -58,7 +58,13 @@ type SubscribeResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 }
 
 // Renew action for refresh event topic subscription
+//
+// XMLName, like Subscribe above: without it xml.Marshal names the element after the Go
+// type, so the request went out as an unqualified <Renew> instead of <wsnt:Renew>. b-2.xsd
+// declares Renew in http://docs.oasis-open.org/wsn/b-2 with elementFormDefault="qualified",
+// so an unqualified element is a different element as far as the device is concerned.
 type Renew struct { //http://docs.oasis-open.org/wsn/b-2.xsd
+	XMLName         struct{}                   `xml:"wsnt:Renew"`
 	TerminationTime AbsoluteOrRelativeTimeType `xml:"wsnt:TerminationTime"`
 }
 
@@ -69,8 +75,12 @@ type RenewResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 }
 
 // Unsubscribe action for Unsubscribe event topic
+//
+// Same missing XMLName as Renew had. The Any field went with it: b-2.xsd gives Unsubscribe
+// an optional xs:any, and an untagged string field marshalled as a stray empty <Any>
+// element inside the request body.
 type Unsubscribe struct { //http://docs.oasis-open.org/wsn/b-2.xsd
-	Any string
+	XMLName struct{} `xml:"wsnt:Unsubscribe"`
 }
 
 // UnsubscribeResponse message for Unsubscribe event topic

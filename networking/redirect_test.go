@@ -91,7 +91,7 @@ func TestRedirectDoesNotReplayCredentials(t *testing.T) {
 			if resp.StatusCode != http.StatusTemporaryRedirect {
 				t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusTemporaryRedirect)
 			}
-			if err := ReadAndParse(context.Background(), resp, &struct{}{}, "Probe"); err == nil {
+			if err := ReadAndParse(resp, &struct{}{}, "Probe"); err == nil {
 				t.Fatal("ReadAndParse accepted a 3xx")
 			} else if !errors.Is(err, utils.ErrHTTP) {
 				t.Fatalf("error %v does not match utils.ErrHTTP", err)

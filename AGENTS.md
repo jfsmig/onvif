@@ -34,17 +34,19 @@ also provides the `gosoap` envelope builder this project uses.
 ```sh
 go build ./...
 go vet ./...
-go test -race ./...              # 42 regression tests over 10 packages; keep it green
+go test -race ./...              # the regression suite; keep it green
 gofmt -l .                       # must print nothing
 go generate ./... && git diff --quiet --exit-code   # generated files must match the template
 go run ./bin/onvif-cli discover  # smoke-test against the LAN
 ```
 
-`.circleci/config.yml` gates on `go install`, `go test`, `go vet`, and that last
-generate-then-diff check.
+`.circleci/config.yml` gates on `go install`, `go test -race`, `go vet`, `gofmt -l`, and
+that last generate-then-diff check — so a data race and a formatting slip both fail CI,
+which matters because the `sdk` fan-out has no other automated check.
 
-The tests are a regression suite rather than coverage: 42 tests over 10 packages, each one
-pinning a bug that was actually found. They marshal a struct and assert what goes on the
+The tests are a regression suite rather than coverage: every one pins a bug that was
+actually found. Their number is deliberately not quoted here — it changes every time
+someone does the right thing. They marshal a struct and assert what goes on the
 wire (`media/wsdl_conformance_test.go`, `device/namespace_test.go`,
 `xsd/onvif/namespace_test.go`), or pin a decision that is easy to undo by accident
 (`networking/redirect_test.go`, `xsd/onvif/redaction_test.go`). **Follow the habit: a
@@ -57,7 +59,7 @@ verified by building and by running the CLI against a real camera.
 
 ## The generator — read this before touching `device/`, `media/`, `ptz/`, `event/`
 
-206 of the 232 `.go` files are generated. **Never hand-edit a `*_auto.go` file**; CI
+206 of the 263 `.go` files are generated. **Never hand-edit a `*_auto.go` file**; CI
 regenerates them and diffs, so an edit is reverted and the build fails.
 
 The pipeline: each package has a `calls.txt` (one ONVIF method name per line, `#`
@@ -162,7 +164,9 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
 - **Never `log.Print*` to the standard logger.** Diagnostics go through a replaceable
   logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:36`) that an
   application can swap out, and the CLI has its own in `bin/onvif-cli/main.go`. Packages
-  below `sdk` — `networking`, `xsd`, `utils` — return errors and log nothing. The one
-  breach is `xsd/built_in.go:218`, which calls `log.Fatalln` and so kills the caller's
-  process from inside a library; do not copy it, and fix it if you touch that function.
+  below `sdk` — `networking`, `xsd`, `utils` — return errors and log nothing, with no
+  exceptions left: `xsd/built_in.go` used to call `log.Fatalln` from a constructor and so
+  killed the caller's process from inside a library. It now returns `(Duration, error)`,
+  which is what the other fallible constructors in that file already did, and
+  `xsd/built_in_test.go` pins it.
 

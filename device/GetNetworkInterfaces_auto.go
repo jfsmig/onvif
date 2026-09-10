@@ -38,7 +38,7 @@ func Call_GetNetworkInterfaces(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.GetNetworkInterfacesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetNetworkInterfaces")
+		err = networking.ReadAndParse(httpReply, &reply, "GetNetworkInterfaces")
 		return reply.Body.GetNetworkInterfacesResponse, err
 	}
 }

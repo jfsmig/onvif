@@ -38,7 +38,7 @@ func Call_GetSystemSupportInformation(ctx context.Context, dev *networking.Clien
 	if err != nil {
 		return reply.Body.GetSystemSupportInformationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSystemSupportInformation")
+		err = networking.ReadAndParse(httpReply, &reply, "GetSystemSupportInformation")
 		return reply.Body.GetSystemSupportInformationResponse, err
 	}
 }

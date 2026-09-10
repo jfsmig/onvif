@@ -38,7 +38,7 @@ func Call_SetClientCertificateMode(ctx context.Context, dev *networking.Client, 
 	if err != nil {
 		return reply.Body.SetClientCertificateModeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetClientCertificateMode")
+		err = networking.ReadAndParse(httpReply, &reply, "SetClientCertificateMode")
 		return reply.Body.SetClientCertificateModeResponse, err
 	}
 }

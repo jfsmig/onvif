@@ -38,7 +38,7 @@ func Call_GetNodes(ctx context.Context, dev *networking.Client, request GetNodes
 	if err != nil {
 		return reply.Body.GetNodesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetNodes")
+		err = networking.ReadAndParse(httpReply, &reply, "GetNodes")
 		return reply.Body.GetNodesResponse, err
 	}
 }

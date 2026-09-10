@@ -62,19 +62,42 @@ type ProfilePTZ struct {
 	PresetTour    []onvif.PresetTour
 }
 
+// FetchMediaProfiles hydrates every media profile of the appliance, all of them at once.
+//
+// Each profile costs about thirteen round trips, so doing them in sequence made the total
+// grow with the number of profiles: a four-profile camera spent some fifty exchanges inside
+// the one-minute budget bin/onvif-cli runs under, and the deadline expired before the last
+// profile was reached.
+//
+// The map is filled with empty entries first and is then only read, so each goroutine
+// writes through its own pointer and no lock is needed -- the same one-writer-per-
+// destination rule the other fan-outs here rest on.
 func (p *ProfileS) FetchMediaProfiles(ctx context.Context) MediaProfiles {
 	out := MediaProfiles{
 		Profiles: make(map[onvif.ReferenceToken]*MediaProfile),
 	}
 
-	if profiles, err := media.Call_GetProfiles(ctx, p.client, media.GetProfiles{}); err == nil {
-		for _, profile := range profiles.Profiles {
-			pe := p.FetchMediaProfile(ctx, profile.Token)
-			out.Profiles[profile.Token] = &pe
-		}
-	} else {
+	profiles, err := media.Call_GetProfiles(ctx, p.client, media.GetProfiles{})
+	if err != nil {
 		Logger.Trace().Err(err).Str("rpc", "GetProfiles").Msg("profile")
+		return out
 	}
+
+	for _, profile := range profiles.Profiles {
+		// A malformed reply repeating a token must not hand the same entry to two
+		// goroutines.
+		if _, duplicate := out.Profiles[profile.Token]; duplicate {
+			Logger.Trace().Str("token", string(profile.Token)).Msg("duplicate media profile token")
+			continue
+		}
+		out.Profiles[profile.Token] = &MediaProfile{}
+	}
+
+	var wg sync.WaitGroup
+	for token, entry := range out.Profiles {
+		wg.Go(func() { *entry = p.FetchMediaProfile(ctx, token) })
+	}
+	wg.Wait()
 
 	return out
 }
@@ -145,6 +168,8 @@ func (p *ProfileS) loadProfilePTZ(ctx context.Context, profileToken, ptzConfigTo
 	wg.Go(func() {
 		if x, err := ptz.Call_GetStatus(ctx, p.client, ptz.GetStatus{ProfileToken: profileToken}); err == nil {
 			out.Status = x.PTZStatus
+		} else {
+			Logger.Trace().Err(err).Str("rpc", "GetStatus").Msg("profile")
 		}
 	})
 
@@ -171,12 +196,16 @@ func (p *ProfileS) loadProfilePTZ(ctx context.Context, profileToken, ptzConfigTo
 	wg.Go(func() {
 		if x, err := ptz.Call_GetPresets(ctx, p.client, ptz.GetPresets{ProfileToken: profileToken}); err == nil {
 			out.Preset = x.Preset
+		} else {
+			Logger.Trace().Err(err).Str("rpc", "GetPresets").Msg("profile")
 		}
 	})
 
 	wg.Go(func() {
 		if x, err := ptz.Call_GetPresetTours(ctx, p.client, ptz.GetPresetTours{ProfileToken: profileToken}); err == nil {
 			out.PresetTour = x.PresetTour
+		} else {
+			Logger.Trace().Err(err).Str("rpc", "GetPresetTours").Msg("profile")
 		}
 	})
 

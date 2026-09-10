@@ -38,7 +38,7 @@ func Call_GetSystemDateAndTime(ctx context.Context, dev *networking.Client, requ
 	if err != nil {
 		return reply.Body.GetSystemDateAndTimeResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSystemDateAndTime")
+		err = networking.ReadAndParse(httpReply, &reply, "GetSystemDateAndTime")
 		return reply.Body.GetSystemDateAndTimeResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_CreateProfile(ctx context.Context, dev *networking.Client, request Cre
 	if err != nil {
 		return reply.Body.CreateProfileResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "CreateProfile")
+		err = networking.ReadAndParse(httpReply, &reply, "CreateProfile")
 		return reply.Body.CreateProfileResponse, err
 	}
 }

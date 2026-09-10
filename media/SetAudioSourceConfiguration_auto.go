@@ -38,7 +38,7 @@ func Call_SetAudioSourceConfiguration(ctx context.Context, dev *networking.Clien
 	if err != nil {
 		return reply.Body.SetAudioSourceConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetAudioSourceConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "SetAudioSourceConfiguration")
 		return reply.Body.SetAudioSourceConfigurationResponse, err
 	}
 }

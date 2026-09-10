@@ -38,7 +38,7 @@ func Call_SetCertificatesStatus(ctx context.Context, dev *networking.Client, req
 	if err != nil {
 		return reply.Body.SetCertificatesStatusResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetCertificatesStatus")
+		err = networking.ReadAndParse(httpReply, &reply, "SetCertificatesStatus")
 		return reply.Body.SetCertificatesStatusResponse, err
 	}
 }

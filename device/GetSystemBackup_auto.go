@@ -38,7 +38,7 @@ func Call_GetSystemBackup(ctx context.Context, dev *networking.Client, request G
 	if err != nil {
 		return reply.Body.GetSystemBackupResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetSystemBackup")
+		err = networking.ReadAndParse(httpReply, &reply, "GetSystemBackup")
 		return reply.Body.GetSystemBackupResponse, err
 	}
 }

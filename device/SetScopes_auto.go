@@ -38,7 +38,7 @@ func Call_SetScopes(ctx context.Context, dev *networking.Client, request SetScop
 	if err != nil {
 		return reply.Body.SetScopesResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetScopes")
+		err = networking.ReadAndParse(httpReply, &reply, "SetScopes")
 		return reply.Body.SetScopesResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_GetCompatibleConfigurations(ctx context.Context, dev *networking.Clien
 	if err != nil {
 		return reply.Body.GetCompatibleConfigurationsResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GetCompatibleConfigurations")
+		err = networking.ReadAndParse(httpReply, &reply, "GetCompatibleConfigurations")
 		return reply.Body.GetCompatibleConfigurationsResponse, err
 	}
 }

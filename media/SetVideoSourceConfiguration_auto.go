@@ -38,7 +38,7 @@ func Call_SetVideoSourceConfiguration(ctx context.Context, dev *networking.Clien
 	if err != nil {
 		return reply.Body.SetVideoSourceConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "SetVideoSourceConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "SetVideoSourceConfiguration")
 		return reply.Body.SetVideoSourceConfigurationResponse, err
 	}
 }

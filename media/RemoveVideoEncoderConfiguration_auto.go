@@ -38,7 +38,7 @@ func Call_RemoveVideoEncoderConfiguration(ctx context.Context, dev *networking.C
 	if err != nil {
 		return reply.Body.RemoveVideoEncoderConfigurationResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "RemoveVideoEncoderConfiguration")
+		err = networking.ReadAndParse(httpReply, &reply, "RemoveVideoEncoderConfiguration")
 		return reply.Body.RemoveVideoEncoderConfigurationResponse, err
 	}
 }

@@ -38,7 +38,7 @@ func Call_GotoHomePosition(ctx context.Context, dev *networking.Client, request 
 	if err != nil {
 		return reply.Body.GotoHomePositionResponse, err
 	} else {
-		err = networking.ReadAndParse(ctx, httpReply, &reply, "GotoHomePosition")
+		err = networking.ReadAndParse(httpReply, &reply, "GotoHomePosition")
 		return reply.Body.GotoHomePositionResponse, err
 	}
 }
