@@ -19,12 +19,51 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 
 	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/sdk"
+	"github.com/spf13/cobra"
 )
+
+// dumpTargetHelp is the paragraph every dump leaf shows. The argument is the one thing
+// nobody guesses, and the identifier form has two properties an operator has to be told
+// about: it costs a discovery round, and it is the only form that can select a per-camera
+// credentials file.
+const dumpTargetHelp = `TARGET is either the camera's address, the XADDR column of ` + "`onvif-cli discover`" + `,
+or its WS-Discovery identifier, the UUID column.
+
+The identifier form probes the LAN to find the address, so it takes a few seconds longer
+and finds only a camera that answers discovery on a non-virtual interface. It is also the
+only form that selects a per-camera credentials file: an address carries no identifier, so
+a camera named that way always gets the blanket credentials. A host whose name happens to
+be spelled like a UUID is told apart by adding the port.`
+
+// dumpCommand builds one leaf of `dump`. They all take the same single positional and
+// differ only in what they print, so the argument handling -- which has to tell an address
+// from an identifier, and probe the LAN for the latter -- is written once rather than once
+// per leaf.
+func dumpCommand(ctx context.Context, use string, aliases []string, short string,
+	run func(context.Context, networking.ClientInfo) error) *cobra.Command {
+	return &cobra.Command{
+		Use:     use + " TARGET",
+		Aliases: aliases,
+		Short:   short,
+		Long:    short + ".\n\n" + dumpTargetHelp,
+		Example: "  onvif-cli dump " + use + " 192.168.1.70:80\n" +
+			"  onvif-cli dump " + use + " urn:uuid:00000700-0013-0008-0203-ec71db76e907",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			info, err := resolveTarget(ctx, args[0])
+			if err != nil {
+				return err
+			}
+			return run(ctx, info)
+		},
+	}
+}
 
 type OnvifFullOutput struct {
 	Descriptor     sdk.DeviceDescriptor
@@ -121,9 +160,13 @@ func dumpProfiles(ctx context.Context, params networking.ClientInfo) error {
 var ErrNoProfileS = errors.New("the appliance advertises no ONVIF Profile S services (device, media)")
 
 func dumpSomething(ctx context.Context, params networking.ClientInfo, generate func(app sdk.Appliance, s *sdk.ProfileS) interface{}) error {
+	auth, source := credentialsFor(params.Uuid)
 	sdkDev, err := sdk.NewDevice(ctx, params, auth, &httpClient)
 	if err != nil {
-		return err
+		// Naming the source turns the most confusing failure this tool produces into an
+		// actionable one: a 401 answered with the compiled-in admin/admin looks exactly
+		// like a protocol failure.
+		return fmt.Errorf("connecting to %s with the %s credentials: %w", params.Xaddr, source, err)
 	}
 	profileS, ok := sdkDev.ProfileS()
 	if !ok {

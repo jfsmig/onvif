@@ -18,15 +18,18 @@ It is laid out in three layers, low to high:
 | `sdk/` | The high-level layer. `sdk.Appliance` is the interface a caller wants: `NewDevice(ctx, info, auth, httpClient)` connects and loads the service endpoints, then `FetchMedia`, `FetchPTZ`, `FetchDeviceNetwork`, `FetchProfiles`… return fully-hydrated structs. |
 
 Supporting packages: `xsd/` (XSD primitives and the generated ONVIF schema types),
-`Imaging/` and `analytics/` (types only), `utils/` (two sentinel errors, `ErrHTTP` and
-`ErrNotOnvif`).
+`Imaging/` and `analytics/` (types only), `utils/` (three sentinel errors, `ErrHTTP`,
+`ErrNotOnvif` and `ErrNoService`), `credentials/` (a `Resolver` answering "which credentials for the camera
+bearing this identifier?", with a file-backed `Store`, a `Static` blanket and a `Chain`
+stating the precedence between them).
 
 Discovery is **not** in this repository. It lives in `github.com/jfsmig/go-wsd`, which
 also provides the `gosoap` envelope builder this project uses.
 
 `bin/` is source, not build output: `bin/onvif-cli` is the CLI (`discover [-a]`,
-`streams [-a]`, `dump <section> IP:PORT`, credentials from `ONVIF_USERNAME` /
-`ONVIF_PASSWORD`), and
+`streams [-a]`, `dump <section> IP:PORT|urn:uuid:<uuid>`, credentials resolved per camera
+from `$BASEDIR/credentials/*.json` with `ONVIF_USERNAME` / `ONVIF_PASSWORD` as the blanket
+behind them, `-v` repeated to lower the stderr level from its default of warn), and
 `bin/onvif-codegen` is the generator.
 
 ## Commands
@@ -161,11 +164,22 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   reason, never log a `ClientAuth` (it has no redacting `String()`, so `%v` prints the
   password) or a SOAP envelope (it carries the UsernameToken digest and nonce).
 
+  One exception is deliberate, and it is the shape any future one has to take. The DTO in
+  `credentials/store.go` cannot carry `json:"-"`: it exists to be *unmarshalled* from a
+  credentials file. It is unexported, lives only inside the loader, is converted to a
+  `ClientAuth` and dropped, and is never formatted or wrapped into an error — including
+  `encoding/json`'s own message, which quotes the offending byte of the document and so
+  could quote a byte of a password. `credentials/redaction_test.go` pins the two properties
+  a test can reach: that no error the loader produces contains a password, and that nothing
+  holding one marshals or formats it — `%#v` included, which walks past `String()` and is
+  why those types also carry a `GoString()`. That the DTO is never formatted is a rule
+  about the loader's body, which no test can enforce: keep it out of every format string.
+
 - **Never `log.Print*` to the standard logger.** Diagnostics go through a replaceable
   logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:36`) that an
   application can swap out, and the CLI has its own in `bin/onvif-cli/main.go`. Packages
-  below `sdk` — `networking`, `xsd`, `utils` — return errors and log nothing, with no
-  exceptions left: `xsd/built_in.go` used to call `log.Fatalln` from a constructor and so
+  below `sdk` — `networking`, `xsd`, `utils`, `credentials` — return errors and log
+  nothing, with no exceptions left: `xsd/built_in.go` used to call `log.Fatalln` from a constructor and so
   killed the caller's process from inside a library. It now returns `(Duration, error)`,
   which is what the other fallible constructors in that file already did, and
   `xsd/built_in_test.go` pins it.

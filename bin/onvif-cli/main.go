@@ -24,6 +24,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jfsmig/onvif/credentials"
 	"github.com/jfsmig/onvif/networking"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -61,11 +62,50 @@ var (
 		},
 	}
 
-	auth = networking.ClientAuth{
-		Username: envOrDefault("ONVIF_USERNAME", "admin"),
-		Password: envOrDefault("ONVIF_PASSWORD", "admin"),
-	}
+	// resolver answers "which credentials for this camera?" and is built once, by the
+	// root command's PersistentPreRunE, before any camera is contacted. It replaces the
+	// single ClientAuth this tool used to send to every device of a run.
+	//
+	// Package-level like httpClient above, and for the same reason: there is exactly one
+	// per process, and every command needs it.
+	resolver credentials.Resolver
+
+	// baseDir is where --basedir puts its argument. Empty means "not named", which is
+	// what tells a mistyped path -- an error -- from a default location nobody created.
+	baseDir string
+
+	// verbosity counts the -v flags. Its meaning is verbosityLevel's.
+	verbosity int
 )
+
+// verbosityLevel turns a count of -v flags into the level below which nothing is printed.
+//
+// The default is warn, not info, so that a run in which everything worked prints nothing
+// at all: the tool's output is what goes to stdout, and an operator piping a dump into jq
+// should not have to read a running commentary beside it. Warnings and errors are not
+// verbosity -- a credentials file readable by every local account, an interface whose probe
+// failed, a camera that answered nothing -- so they are printed whatever the count.
+//
+// The steps are chosen by what an operator is looking for when they add a v. One says what
+// the tool is doing and why it is taking so long; two says what it found on disk and which
+// credential it picked, which is the pair of questions a 401 raises; three is the wire,
+// where zerolog's trace level already carries the discovery probe and every per-call
+// failure that sdk swallows.
+//
+// Pure over its argument, so the whole policy is one table in a test rather than a run of
+// the binary.
+func verbosityLevel(count int) zerolog.Level {
+	switch count {
+	case 0:
+		return zerolog.WarnLevel
+	case 1:
+		return zerolog.InfoLevel
+	case 2:
+		return zerolog.DebugLevel
+	default:
+		return zerolog.TraceLevel
+	}
+}
 
 var (
 	ErrMissingSubcommand = errors.New("missing sub-command")
@@ -82,13 +122,12 @@ var (
 // without sending signals to the test binary.
 var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
 
-func main() {
-
-	ctx, cancel := signal.NotifyContext(context.Background(), shutdownSignals...)
-	defer cancel()
-	ctx, cancel = context.WithTimeout(ctx, time.Minute)
-	defer cancel()
-
+// newRootCommand builds the whole command tree.
+//
+// Separate from main() so that a test can inspect the tree without running it -- the
+// PersistentPreRunE below is an invariant cobra does not enforce -- and so that main()
+// stays what it says it is: a context, a tree and Execute.
+func newRootCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		// cobra takes the first word of Use as the command name and builds every usage
 		// line from it, so "main" — the package name — had the help of every subcommand
@@ -102,9 +141,61 @@ func main() {
 		RunE:          func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
 	}
 
+	// --basedir is the exception to the rule below, and the comment there says which side
+	// of it a flag falls on: there is exactly one credentials store per process, so every
+	// command must see the same value, and the coupling is the semantics rather than an
+	// accident. Hence a persistent flag on the root, bound to a package-level variable.
+	//
+	// The default stays empty on purpose. It is what distinguishes "not named" from
+	// "named explicitly", and printing one directory as a default would describe the
+	// search chain wrongly; the chain belongs in the help text.
+	// The backticks are not decoration: pflag takes the quoted word as the value name, so
+	// the help reads "--basedir DIR" rather than "--basedir string", which is what
+	// README.md documents.
+	cmd.PersistentFlags().StringVar(&baseDir, "basedir", "",
+		"base directory of the per-camera credential files, read from "+
+			"`DIR`/credentials/*.json (default $ONVIF_BASEDIR, else ~/.onvif, else /etc/onvif)")
+
+	// Counted rather than named: -vv is how every tool an operator already uses spells
+	// "more", and it needs no table of level names to remember or to keep in step with
+	// zerolog's. Persistent for the same reason --basedir is -- one process, one level.
+	cmd.PersistentFlags().CountVarP(&verbosity, "verbose", "v",
+		"print more on stderr: -v what the tool is doing, -vv what it loaded and which "+
+			"credentials it chose, -vvv the discovery probe and every per-call failure. "+
+			"Warnings and errors are printed either way")
+
+	// The credentials are read here rather than at process start because the flag does not
+	// exist until cobra has parsed, which happens inside Execute(). This hook runs once,
+	// before the RunE of whichever leaf was invoked, so a mistyped path or a malformed file
+	// stops the run before a single camera is contacted -- and its error travels the path
+	// every other error already travels, out of Execute() and into the Fatal below.
+	//
+	// It must stay on the root and nowhere else: cobra runs only the closest hook in the
+	// chain, so one on `dump` would shadow this and leave the resolver nil for its leaves.
+	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+		// Parsing has already succeeded, so nothing that follows is a usage error and the
+		// usage block would only bury the message.
+		cmd.SilenceUsage = true
+
+		// Before anything that logs, including the credential loading below. The global
+		// level gates every zerolog logger in the process, so this reaches sdk's as well
+		// as ours -- which is the point, since the per-call failures sdk swallows are
+		// what -vvv is for.
+		zerolog.SetGlobalLevel(verbosityLevel(verbosity))
+
+		r, err := buildResolver(baseDir)
+		if err != nil {
+			return err
+		}
+		resolver = r
+		return nil
+	}
+
 	// Each command owns its variable: cobra binds a flag to an address, and sharing one
 	// address across two commands would couple their defaults for no gain. Reading the
-	// value back with Flags().GetBool would instead hand us an error to ignore.
+	// value back with Flags().GetBool would instead hand us an error to ignore. A flag
+	// that genuinely names one process-wide policy, such as --basedir above, is the case
+	// on the other side of that line.
 	var discoverAll, streamsAll bool
 
 	cmdDiscover := &cobra.Command{
@@ -137,90 +228,45 @@ func main() {
 		RunE:    func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
 	}
 
-	cmdDumpAll := &cobra.Command{
-		Use:     "all",
-		Aliases: []string{"full"},
-		Short:   "Dump the configuration of the given camera",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpAll(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
-
-	cmdDumpDescr := &cobra.Command{
-		Use:     "descriptor",
-		Aliases: []string{"minimal", "mini"},
-		Short:   "Dump a general descriptor of the given camera",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpDescriptor(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
-
-	cmdDumpMedia := &cobra.Command{
-		Use:   "media",
-		Short: "Dump the information related to the Media service of the camera",
-		Args:  cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpMedia(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
-
-	cmdDumpPtz := &cobra.Command{
-		Use:     "ptz",
-		Aliases: []string{"PTZ"},
-		Short:   "Dump the information related to the PTZ service of the camera",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpPTZ(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
-
-	cmdDumpEvents := &cobra.Command{
-		Use:     "event",
-		Aliases: []string{"events", "evt"},
-		Short:   "Dump the information related to the Events service of the camera",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpEvents(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
-
-	cmdDumpProfiles := &cobra.Command{
-		Use:     "profile",
-		Aliases: []string{"profiles", "prof"},
-		Short:   "Dump the information related to the Profiles of the camera",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpProfiles(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
-
-	cmdDumpDevice := &cobra.Command{
-		Use:     "device",
-		Aliases: []string{"devices", "dev"},
-		Short:   "Dump the information related to the core Device service of the camera",
-		Args:    cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return dumpDevice(ctx, networking.ClientInfo{Xaddr: args[0]})
-		},
-	}
+	// Every leaf takes the same single positional and differs only in what it prints, so
+	// the argument handling -- which now has to tell an address from an identifier, and
+	// probe the LAN for the latter -- is written once rather than nine times.
+	cmdDumpAll := dumpCommand(ctx, "all", []string{"full"},
+		"Dump the configuration of the given camera", dumpAll)
+	cmdDumpDescr := dumpCommand(ctx, "descriptor", []string{"minimal", "mini"},
+		"Dump a general descriptor of the given camera", dumpDescriptor)
+	cmdDumpMedia := dumpCommand(ctx, "media", nil,
+		"Dump the information related to the Media service of the camera", dumpMedia)
+	cmdDumpPtz := dumpCommand(ctx, "ptz", []string{"PTZ"},
+		"Dump the information related to the PTZ service of the camera", dumpPTZ)
+	cmdDumpEvents := dumpCommand(ctx, "event", []string{"events", "evt"},
+		"Dump the information related to the Events service of the camera", dumpEvents)
+	cmdDumpProfiles := dumpCommand(ctx, "profile", []string{"profiles", "prof"},
+		"Dump the information related to the Profiles of the camera", dumpProfiles)
+	cmdDumpDevice := dumpCommand(ctx, "device", []string{"devices", "dev"},
+		"Dump the information related to the core Device service of the camera", dumpDevice)
 
 	cmdDump.AddCommand(cmdDumpDescr, cmdDumpAll)
 	cmdDump.AddCommand(cmdDumpMedia, cmdDumpPtz, cmdDumpEvents, cmdDumpProfiles, cmdDumpDevice)
 	cmd.AddCommand(cmdDiscover, cmdStreams, cmdDump)
 
+	return cmd
+}
+
+func main() {
+	ctx, cancel := signal.NotifyContext(context.Background(), shutdownSignals...)
+	defer cancel()
+	ctx, cancel = context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	cmd := newRootCommand(ctx)
+
 	if err := cmd.Execute(); err != nil {
 		Logger.Fatal().Err(err).Msg("Aborting")
 	} else {
-		Logger.Info().Msg("Exiting")
-	}
-}
-
-func envOrDefault(key, defaultValue string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	} else {
-		return defaultValue
+		// A lifecycle marker, not a result: a run that worked says so by what it printed
+		// on stdout and by its exit status. At debug it is still there for anyone
+		// following the sequence with -vv.
+		Logger.Debug().Msg("Exiting")
 	}
 }
