@@ -102,7 +102,12 @@ func (duration Duration) ISO8601Duration() string {
 		result += duration.days + "D"
 	}
 
-	if duration.hours != "" && duration.minutes != "" && duration.seconds != "" {
+	// Any of the three, not all three. The condition read && , so a duration carrying only
+	// seconds -- which is what a PullMessages Timeout is (ONVIF Core section 9.1.2) -- skipped
+	// the whole time section, fell into the len(result) == 1 branch below and came back as
+	// "PT0S". Ten seconds rendered as zero, and xs:duration has no representation of a
+	// number of seconds that does not go through here.
+	if duration.hours != "" || duration.minutes != "" || duration.seconds != "" {
 		result += "T"
 		if duration.hours != "" {
 			result += duration.hours + "H"

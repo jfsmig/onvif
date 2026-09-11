@@ -29,12 +29,17 @@ package event
 // and Unsubscribe come from the OASIS bw-2 port types. Each line names the WSDL line it
 // came from.
 //
-// What this does NOT fix: ONVIF addresses PullMessages, Renew and Unsubscribe to the
-// subscription manager returned in CreatePullPointSubscriptionResponse -- they need a
-// wsa:To of that URI and must be POSTed there, not to the event service endpoint.
-// CallMethod routes on the request struct's package name and has no way to express a
-// per-request target, so those three still cannot complete a real subscription. The header
-// is correct now; the subscription flow remains separate work.
+// The action alone is not enough for five of the nine, and the WSATo methods at the bottom
+// of this file are the other half. ONVIF addresses the operations of the
+// PullPointSubscription and bw-2 SubscriptionManager port types to the subscription manager
+// returned in CreatePullPointSubscriptionResponse: they carry a wsa:To of that URI and are
+// POSTed there rather than to the event service endpoint. Compare the requests in ONVIF Core
+// sections 9.10.5 and 9.10.7 with the one in 9.10.3, which has no wsa:To at all.
+//
+// So the split below is by port type and not by anything about the operation's name, and the
+// four operations of EventPortType and of the bw-2 NotificationProducer must NOT declare a
+// destination. event/wsa_to_test.go reads that grouping out of calls.txt and holds it, which
+// is what puts a tenth operation on the right side of it.
 const (
 	// docs/wsdl/event.wsdl:444
 	actionGetServiceCapabilities = "http://www.onvif.org/ver10/events/wsdl/EventPortType/GetServiceCapabilitiesRequest"
@@ -65,3 +70,22 @@ func (SetSynchronizationPoint) WSAAction() string     { return actionSetSynchron
 func (Subscribe) WSAAction() string                   { return actionSubscribe }
 func (Renew) WSAAction() string                       { return actionRenew }
 func (Unsubscribe) WSAAction() string                 { return actionUnsubscribe }
+
+// The subscription manager each of these is addressed to, implementing
+// networking.WSAAddressee. The URI is carried in a To field tagged xml:"-", so it never
+// reaches the body: it is where the message goes, not one of its parts.
+//
+// Value receivers, and that is load-bearing rather than stylistic. CallMethod is handed an
+// interface holding a value -- the generated wrapper passes `request PullMessages` by value
+// -- so a pointer receiver would not satisfy the assertion and the request would quietly go
+// to the event service endpoint instead, which is the failure this whole mechanism exists to
+// remove.
+//
+// The remaining four operations deliberately have no such method: GetServiceCapabilities,
+// CreatePullPointSubscription and GetEventProperties belong to EventPortType and Subscribe to
+// the bw-2 NotificationProducer, and all four are addressed to the service.
+func (r PullMessages) WSATo() string            { return r.To }
+func (r Seek) WSATo() string                    { return r.To }
+func (r SetSynchronizationPoint) WSATo() string { return r.To }
+func (r Renew) WSATo() string                   { return r.To }
+func (r Unsubscribe) WSATo() string             { return r.To }

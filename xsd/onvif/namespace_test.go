@@ -118,7 +118,12 @@ func TestSimpleItemAttributesRoundTrip(t *testing.T) {
 	if c.Name != "MotionDetector" {
 		t.Fatalf("Config.Name = %q, want MotionDetector", c.Name)
 	}
-	si := c.Parameters.SimpleItem
+	// Indexed since ItemList went plural: ONVIF Core section 9.4.1 gives each group an
+	// arbitrary number of items, and a single value kept only the last one it met.
+	if got := len(c.Parameters.SimpleItem); got != 1 {
+		t.Fatalf("Parameters.SimpleItem has %d items, want 1", got)
+	}
+	si := c.Parameters.SimpleItem[0]
 	if si.Name != "Sensitivity" {
 		t.Fatalf("SimpleItem.Name = %q, want Sensitivity — analytics parameters do not bind", si.Name)
 	}

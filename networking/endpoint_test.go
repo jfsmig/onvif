@@ -147,3 +147,121 @@ func TestGetServicesReturnsACopy(t *testing.T) {
 		t.Error("ptz became resolvable after the caller added it to its copy")
 	}
 }
+
+// AtDeviceHost re-points a URI the device handed out, which ONVIF Core section 9.10.4 shows
+// a device filling in from its own point of view: its example answers
+// http://160.10.64.10/Subscription?Idx=0, an address that need not resolve from where the
+// client sits. AddEndpoint has applied that correction to every advertised XAddr for years.
+//
+// It cannot apply the same rule, and the port is why. AddEndpoint replaces host and port
+// together; a pull-point subscription commonly answers on a port of its own -- the reply
+// fixture in event/namespace_test.go has the device on :80 and the subscription on :8000 --
+// so taking ours would send every pull to the device service. But keeping the device's port
+// unconditionally breaks the very case the rewrite exists for: a camera behind a port map
+// advertises its internal port, which is as unusable as the internal host was.
+//
+// So the host the device named is the discriminator, and these rows are that decision: the
+// device naming the host we already reach it at is describing a real port on the machine we
+// are talking to, and anything else is describing itself from a vantage point we do not
+// share.
+func TestAtDeviceHost(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		xaddr string
+		raw   string
+		want  string
+	}{
+		{
+			// The device names itself, on a port of its own: the fixture case, and the one
+			// that rules out taking our port.
+			"the same host on another port keeps that port",
+			"192.168.1.70:80",
+			"http://192.168.1.70:8000/onvif/Subscription?Idx=7",
+			"http://192.168.1.70:8000/onvif/Subscription?Idx=7",
+		},
+		{
+			"the section 9.10.4 example, advertised from the device's own point of view",
+			"192.0.2.1:80",
+			"http://160.10.64.10/Subscription?Idx=0",
+			"http://192.0.2.1:80/Subscription?Idx=0",
+		},
+		{
+			// A camera behind a port map: reached at :8080, advertising its internal
+			// 192.168.1.70:80. Keeping the device's port would produce :80 on the public
+			// host, which resolves to nothing -- and this is the case the whole rewrite
+			// exists to fix, so it must not be the case it breaks.
+			"a foreign host's port is as unusable as its host, so both are ours",
+			"203.0.113.5:8080",
+			"http://192.168.1.70:80/onvif/Subscription?Idx=0",
+			"http://203.0.113.5:8080/onvif/Subscription?Idx=0",
+		},
+		{
+			// Some devices answer with a relative reference. Without a scheme net/url
+			// serialises the result as "//host/path", a protocol-relative URI that
+			// http.NewRequest cannot post to.
+			"a relative reference gains the scheme",
+			"192.168.1.70:80",
+			"/onvif/Subscription?Idx=7",
+			"http://192.168.1.70:80/onvif/Subscription?Idx=7",
+		},
+		{
+			"an IPv6 device naming itself keeps its port and its brackets",
+			"[2001:db8::1]:80",
+			"http://[2001:db8::1]:8000/onvif/Subscription?Idx=7",
+			"http://[2001:db8::1]:8000/onvif/Subscription?Idx=7",
+		},
+		{
+			// Some firmware embeds an account in the address it advertises. It is dropped:
+			// we authenticate with a UsernameToken of our own, the manager URI is logged at
+			// debug, and net/http would turn req.URL.User into an HTTP Basic Authorization
+			// header on every pull.
+			"a credential the device embedded is dropped",
+			"192.168.1.70:80",
+			"http://admin:s3cret@192.168.1.70:8000/onvif/Subscription?Idx=0",
+			"http://192.168.1.70:8000/onvif/Subscription?Idx=0",
+		},
+		{
+			"a bare username is dropped too, so nothing of the userinfo survives",
+			"192.168.1.70:80",
+			"http://admin@160.10.64.10/onvif/Subscription?Idx=0",
+			"http://192.168.1.70:80/onvif/Subscription?Idx=0",
+		},
+		{
+			// The device's own answer, returned as it stands: refusing it here would replace
+			// a request that might work with an error that cannot.
+			"something unparseable comes back untouched",
+			"192.168.1.70:80",
+			"http://[oops",
+			"http://[oops",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			client, err := NewClient(ClientInfo{Xaddr: tc.xaddr}, nil)
+			if err != nil {
+				t.Fatalf("NewClient: %v", err)
+			}
+			if got := client.AtDeviceHost(tc.raw); got != tc.want {
+				t.Errorf("AtDeviceHost(%q) = %q, want %q", tc.raw, got, tc.want)
+			}
+		})
+	}
+}
+
+// AddEndpoint has the same exposure and now the same rule: an account a device embedded in
+// an advertised XAddr becomes an HTTP Basic Authorization header on every request to that
+// service, because net/http fills that in from req.URL.User.
+func TestAddEndpointDropsAnEmbeddedCredential(t *testing.T) {
+	client, err := NewClient(ClientInfo{Xaddr: "192.168.1.70:80"}, nil)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	client.AddEndpoint("Media", "http://admin:s3cret@192.168.1.70/onvif/media_service")
+
+	got := client.GetEndpoint("media")
+	if strings.Contains(got, "s3cret") || strings.Contains(got, "admin") {
+		t.Errorf("the endpoint carries the credential the device advertised: %q", got)
+	}
+	if got != "http://192.168.1.70:80/onvif/media_service" {
+		t.Errorf("GetEndpoint(media) = %q, want the service address without the userinfo", got)
+	}
+}

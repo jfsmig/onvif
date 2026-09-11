@@ -28,11 +28,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// dumpTargetHelp is the paragraph every dump leaf shows. The argument is the one thing
-// nobody guesses, and the identifier form has two properties an operator has to be told
-// about: it costs a discovery round, and it is the only form that can select a per-camera
-// credentials file.
-const dumpTargetHelp = `TARGET is either the camera's address, the XADDR column of ` + "`onvif-cli discover`" + `,
+// targetHelp is the paragraph every command taking a TARGET shows -- every dump leaf, and
+// `subscribe`. The argument is the one thing nobody guesses, and the identifier form has two
+// properties an operator has to be told about: it costs a discovery round, and it is the
+// only form that can select a per-camera credentials file.
+const targetHelp = `TARGET is either the camera's address, the XADDR column of ` + "`onvif-cli discover`" + `,
 or its WS-Discovery identifier, the UUID column.
 
 The identifier form probes the LAN to find the address, so it takes a few seconds longer
@@ -51,16 +51,18 @@ func dumpCommand(ctx context.Context, use string, aliases []string, short string
 		Use:     use + " TARGET",
 		Aliases: aliases,
 		Short:   short,
-		Long:    short + ".\n\n" + dumpTargetHelp,
+		Long:    short + ".\n\n" + targetHelp,
 		Example: "  onvif-cli dump " + use + " 192.168.1.70:80\n" +
 			"  onvif-cli dump " + use + " urn:uuid:00000700-0013-0008-0203-ec71db76e907",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			info, err := resolveTarget(ctx, args[0])
-			if err != nil {
-				return err
-			}
-			return run(ctx, info)
+			return runOneShot(ctx, func(ctx context.Context) error {
+				info, err := resolveTarget(ctx, args[0])
+				if err != nil {
+					return err
+				}
+				return run(ctx, info)
+			})
 		},
 	}
 }

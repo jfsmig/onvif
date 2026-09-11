@@ -89,3 +89,33 @@ func TestNonSecretFieldsSurvive(t *testing.T) {
 		}
 	}
 }
+
+// The other side of the rule, pinned on purpose so that nobody "fixes" it.
+//
+// A tt:ItemList is a key/value channel whose names the device chooses (ONVIF Core section
+// 9.4.1, and section 9.4.3 for the description that names them), and an ElementItem's value
+// is raw device XML. There is no field here to tag, so the json:"-" mechanism does not reach
+// this payload at all — and tagging the list would delete the whole of what `onvif-cli
+// subscribe` and `dump media` exist to print. What has to be true instead is that nothing
+// else in the process puts a credential into one of these, which is a property of the callers
+// and not of this struct.
+//
+// It matters that this is written down: an ElementItem's value used to be dropped on
+// unmarshal, so this diff widened what a redirected `dump media` can contain, and nobody
+// reading the tags would infer that.
+func TestAnItemListIsNotRedactedBecauseItCannotBe(t *testing.T) {
+	list := ItemList{
+		SimpleItem:  []SimpleItem{{Name: "Password", Value: xsd.AnySimpleType(secret)}},
+		ElementItem: []ElementItem{{Name: "VendorBlob", Value: "<Password>" + secret + "</Password>"}},
+	}
+
+	b, err := json.Marshal(list)
+	if err != nil {
+		t.Fatalf("json.Marshal: %v", err)
+	}
+	if !strings.Contains(string(b), secret) {
+		t.Fatalf("an item value was dropped from JSON: %s\n"+
+			"a device-named item is payload and not a field, so it cannot be redacted by "+
+			"tag — if this is being redacted now, the notification payload is going with it", b)
+	}
+}

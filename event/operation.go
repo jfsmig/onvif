@@ -66,6 +66,9 @@ type SubscribeResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 type Renew struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 	XMLName         struct{}                   `xml:"wsnt:Renew"`
 	TerminationTime AbsoluteOrRelativeTimeType `xml:"wsnt:TerminationTime"`
+
+	// To addresses the request to a subscription manager; see actions.go.
+	To string `xml:"-"`
 }
 
 // RenewResponse for Renew action
@@ -81,6 +84,9 @@ type RenewResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 // element inside the request body.
 type Unsubscribe struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 	XMLName struct{} `xml:"wsnt:Unsubscribe"`
+
+	// To addresses the request to a subscription manager; see actions.go.
+	To string `xml:"-"`
 }
 
 // UnsubscribeResponse message for Unsubscribe event topic
@@ -88,16 +94,39 @@ type UnsubscribeResponse struct { //http://docs.oasis-open.org/wsn/b-2.xsd
 	Any string
 }
 
-// CreatePullPointSubscription action
-// BUG(r) Bad AbsoluteOrRelativeTimeType type
+// CreatePullPointSubscription action.
+//
+// Every child is minOccurs="0" (docs/wsdl/event.wsdl:79-98) and every one is a pointer, so
+// that an unset one is left out of the request. encoding/xml has no other way to say that:
+// its omitempty ignores struct kinds -- isEmptyValue handles strings, slices, maps, the
+// numerics, interfaces and pointers, and nothing else -- so a value field emitted its
+// element whatever it held. The zero request therefore went out carrying an empty
+// <wsnt:TopicExpression Dialect="">, which is a topic expression in no dialect and which b-2
+// answers with a fault, and that is the one request that starts a subscription.
+//
+// ONVIF Core section 9.1.1 is what makes the empty request meaningful: "If no Filter element
+// is specified the pullpoint shall notify all occurring events to the client." The reference
+// request in section 9.10.3 carries a Filter and an InitialTerminationTime and no
+// SubscriptionPolicy at all.
+//
+// The two tag forms here are not interchangeable and both are deliberate. The space form
+// emits xmlns="...events/wsdl" as a *default* namespace on the element, which an unprefixed
+// child would inherit; it is safe only because these two carry character data and an
+// attribute and never a child element.
 type CreatePullPointSubscription struct {
-	XMLName                string                     `xml:"tev:CreatePullPointSubscription"`
-	Filter                 FilterType                 `xml:"tev:Filter"`
-	InitialTerminationTime AbsoluteOrRelativeTimeType `xml:"http://www.onvif.org/ver10/events/wsdl InitialTerminationTime"`
-	SubscriptionPolicy     SubscriptionPolicy         `xml:"http://www.onvif.org/ver10/events/wsdl SubscriptionPolicy"`
+	XMLName                string                      `xml:"tev:CreatePullPointSubscription"`
+	Filter                 *FilterType                 `xml:"tev:Filter"`
+	InitialTerminationTime *AbsoluteOrRelativeTimeType `xml:"http://www.onvif.org/ver10/events/wsdl InitialTerminationTime"`
+	SubscriptionPolicy     *SubscriptionPolicy         `xml:"http://www.onvif.org/ver10/events/wsdl SubscriptionPolicy"`
 }
 
-// CreatePullPointSubscriptionResponse action
+// CreatePullPointSubscriptionResponse action.
+//
+// Untagged, like PullMessagesResponse and for the same reason -- and here it is load-bearing
+// rather than merely tolerant. docs/wsdl/event.wsdl:106 declares SubscriptionReference as a
+// local element of the tev schema, so section 9.10.4 shows <tet:SubscriptionReference>, while
+// b-2 declares SubscribeResponse's in wsnt. One untagged field binds both. This is the field
+// the whole event flow hangs on, and event/namespace_test.go pins it.
 type CreatePullPointSubscriptionResponse struct {
 	SubscriptionReference EndpointReferenceType
 	CurrentTime           CurrentTime
@@ -127,13 +156,34 @@ type PullMessages struct {
 	XMLName      string       `xml:"tev:PullMessages"`
 	Timeout      xsd.Duration `xml:"tev:Timeout"`
 	MessageLimit xsd.Int      `xml:"tev:MessageLimit"`
+
+	// To addresses the request to a subscription manager; see actions.go.
+	To string `xml:"-"`
 }
 
-// PullMessagesResponse response type
+// PullMessagesResponse response type.
+//
+// NotificationMessage is a slice: docs/wsdl/event.wsdl:156 declares it minOccurs="0"
+// maxOccurs="unbounded", ONVIF Core section 9.1.2 Table 81 says [0][unbounded], and the
+// reference response in section 9.10.6 carries two. It was a single value, so encoding/xml
+// assigned each match to the same field in turn and only the last survived -- and with a
+// MessageLimit above one, several messages in a reply is the normal case rather than the
+// exception.
+//
+// The fields stay untagged, and that absence is the decision. Binding on the local name
+// accepts whatever namespace the device qualified the element with, which here is both the
+// tolerant and the correct answer: the same two local names live in two namespaces across
+// this one flow -- CurrentTime and TerminationTime are local tev elements in this response
+// (docs/wsdl/event.wsdl:146,151) but wsnt refs in CreatePullPointSubscriptionResponse
+// (:111,116), exactly as the examples in sections 9.10.6 and 9.10.4 show. The local names
+// within each parent are unique, so a namespace in the tag would add no discrimination and
+// could only turn a device that qualifies differently from the WSDL into a silently empty
+// result. Requests are the opposite case: there the tag is what puts the element into a
+// namespace, so it has to be exact.
 type PullMessagesResponse struct {
 	CurrentTime         CurrentTime
 	TerminationTime     TerminationTime
-	NotificationMessage NotificationMessage
+	NotificationMessage []NotificationMessage
 }
 
 // PullMessagesFaultResponse response type
@@ -147,6 +197,9 @@ type Seek struct {
 	XMLName string       `xml:"tev:Seek"`
 	UtcTime xsd.DateTime `xml:"tev:UtcTime"`
 	Reverse xsd.Boolean  `xml:"tev:Reverse"`
+
+	// To addresses the request to a subscription manager; see actions.go.
+	To string `xml:"-"`
 }
 
 // SeekResponse action
@@ -156,6 +209,9 @@ type SeekResponse struct {
 // SetSynchronizationPoint action
 type SetSynchronizationPoint struct {
 	XMLName string `xml:"tev:SetSynchronizationPoint"`
+
+	// To addresses the request to a subscription manager; see actions.go.
+	To string `xml:"-"`
 }
 
 // SetSynchronizationPointResponse action

@@ -41,8 +41,11 @@ var (
 )
 
 var (
-	// Per-request backstop. The one-minute context in main() bounds the whole run; this
-	// bounds any single exchange so one slow camera cannot consume the entire budget.
+	// Per-request backstop, and for `subscribe` the only budget there is: a one-shot command
+	// bounds its whole run with oneShotDeadline, while a subscription is meant to outlive any
+	// deadline, so this is what stops one silent camera holding a goroutine for ever. It
+	// bounds a single exchange, which for a PullMessages long poll is why pullTimeout has to
+	// stay under it.
 	//
 	// The connection cap is the counterpart of the sdk fan-out. Every Fetch* now issues its
 	// independent calls at once, so `dump all` offers dozens of requests simultaneously,
@@ -105,6 +108,39 @@ func verbosityLevel(count int) zerolog.Level {
 	default:
 		return zerolog.TraceLevel
 	}
+}
+
+// oneShotDeadline bounds a command that does a bounded amount of work and then exits.
+//
+// It used to sit in main(), around the whole process, and that was right while every command
+// was one-shot: a discovery probe waits out a fixed collection window and a dump is a few
+// dozen round trips, so a run that has not finished within a minute is stuck rather than
+// slow. `subscribe` is the case that argument does not cover -- its normal life is measured
+// in days, and a cap in main() would have ended it at one minute, silently and successfully
+// -- so the budget belongs to each command instead of to the process.
+//
+// One number for all of them, deliberately: it was chosen for the slowest one-shot there
+// is, a `dump all` behind an identifier lookup, and a per-command table would be four
+// numbers nobody could justify against each other.
+const oneShotDeadline = time.Minute
+
+// runOneShot runs a command, or the bounded phase of one, under oneShotDeadline.
+//
+// The cancel is deferred here rather than installed once in the root's PersistentPreRunE.
+// There the derived context has to outlive the hook, so its cancel could only be dropped --
+// `ctx, _ = context.WithTimeout(...)`, which `go vet`'s lostcancel check does reject and CI
+// gates on -- or carried in a variable and released from a PersistentPostRun, which cobra
+// runs only for the closest hook in the chain and not at all when RunE fails. Here the
+// deferred cancel is released by the end of the work it bounds, which is what it means.
+//
+// A streaming command wraps only the phase that has an end. What it must not do is create
+// anything long-lived inside the callback: whatever is built there is bound to a context
+// this function cancels on the way out, and a subscription that dies that way looks exactly
+// like a camera that stops answering after a minute.
+func runOneShot(ctx context.Context, run func(context.Context) error) error {
+	ctx, cancel := context.WithTimeout(ctx, oneShotDeadline)
+	defer cancel()
+	return run(ctx)
 }
 
 var (
@@ -204,7 +240,9 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 		Short:   "Discover the local cameras",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return discover(ctx, discoverOptions{allInterfaces: discoverAll})
+			return runOneShot(ctx, func(ctx context.Context) error {
+				return discover(ctx, discoverOptions{allInterfaces: discoverAll})
+			})
 		},
 	}
 	cmdDiscover.Flags().BoolVarP(&discoverAll, "all", "a", false, allInterfacesHelp)
@@ -215,10 +253,33 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 		Short:   "Print the stream URL for the cameras locally discovered",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return discover(ctx, discoverOptions{streams: true, allInterfaces: streamsAll})
+			return runOneShot(ctx, func(ctx context.Context) error {
+				return discover(ctx, discoverOptions{streams: true, allInterfaces: streamsAll})
+			})
 		},
 	}
 	cmdStreams.Flags().BoolVarP(&streamsAll, "all", "a", false, allInterfacesHelp)
+
+	cmdSubscribe := &cobra.Command{
+		Use: "subscribe TARGET [TARGET...]",
+		// `watch` is what a person types; `pull` is ONVIF's own word for the mechanism
+		// (Core section 9.1). Not `events`: `dump event` already answers to that, and
+		// `onvif-cli events` meaning "stream them" beside `onvif-cli dump event` meaning
+		// "describe the service" is a collision an operator would hit once and then
+		// remember the wrong way round.
+		Aliases: []string{"watch", "pull"},
+		Short:   "Stream the events of the given cameras, one JSON object per line",
+		Long: "Stream the events of the given cameras, one JSON object per line.\n\n" +
+			targetHelp + "\n\n" + subscribeHelp,
+		Example: "  onvif-cli subscribe 192.168.1.70:80\n" +
+			"  onvif-cli subscribe urn:uuid:00000700-0013-0008-0203-ec71db76e907 192.168.1.71:80\n" +
+			"  onvif-cli discover | awk '$3 != \"-\" { print $3 }' | xargs onvif-cli subscribe",
+		// At least one, and no upper bound: the fleet form is the point of the command, and
+		// no argument does not mean "every camera" -- see subscribeHelp on why there is no
+		// --all here.
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error { return subscribe(ctx, args) },
+	}
 
 	cmdDump := &cobra.Command{
 		Use:     "dump",
@@ -248,16 +309,32 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 
 	cmdDump.AddCommand(cmdDumpDescr, cmdDumpAll)
 	cmdDump.AddCommand(cmdDumpMedia, cmdDumpPtz, cmdDumpEvents, cmdDumpProfiles, cmdDumpDevice)
-	cmd.AddCommand(cmdDiscover, cmdStreams, cmdDump)
+	cmd.AddCommand(cmdDiscover, cmdStreams, cmdSubscribe, cmdDump)
 
 	return cmd
 }
 
 func main() {
-	ctx, cancel := signal.NotifyContext(context.Background(), shutdownSignals...)
-	defer cancel()
-	ctx, cancel = context.WithTimeout(ctx, time.Minute)
-	defer cancel()
+	// Signal handling and nothing else. The one-minute deadline that used to wrap this
+	// context bounded the whole process, which was right while every command was one-shot;
+	// it now belongs to the commands that have an end of their own. See runOneShot.
+	ctx, stop := signal.NotifyContext(context.Background(), shutdownSignals...)
+	defer stop()
+
+	// A second signal is the operator's way out, and `subscribe` is why it is needed. It
+	// writes to stdout synchronously under a lock, so an Encode blocked on a pipe nobody is
+	// reading is not interruptible by a context at all: no goroutine is in a select to notice
+	// the first signal, and `subscribe ... | less` left unread hangs. NotifyContext keeps its
+	// handler registered after it fires, so without this the second Ctrl-C is swallowed too
+	// and only SIGKILL ends the run. Restoring the default disposition is the usual answer:
+	// the first signal asks for a graceful stop, the second takes it.
+	//
+	// The goroutine AfterFunc starts is deliberately outside any WaitGroup -- it is the one
+	// place in this tool where that is right, because its whole purpose is to run when
+	// nothing else can. It must stay a call to stop and nothing else: it can fire while
+	// recordWriter holds its mutex, so anything here that took a lock of ours would deadlock
+	// the escape hatch.
+	context.AfterFunc(ctx, stop)
 
 	cmd := newRootCommand(ctx)
 

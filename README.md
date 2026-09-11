@@ -26,6 +26,12 @@ COMMAND:
   streams [-a]             the same probe, then one line per media profile of every
                            device found:
                              INTERFACE XADDR UUID PROFILE STREAM_URI SNAPSHOT_URI
+  subscribe TARGET...      hold an ONVIF real-time pull-point subscription on each named
+                           camera and print one JSON object per line, one line per event,
+                           until interrupted. Ctrl-C or SIGTERM ends the run successfully.
+                           TARGET takes the same two forms as `dump`, and every identifier
+                           named is resolved from a single LAN probe however many there are.
+                           There is no -a: this command authenticates to every target.
   dump SUBCOMMAND TARGET   print a single JSON object holding a configuration dump of
                            the given camera. TARGET is either the camera's IP:PORT — the
                            XADDR column of `discover` — or its WS-Discovery identifier
@@ -85,6 +91,37 @@ ENVIRONMENT:
 Data goes to stdout and diagnostics to stderr, so `onvif-cli dump all IP:PORT | jq` works
 as it looks. Most commands accept aliases — `find` for `discover`, `events` for `event`,
 `prof` for `profile` — which `onvif-cli COMMAND --help` lists.
+
+`subscribe` is the one command that streams rather than returning, and so the one with no
+deadline of its own: `discover`, `streams` and `dump` each give up after a minute, while a
+subscription runs until it is stopped. One line per event, so
+`onvif-cli subscribe urn:uuid:… | jq -c 'select(.topic | test("MotionAlarm"))'` reads as it
+looks, and a whole fleet is one pipeline:
+
+```console
+onvif-cli discover | awk '$3 != "-" { print $3 }' | xargs onvif-cli subscribe
+```
+
+The record's own keys are lower case — `time`, `received`, `xaddr`, `uuid`, `topic`,
+`operation`, `source`, `key`, `data` — while the names inside `source`, `key` and `data` are
+the device's own, spelled as the message description publishes them (ONVIF Core §9.4.1).
+Every value is a string: `Value` is `xs:anySimpleType`, so `ObjectId` is `"15"` on every
+camera rather than a number on some and a string on others, and one `jq` filter works
+everywhere. `time` is the stamp the camera put on the event and `received` is the collector's
+own, which matters because camera clocks drift. `uuid` is *absent*, not `"-"`, when the
+camera was named by its address: the `discover` column pads to keep a constant field count,
+and JSON has no column to pad.
+
+```json
+{"time":"2008-10-10T12:24:57.321Z","received":"2026-09-10T14:02:32.118Z","xaddr":"192.168.1.70:80","uuid":"urn:uuid:00000700-0013-0008-0203-ec71db76e907","topic":"tns1:RuleEngine/LineDetector/Crossed","source":{"Rule":"MyImportantFence1","VideoAnalyticsConfigurationToken":"2","VideoSourceConfigurationToken":"1"},"data":{"ObjectId":"15"}}
+```
+
+A camera that drops its pull point is resubscribed, with a back-off; there is no `Renew`,
+because `PullMessages` is its own keep-alive (ONVIF Core §9.1.1). A camera that never
+answered is named on stderr and left out. The run fails, at once, only when not one of the
+named cameras could be subscribed — an empty stream would otherwise say the same thing as a
+quiet fleet. After that, stopping it is a success whatever happened to individual cameras in
+between, which is what makes the exit status usable in a supervisor.
 
 The default probe set matters on a host running containers, where the virtual interfaces
 outnumber the real one by an order of magnitude. Each of them cost a socket, a multicast

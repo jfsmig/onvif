@@ -20,6 +20,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"maps"
+	"net"
 	"net/http"
 	"net/url"
 	"reflect"
@@ -36,9 +37,28 @@ import (
 // no deadline, which would otherwise leave a request with nothing to stop it.
 const DefaultTimeout = 30 * time.Second
 
-// Xlmns XML Schema
+// Xlmns is every namespace prefix declared on the envelope root.
+//
+// It has to cover the prefixes a request's *character data* can carry and not only the ones
+// its element names use, which is why two of these look redundant:
+//
+//   - tns1 is the ONVIF topic namespace. A ConcreteSet topic expression is a QName in
+//     character data -- ONVIF Core section 9.6.3 gives the grammar as "RootTopic ::= QName"
+//     and requires the prefix to "correspond to a valid Topic Namespace definition" -- so a
+//     filter reading "tns1:RuleEngine//." needs it bound, and section 9.10.3's own envelope
+//     declares exactly this. Without it a device answers InvalidTopicExpressionFault, which
+//     reads as a camera that does not support the topic rather than a client that did not
+//     declare it.
+//   - tt is the same URI as onvif, deliberately. Every ONVIF example spells the schema
+//     namespace tt: (sections 9.4.1, 9.10.6), and an ElementItem's value is captured as raw
+//     XML and written back verbatim -- so a rule read from a camera and modified carries the
+//     device's own tt: prefix into an envelope this library builds. Two prefixes for one
+//     namespace is legal, and the alternative is an envelope that is not namespace-well-formed
+//     and that a device rejects whole.
 var Xlmns = map[string]string{
 	"onvif":   "http://www.onvif.org/ver10/schema",
+	"tt":      "http://www.onvif.org/ver10/schema",
+	"tns1":    "http://www.onvif.org/ver10/topics",
 	"tds":     "http://www.onvif.org/ver10/device/wsdl",
 	"trt":     "http://www.onvif.org/ver10/media/wsdl",
 	"tev":     "http://www.onvif.org/ver10/events/wsdl",
@@ -182,10 +202,74 @@ func (client *Client) AddEndpoint(Key, Value string) {
 	// Replace host with host from device params.
 	if u, err := url.Parse(Value); err == nil {
 		u.Host = client.xaddr
+		// And drop any account the device embedded in the address it advertised. We
+		// authenticate with a WS-Security UsernameToken of our own, so a credential in the
+		// URI is never wanted -- and net/http turns req.URL.User into an HTTP Basic
+		// Authorization header, so keeping it would put a device-chosen credential on every
+		// request and into any error or log line carrying the endpoint. Same rule as
+		// FetchStreamURI's: a secret must not reach a log or a dump.
+		u.User = nil
 		Value = u.String()
 	}
 
 	client.endpoints[lowCaseKey] = Value
+}
+
+// AtDeviceHost re-points a URI the device handed out at the host it is actually reachable
+// at, keeping the port, the path and the query.
+//
+// Same reason as AddEndpoint's rewrite of an advertised XAddr above -- a device fills those
+// in from its own point of view, so one behind a port mapping, or one whose lease has moved,
+// advertises an address that does not resolve from here; ONVIF Core section 9.10.4 shows a
+// subscription reference advertised exactly that way, naming 160.10.64.10.
+//
+// The port is where this parts company with AddEndpoint, which replaces host and port
+// together. A pull-point subscription commonly answers on a port of its own -- the reply in
+// event/namespace_test.go has the device on :80 and the subscription on :8000 -- so blindly
+// taking ours would send every pull to the device service. Blindly keeping the device's is
+// no better: a camera reached through a port map advertises its internal port, which does
+// not resolve from here either. The two cases are told apart by the host the device named:
+//
+//   - it named the host we already reach it at, so it is describing a port on the machine we
+//     are talking to and that port is real. Keep it.
+//   - it named a different host, so it is describing itself from a vantage point we do not
+//     share -- and a port from that vantage point is no more usable than the host was. Take
+//     ours, both halves.
+//
+// A URI that will not parse comes back unchanged: it is the device's own answer, and refusing
+// it here would replace a request that might work with an error that cannot.
+func (client *Client) AtDeviceHost(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+
+	// Drop any account the device embedded, for the reason AddEndpoint drops it.
+	u.User = nil
+
+	host := client.xaddr
+	if port := u.Port(); port != "" && u.Hostname() == hostnameOf(client.xaddr) {
+		// net/url has no setter for the host part alone, and Host carries both, so it is
+		// rebuilt -- JoinHostPort, because an IPv6 literal needs its brackets back.
+		host = net.JoinHostPort(u.Hostname(), port)
+	}
+	u.Host = host
+
+	if u.Scheme == "" {
+		// A relative reference -- some devices answer "/onvif/Subscription?Idx=0" -- would
+		// otherwise serialise as "//host/onvif/..." and lose its scheme.
+		u.Scheme = "http"
+	}
+	return u.String()
+}
+
+// hostnameOf is the host half of an authority, brackets already stripped from an IPv6
+// literal, and the whole string when it carries no port.
+func hostnameOf(authority string) string {
+	if host, _, err := net.SplitHostPort(authority); err == nil {
+		return host
+	}
+	return strings.Trim(authority, "[]")
 }
 
 // WSAActor is implemented by a request struct that must travel with a wsa:Action header.
@@ -199,13 +283,35 @@ type WSAActor interface {
 	WSAAction() string
 }
 
+// WSAAddressee is implemented by a request struct that carries its own destination.
+//
+// ONVIF Core section 9.1 gives a pull-point subscription a subscription manager of its own:
+// the URI arrives in CreatePullPointSubscriptionResponse, and the operations of the
+// PullPointSubscription and bw-2 SubscriptionManager port types are POSTed there rather than
+// to the event service, with that URI repeated in a wsa:To header. Compare the requests in
+// ONVIF Core sections 9.10.5 and 9.10.7, which carry both wsa:Action and wsa:To, with the
+// one in section 9.10.3, which carries neither.
+//
+// Nothing the device advertised names that URI, so the endpoint map cannot hold it and
+// package-name routing cannot reach it: the request itself is the only thing that knows
+// where it goes. Opt-in per request type, like WSAActor above, so the 200 operations
+// addressed by service go out byte-identical to before.
+//
+// An empty result means "route on the package name", so the zero value of every such
+// request struct stays usable.
+//
+// The method must have a value receiver. CallMethod is handed an interface holding a value
+// -- the generated wrappers pass their request by value -- so a pointer receiver would not
+// satisfy this assertion and the request would silently fall back to package routing.
+type WSAAddressee interface {
+	// WSATo returns the URI this request is addressed to, or "" to route on the package.
+	WSATo() string
+}
+
 // CallMethod functions call a method, defined <method> struct.
 // You should use Authenticate method to call authorized requests.
 func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http.Response, error) {
-	pkgPath := strings.Split(reflect.TypeOf(method).PkgPath(), "/")
-	pkg := strings.ToLower(pkgPath[len(pkgPath)-1])
-
-	endpoint, err := client.getEndpoint(pkg)
+	endpoint, err := client.methodEndpoint(method)
 	if err != nil {
 		return nil, err
 	}
@@ -236,6 +342,18 @@ func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http
 		soap.AddAction(actor.WSAAction())
 	}
 
+	// wsa:To, for a request addressed to a subscription manager rather than to a service.
+	//
+	// Emitted only when the request named a destination, so it never appears on one routed
+	// by package name -- section 9.10.3's CreatePullPointSubscription carries no wsa:To, and
+	// adding one there would be a header ONVIF's own example does not have.
+	//
+	// Not marked mustUnderstand, like wsa:Action: most devices route on the POST URL alone
+	// and ignore WS-Addressing, and they must keep working.
+	if addressee, ok := method.(WSAAddressee); ok {
+		addWSATo(soap, addressee.WSATo())
+	}
+
 	// Auth handling.
 	//
 	// Stamped in device time, not local time. A device compares Created against its own
@@ -253,6 +371,23 @@ func (client *Client) CallMethod(ctx context.Context, method interface{}) (*http
 	}
 
 	return SendSoap(ctx, client.httpClient, endpoint, soap.String())
+}
+
+// methodEndpoint decides where a request is POSTed: the destination the request names, else
+// the endpoint the device advertised for the service its package routes to.
+//
+// The destination is consulted first on purpose. A pull point lives at a URI the device
+// handed out, so a camera whose GetCapabilities omits the event service would otherwise
+// fail with ErrNoService on a subscription it had just granted.
+func (client *Client) methodEndpoint(method interface{}) (string, error) {
+	if addressee, ok := method.(WSAAddressee); ok {
+		if to := addressee.WSATo(); to != "" {
+			return to, nil
+		}
+	}
+
+	pkgPath := strings.Split(reflect.TypeOf(method).PkgPath(), "/")
+	return client.getEndpoint(strings.ToLower(pkgPath[len(pkgPath)-1]))
 }
 
 // serviceEndpointKeys names, per Go package, the endpoint keys that denote that service.

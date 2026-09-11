@@ -204,8 +204,24 @@ func lookupByUUID(ctx context.Context, uuid string) (networking.ClientInfo, erro
 	if err != nil {
 		return networking.ClientInfo{}, err
 	}
+	byID, answered := probedDevices(probes)
+	return resolveIdentifier(probes, byID, answered, uuid)
+}
 
-	var matches []networking.ClientInfo
+// probedDevices indexes what one probe round found, by canonical identifier, keeping every
+// address a device answered on, and reports how many devices answered in all.
+//
+// Both sides of the comparison go through credentials.CanonicalID, for the two reasons
+// resolveIdentifier's caller gives: what a device claims arrives in whatever spelling its
+// firmware chose, and an identifier can reach here without having been through
+// parseDeviceTarget.
+//
+// It is the shared half of lookupByUUID and resolveTargets. One probe answers however many
+// identifiers were named, which is why `subscribe` takes its targets as positionals rather
+// than one at a time -- a fleet of eight would otherwise spend eight collection windows
+// resolving before it streamed anything.
+func probedDevices(probes []*itfProbe) (map[string][]networking.ClientInfo, int) {
+	byID := make(map[string][]networking.ClientInfo)
 	answered := 0
 	for _, probe := range probes {
 		if probe.err != nil {
@@ -214,14 +230,22 @@ func lookupByUUID(ctx context.Context, uuid string) (networking.ClientInfo, erro
 		}
 		for _, found := range probe.devices {
 			answered++
-			// Both sides, and for different reasons: what the device claims arrives in
-			// whatever spelling its firmware chose, and lookupByUUID is also reachable
-			// with an identifier that has not been through parseDeviceTarget.
-			if credentials.CanonicalID(found.UUID) == credentials.CanonicalID(uuid) {
-				matches = append(matches, networking.ClientInfo{Xaddr: found.Xaddr, Uuid: found.UUID})
-			}
+			id := credentials.CanonicalID(found.UUID)
+			byID[id] = append(byID[id], networking.ClientInfo{Xaddr: found.Xaddr, Uuid: found.UUID})
 		}
 	}
+	return byID, answered
+}
+
+// resolveIdentifier picks the device claiming one identifier out of an indexed probe round.
+//
+// Separate from the probing so that lookupByUUID and resolveTargets answer with the same
+// three errors and the same warning: "nothing was probed", "the link is dead" and "your
+// identifier is wrong" have three different next actions, and a fleet command must not
+// invent a fourth wording for them.
+func resolveIdentifier(probes []*itfProbe, byID map[string][]networking.ClientInfo,
+	answered int, uuid string) (networking.ClientInfo, error) {
+	matches := byID[credentials.CanonicalID(uuid)]
 
 	switch {
 	case len(probes) == 0:
@@ -231,8 +255,6 @@ func lookupByUUID(ctx context.Context, uuid string) (networking.ClientInfo, erro
 		return networking.ClientInfo{}, fmt.Errorf(
 			"no interface was probed, so no camera could be found by its identifier; pass the camera's IP:PORT instead")
 	case len(matches) == 0 && answered == 0:
-		// Three distinct messages, because "nothing was probed", "the link is dead" and
-		// "your identifier is wrong" have three different next actions.
 		return networking.ClientInfo{}, fmt.Errorf(
 			"no device answered discovery on %d interface(s); check the link, or pass the camera's IP:PORT",
 			len(probes))
@@ -249,6 +271,94 @@ func lookupByUUID(ctx context.Context, uuid string) (networking.ClientInfo, erro
 			Msg("the identifier answered on several links; pass IP:PORT to choose")
 	}
 	return matches[0], nil
+}
+
+// resolveTargets turns the positionals of `subscribe` into client parameters, probing the
+// LAN at most once however many identifiers were named.
+//
+// resolveTarget probes per identifier, which is right for the single argument of a dump but
+// would cost one full collection window per camera here. So the addresses pass straight
+// through, and the probe happens only if an identifier was actually named.
+//
+// An identifier no device claims fails the whole command, before anything has streamed.
+// That is `dump`'s behaviour and it is the friendlier one here too: the failure arrives at
+// once, with the list of identifiers that did answer, rather than leaving an operator
+// watching seven of the eight cameras they asked for and wondering which is quiet.
+func resolveTargets(ctx context.Context, args []string) ([]networking.ClientInfo, error) {
+	targets := make([]deviceTarget, 0, len(args))
+	identifiers := 0
+	for _, arg := range args {
+		target, err := parseDeviceTarget(arg)
+		if err != nil {
+			return nil, err
+		}
+		if target.Uuid != "" {
+			identifiers++
+		}
+		targets = append(targets, target)
+	}
+
+	var (
+		probes   []*itfProbe
+		byID     map[string][]networking.ClientInfo
+		answered int
+	)
+	if identifiers > 0 {
+		Logger.Info().Int("identifiers", identifiers).
+			Msg("resolving the identifiers by WS-Discovery")
+
+		var err error
+		if probes, err = probeLAN(ctx, false); err != nil {
+			return nil, err
+		}
+		byID, answered = probedDevices(probes)
+	}
+
+	out := make([]networking.ClientInfo, 0, len(targets))
+	for _, target := range targets {
+		if target.Xaddr != "" {
+			out = append(out, networking.ClientInfo{Xaddr: target.Xaddr})
+			continue
+		}
+		found, err := resolveIdentifier(probes, byID, answered, target.Uuid)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, found)
+	}
+	return dedupeTargets(out), nil
+}
+
+// dedupeTargets drops targets that resolved to the same camera.
+//
+// `discover` prints one line per interface a device answered on, so the pipeline this command
+// documents -- discover, awk, xargs subscribe -- hands a dual-homed camera over twice. Two
+// pull points on one camera is not something a device would refuse; it just doubles every
+// event on stdout with nothing to say why, which is the kind of silent wrongness worth a few
+// lines to prevent. Naming a camera twice by hand is caught by the same rule.
+//
+// The first occurrence keeps its position, because the order of the positionals is the
+// operator's. What it does not keep is a missing identifier: an identifier is the only form
+// that selects a per-camera credentials file, so a camera named both by address and by
+// identifier must not lose the second to the first.
+func dedupeTargets(cams []networking.ClientInfo) []networking.ClientInfo {
+	out := make([]networking.ClientInfo, 0, len(cams))
+	seen := make(map[string]int, len(cams))
+
+	for _, cam := range cams {
+		at, duplicate := seen[cam.Xaddr]
+		if !duplicate {
+			seen[cam.Xaddr] = len(out)
+			out = append(out, cam)
+			continue
+		}
+		if out[at].Uuid == "" && cam.Uuid != "" {
+			out[at].Uuid = cam.Uuid
+		}
+		Logger.Warn().Str("addr", cam.Xaddr).Str("uuid", uuidColumn(cam.Uuid)).
+			Msg("target named more than once, subscribing to it once")
+	}
+	return out
 }
 
 // warnNothingToProbe tells the operator which of the two empty cases happened, because

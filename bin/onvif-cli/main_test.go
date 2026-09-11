@@ -26,6 +26,9 @@ package main
 
 import (
 	"context"
+	"go/ast"
+	"go/parser"
+	"go/token"
 	"strings"
 	"testing"
 
@@ -145,5 +148,146 @@ func TestVerboseIsACountingFlagOnTheRoot(t *testing.T) {
 	}
 	if flag.Value.Type() != "count" {
 		t.Errorf("--verbose is a %s, want a count so that -vv means more than -v", flag.Value.Type())
+	}
+}
+
+// The one-minute deadline used to wrap the whole process, in main(), which was right while
+// every command was a request and a reply. `subscribe` is not: a cap there would have ended
+// it at one minute, silently and reported as a success, which is a bug that reads as a
+// firmware defect on every camera at once.
+//
+// Written against the AST rather than against behaviour, in the shape of
+// sdk/rpc_label_test.go, because the failure it guards against is a copy-paste back into
+// main() and nothing else -- there is no run of the binary that would catch it in under a
+// minute.
+func TestMainDoesNotBoundTheWholeProcess(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	var body *ast.FuncDecl
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if ok && fn.Recv == nil && fn.Name.Name == "main" {
+			body = fn
+		}
+	}
+	if body == nil {
+		t.Fatal("no func main in main.go; this test no longer checks what it claims to")
+	}
+
+	ast.Inspect(body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		pkg, ok := selector.X.(*ast.Ident)
+		if !ok || pkg.Name != "context" {
+			return true
+		}
+		if selector.Sel.Name == "WithTimeout" || selector.Sel.Name == "WithDeadline" {
+			t.Errorf("%s: main() bounds the whole process again, so `subscribe` would stop "+
+				"after %v and report success; the budget belongs to runOneShot",
+				fset.Position(call.Pos()), oneShotDeadline)
+		}
+		return true
+	})
+}
+
+func TestSubscribeDocumentsItsTargetsAndTakesNoDiscoveryFlag(t *testing.T) {
+	// The positionals are the whole interface of this command, and there is deliberately no
+	// --all: unlike `discover`, it authenticates to every target, and a discovery answer is
+	// not an authentication -- README.md says as much about `streams -a`, and a long-lived
+	// subscription re-authenticates to whatever answered for hours rather than once.
+	root := newRootCommand(context.Background())
+
+	var subscribe *cobra.Command
+	for _, child := range root.Commands() {
+		if child.Name() == "subscribe" {
+			subscribe = child
+		}
+	}
+	if subscribe == nil {
+		t.Fatal("no `subscribe` command")
+	}
+
+	if !strings.Contains(subscribe.Use, "TARGET [TARGET...]") {
+		t.Errorf("the usage line does not say that several cameras may be named: %q", subscribe.Use)
+	}
+	for _, want := range []string{"urn:uuid:", "192.168.1.70:80"} {
+		if !strings.Contains(subscribe.Example, want) {
+			t.Errorf("the Example does not show the %s target form", want)
+		}
+	}
+	if subscribe.Flags().Lookup("all") != nil {
+		t.Error("`subscribe` declares --all, which would send the resolved credentials to " +
+			"whatever answered discovery, for as long as the run lasts")
+	}
+
+	// At least one target, and no upper bound: the fleet form is the point of the command,
+	// and no argument does not mean "every camera".
+	if err := subscribe.Args(subscribe, nil); err == nil {
+		t.Error("`subscribe` with no target is accepted; it would subscribe to nothing")
+	}
+	if err := subscribe.Args(subscribe, []string{"a", "b", "c"}); err != nil {
+		t.Errorf("`subscribe` refuses three targets: %v", err)
+	}
+}
+
+// `subscribe` writes to stdout synchronously under a mutex, so an Encode blocked on a pipe
+// nobody is reading is not interruptible by a context: no goroutine is in a select to notice
+// the first signal at all, and `onvif-cli subscribe … | less` left unread hangs. Since
+// signal.NotifyContext keeps its handler registered after it fires, the second Ctrl-C is
+// swallowed too and only SIGKILL ends the run.
+//
+// context.AfterFunc(ctx, stop) restores the default disposition, so the second signal takes
+// what the first asked for. Verified by hand against a program with and without it: without,
+// the second SIGINT is swallowed and the process sleeps it out; with, it exits 130.
+//
+// Pinned by reading main(), in the shape of TestMainDoesNotBoundTheWholeProcess, because
+// there is no way to assert it in-process — a test that proved it would kill the test binary.
+func TestMainLetsASecondSignalThrough(t *testing.T) {
+	fset := token.NewFileSet()
+	file, err := parser.ParseFile(fset, "main.go", nil, parser.SkipObjectResolution)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+
+	var body *ast.FuncDecl
+	for _, decl := range file.Decls {
+		fn, ok := decl.(*ast.FuncDecl)
+		if ok && fn.Recv == nil && fn.Name.Name == "main" {
+			body = fn
+		}
+	}
+	if body == nil {
+		t.Fatal("no func main in main.go; this test no longer checks what it claims to")
+	}
+
+	found := false
+	ast.Inspect(body, func(n ast.Node) bool {
+		call, ok := n.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
+		selector, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		pkg, ok := selector.X.(*ast.Ident)
+		if ok && pkg.Name == "context" && selector.Sel.Name == "AfterFunc" {
+			found = true
+		}
+		return true
+	})
+	if !found {
+		t.Error("main() no longer arms a second-signal escape, so a `subscribe` whose stdout " +
+			"has stopped draining can only be ended with SIGKILL")
 	}
 }

@@ -27,10 +27,16 @@ Discovery is **not** in this repository. It lives in `github.com/jfsmig/go-wsd`,
 also provides the `gosoap` envelope builder this project uses.
 
 `bin/` is source, not build output: `bin/onvif-cli` is the CLI (`discover [-a]`,
-`streams [-a]`, `dump <section> IP:PORT|urn:uuid:<uuid>`, credentials resolved per camera
-from `$BASEDIR/credentials/*.json` with `ONVIF_USERNAME` / `ONVIF_PASSWORD` as the blanket
-behind them, `-v` repeated to lower the stderr level from its default of warn), and
-`bin/onvif-codegen` is the generator.
+`streams [-a]`, `subscribe TARGET...`, `dump <section> IP:PORT|urn:uuid:<uuid>`, credentials
+resolved per camera from `$BASEDIR/credentials/*.json` with `ONVIF_USERNAME` /
+`ONVIF_PASSWORD` as the blanket behind them, `-v` repeated to lower the stderr level from its
+default of warn), and `bin/onvif-codegen` is the generator.
+
+`subscribe` is the one command that streams, and it is why the one-minute deadline sits in
+each command — `runOneShot` — rather than around the process in `main()`. It holds an ONVIF
+real-time pull-point subscription per camera (Core §9.1) and prints JSON Lines, one object
+per event; an interrupt is its normal, successful end, so it exits 0, and it fails only when
+not one named camera could be subscribed.
 
 ## Commands
 
@@ -114,20 +120,38 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
 
 ## Conventions and traps
 
-- **The endpoint is chosen by the request struct's package name.** `CallMethod` does
-  `reflect.TypeOf(method).PkgPath()`, takes the last segment, lowercases it, and looks it
-  up in the endpoint map (`networking/client.go:127-131`). So the directory names
+- **The endpoint is chosen by the request struct's package name.** `CallMethod`, through
+  `methodEndpoint`, does `reflect.TypeOf(method).PkgPath()`, takes the last segment,
+  lowercases it, and looks it up in the endpoint map (`networking/client.go`,
+  `methodEndpoint` and `HasEndpoint`). So the directory names
   `device`, `media`, `ptz`, `event` are load-bearing: renaming one silently routes its
   calls to the wrong service, or to none. A new service package must be named after its
   ONVIF endpoint.
+
+- **One request type can override that routing, and only the event service does.** A
+  request struct implementing `networking.WSAAddressee` names its own destination, which
+  becomes both the POST target and a `wsa:To` header; `CallMethod` consults it before the
+  endpoint map. ONVIF addresses the five operations of the `PullPointSubscription` and bw-2
+  `SubscriptionManager` port types to the subscription manager a pull point returned (Core
+  §9.10.5), and nothing the device advertised names that URI. It is the same opt-in shape as
+  `WSAActor`, the method must have a **value** receiver — `CallMethod` is handed an interface
+  holding a value — and `event/wsa_to_test.go` reads the port-type split out of `calls.txt`
+  so a tenth operation cannot land on the wrong side of it.
 
 - **`sdk` swallows per-call errors by design.** The `Fetch*` methods return a struct, not
   `(struct, error)`; a failed sub-call is logged at trace level and leaves its field
   zero, so one unsupported operation cannot lose a whole dump. Keep that shape — cameras
   vary wildly in what they implement.
 
-- **Fan out with `sync.WaitGroup.Go`**, as `sdk/profiles.go`, `bin/onvif-cli/dump.go` and
-  `bin/onvif-cli/discover.go` do. Independent fetches against one camera, or probes across
+  `sdk.PullPoint` is outside that rule and its name says so: it is a single chain in which
+  every link is load-bearing, long-lived, and with no partial struct to hand back, since
+  without the subscription manager URI there is nothing to pull from. It returns errors. A
+  new operation family that is a chain rather than a snapshot may do the same, provided it
+  is not called `Fetch`.
+
+- **Fan out with `sync.WaitGroup.Go`**, as `sdk/profiles.go`, `bin/onvif-cli/dump.go`,
+  `bin/onvif-cli/discover.go` and `bin/onvif-cli/subscribe.go` do — the last is the only one
+  whose goroutines are long-lived, and so the one to read first. Independent fetches against one camera, or probes across
   interfaces, should not be sequential: each costs a network round trip and the CLI runs
   under a one-minute context.
 
@@ -176,7 +200,7 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   about the loader's body, which no test can enforce: keep it out of every format string.
 
 - **Never `log.Print*` to the standard logger.** Diagnostics go through a replaceable
-  logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:36`) that an
+  logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:43`) that an
   application can swap out, and the CLI has its own in `bin/onvif-cli/main.go`. Packages
   below `sdk` — `networking`, `xsd`, `utils`, `credentials` — return errors and log
   nothing, with no exceptions left: `xsd/built_in.go` used to call `log.Fatalln` from a constructor and so

@@ -155,8 +155,17 @@ func TestRenewResponseUnmarshals(t *testing.T) {
 
 // event.wsdl declares both of these as local elements of the tev schema, so they belong to
 // tev — and the policy element name had a stray leading 's', so a camera silently ignored it.
+//
+// Asserted on a request that sets them, which the zero value no longer is: the children are
+// pointers now, so an unset one is absent rather than empty, and their absence is
+// TestCreatePullPointSubscriptionOmitsWhatIsNotSet's subject. The element names are this
+// test's, and they are unchanged.
 func TestCreatePullPointRequestElementNames(t *testing.T) {
-	b, err := xml.Marshal(CreatePullPointSubscription{})
+	termination := AbsoluteOrRelativeTimeType("PT1M")
+	b, err := xml.Marshal(CreatePullPointSubscription{
+		InitialTerminationTime: &termination,
+		SubscriptionPolicy:     &SubscriptionPolicy{ChangedOnly: true},
+	})
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
 	}

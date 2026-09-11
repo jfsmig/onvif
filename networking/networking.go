@@ -107,6 +107,26 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 	return nil
 }
 
+// addWSATo emits the wsa:To header ONVIF Core section 9.10.5 shows on a request addressed
+// to a subscription manager, and nothing at all when the URI is empty.
+//
+// Built as an element rather than through gosoap's AddStringHeaderContent: a subscription
+// URI carries a query string ("...Subscription?Idx=0"), a device is free to put an ampersand
+// in it, and etree escapes the character data it serialises -- while a string fragment would
+// have to be escaped here, which would add a second escaping rule to this package for
+// nothing. gosoap has no AddTo, and AddHeaderContent is the seam it exports instead; this is
+// the same technique AddAction uses for wsa:Action.
+//
+// The wsa prefix resolves because Xlmns declares it on the envelope root.
+func addWSATo(soap *gosoap.SoapMessage, to string) {
+	if to == "" {
+		return
+	}
+	element := etree.NewElement("wsa:To")
+	element.SetText(to)
+	soap.AddHeaderContent(element)
+}
+
 func buildMethodSOAP(msg string) (*gosoap.SoapMessage, error) {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromString(msg); err != nil {

@@ -521,12 +521,64 @@ type Config struct {
 	Parameters ItemList  `xml:"http://www.onvif.org/ver10/schema Parameters"`
 }
 
+// ItemList holds the Source, Key and Data groups of a Message and the Parameters of a
+// Config.
+//
+// SimpleItem and ElementItem are slices: ONVIF Core section 9.4.1 says each group "can hold
+// an arbitrary number of items of type SimpleItem or ElementItem", and the notification in
+// section 9.10.6 puts three tt:SimpleItem in one tt:Source. They were single values, so
+// encoding/xml overwrote the field for each item it met and only the last survived -- in a
+// notification the event's own source identity collapsed to its last token, and in an
+// analytics dump every module carrying more than one parameter reported one.
 type ItemList struct {
-	SimpleItem  SimpleItem        `xml:"http://www.onvif.org/ver10/schema SimpleItem"`
-	ElementItem ElementItem       `xml:"http://www.onvif.org/ver10/schema ElementItem"`
+	SimpleItem  []SimpleItem      `xml:"http://www.onvif.org/ver10/schema SimpleItem"`
+	ElementItem []ElementItem     `xml:"http://www.onvif.org/ver10/schema ElementItem"`
 	Extension   ItemListExtension `xml:"http://www.onvif.org/ver10/schema Extension"`
 }
 
+// Message is tt:Message, the ONVIF payload of every notification.
+//
+// ONVIF Core section 9.4.1: UtcTime is when the event described by the message occurred,
+// Topic and Source identify its origin, Data carries one or more values describing it, and an
+// optional Key extends the Source identifier. Source, Key and Data are item lists.
+//
+// It lives here with the rest of the tt: schema rather than in event/: the element is in
+// http://www.onvif.org/ver10/schema, its three groups are the ItemList above, and the same
+// type travels in analytics metadata. event/ holds only the WS-Notification holder that
+// quotes it.
+//
+// TODO(jfs): tt:MessageExtension is not modelled. onvif.xsd is not in this tree, so its
+// shape cannot be cited the way everything else here is; encoding/xml drops what no field
+// claims, so the cost is a vendor extension and not an ONVIF one.
+type Message struct {
+	// Unqualified attributes, for the reason SimpleItem's carry below: onvif.xsd declares
+	// them locally and sets no attributeFormDefault, so they belong to no namespace.
+	UtcTime xsd.DateTime `xml:"UtcTime,attr"`
+	// PropertyOperation appears only on a property event, where section 9.4.2 makes it
+	// mandatory and gives it Initialized, Changed or Deleted. Omitted when empty rather than
+	// sent blank, so an ordinary event does not claim to be a property one.
+	PropertyOperation string `xml:"PropertyOperation,attr,omitempty"`
+
+	Source ItemList `xml:"http://www.onvif.org/ver10/schema Source"`
+	Key    ItemList `xml:"http://www.onvif.org/ver10/schema Key"`
+	Data   ItemList `xml:"http://www.onvif.org/ver10/schema Data"`
+}
+
+// A note on the secret-hygiene rule, because this is where its mechanism stops.
+//
+// AGENTS.md has a secret-bearing field carry json:"-" while keeping its xml: tag, and
+// redaction_test.go pins both directions. That covers fields *this schema declares*. A
+// tt:ItemList is not one: it is a key/value channel whose names the device chooses, from the
+// MessageDescription it publishes (ONVIF Core section 9.4.3) and from vendor extensions, so
+// an item called "Password" arrives as data under a key no Go field corresponds to. There is
+// nothing to tag, and tagging ItemList itself would delete the whole of what `onvif-cli
+// subscribe` and `dump media` exist to print.
+//
+// So the invariant here is a property of the callers rather than of this struct, and it is
+// worth knowing that this payload widened: an ElementItem's value used to be dropped on
+// unmarshal and is now carried, and ItemList is reachable from `dump media` and `dump all`
+// through VideoAnalyticsConfiguration. redaction_test.go pins the decision in the opposite
+// direction, so that nobody "fixes" it by adding a tag.
 type SimpleItem struct {
 	// Unqualified: onvif.xsd declares these locally and sets no attributeFormDefault, so
 	// they belong to no namespace. Qualifying them broke both directions — a camera's plain
@@ -535,8 +587,30 @@ type SimpleItem struct {
 	Value xsd.AnySimpleType `xml:"Value,attr"`
 }
 
+// ElementItem is a named item whose value is one XML element (ONVIF Core section 9.4.1).
+//
+// Value keeps that element verbatim. Without it the value was discarded -- encoding/xml
+// drops what no field claims -- so a rule configuration read back through Config.Parameters
+// lost every polygon it contained. Verbatim rather than typed because the element is
+// whatever the topic's MessageDescription declares (section 9.4.3), which varies by topic and
+// by vendor.
+//
+// Note that ,innerxml captures the fragment as it stands, so a prefix declared on an
+// ancestor is not carried with it: the value is faithful inside its own envelope and is not
+// a standalone document. That is the right trade for a dump, and it is the whole of what can
+// be promised about an element nobody here has a schema for.
+//
+// It is an unmarshal-side capture, and encoding/xml writes it back verbatim and unescaped --
+// so a Config read from a device and marshalled into a request (analytics/types.go carries
+// one in Rule and AnalyticsModule) splices the device's own bytes, prefixes included, into
+// an envelope this library built. networking.Xlmns declares tt alongside onvif for exactly
+// that reason, which covers the prefix every ONVIF example uses; a device that picked a third
+// one would produce an envelope that is not namespace-well-formed and that it would then
+// reject whole. A caller re-sending a Config it read has to re-encode this value rather than
+// trust the round trip.
 type ElementItem struct {
-	Name string `xml:"Name,attr"`
+	Name  string `xml:"Name,attr"`
+	Value string `xml:",innerxml"`
 }
 
 type ItemListExtension xsd.AnyType
