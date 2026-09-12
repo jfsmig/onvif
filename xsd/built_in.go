@@ -539,9 +539,13 @@ func (tp Token) NewToken(data NormalizedString) (Token, error) {
 type Language Token
 
 func (tp Language) NewLanguage(data Token) (Language, error) {
-	//Pattern was given from https://www.w3.org/2001/05/datatypes.xsd
-	rgxp := regexp.MustCompile(`([a-zA-Z]{2}|[iI]-[a-zA-Z]+|[xX]-[a-zA-Z]{1,8})(-[a-zA-Z]{1,8})*`)
-	if rgxp.MatchString(string(data)) {
+	// Pattern from https://www.w3.org/2001/05/datatypes.xsd, anchored, and the sense of the
+	// test inverted. It read `if rgxp.MatchString(...)`, so a well-formed language tag was
+	// the one thing it refused -- and unanchored, regexp.MatchString looks for the pattern
+	// anywhere, so "1en2" satisfied it through the "en" in the middle. A schema pattern
+	// constrains the whole lexical value, which is what the anchors say.
+	rgxp := regexp.MustCompile(`^([a-zA-Z]{2}|[iI]-[a-zA-Z]+|[xX]-[a-zA-Z]{1,8})(-[a-zA-Z]{1,8})*$`)
+	if !rgxp.MatchString(string(data)) {
 		return Language(""), errors.New("String does not match pattern ([a-zA-Z]{2}|[iI]-[a-zA-Z]+|[xX]-[a-zA-Z]{1,8})(-[a-zA-Z]{1,8})*")
 	}
 	return Language(data), nil
@@ -668,7 +672,9 @@ func (tp Byte) NewByte(data int8) Byte {
 type NonNegativeInteger int64
 
 func (tp NonNegativeInteger) NewNonNegativeInteger(data int64) (NonNegativeInteger, error) {
-	if data > 0 {
+	// data < 0, not data > 0: the test used to be the complement of the rule, so this
+	// refused every non-negative value it exists to accept and admitted every negative one.
+	if data < 0 {
 		return 0, errors.New("Value must be more or equal to 0")
 	}
 	return NonNegativeInteger(data), nil
@@ -701,7 +707,8 @@ func (tp UnsignedByte) NewUnsignedByte(data uint8) UnsignedByte {
 type PositiveInteger int64
 
 func (tp PositiveInteger) NewPositiveInteger(data int64) (PositiveInteger, error) {
-	if data >= 0 {
+	// data <= 0, not data >= 0, which rejected every value including the positive ones.
+	if data <= 0 {
 		return 0, errors.New("Value must be more than 0")
 	}
 	return PositiveInteger(data), nil

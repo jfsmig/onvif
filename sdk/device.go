@@ -47,10 +47,14 @@ type DeviceSystem struct {
 }
 
 type DeviceSecurity struct {
-	RemoteUser            *onvif.RemoteUser
-	Users                 []onvif.User
-	AccessPolicy          *onvif.BinaryData
-	ClientCertificateMode bool
+	RemoteUser   *onvif.RemoteUser
+	Users        []onvif.User
+	AccessPolicy *onvif.BinaryData
+	// A pointer, unlike a plain bool, because every other field of this struct is one or
+	// a slice: absence was representable for all of them and not for this. A faulted
+	// GetClientCertificateMode dumped as false, which reads as the camera confirming that
+	// client certificates are off rather than never having been asked.
+	ClientCertificateMode *bool
 	NvtCertificate        []CertificateX
 	CACertificate         []CertificateX
 	CertificateStatus     []onvif.CertificateStatus
@@ -70,10 +74,19 @@ type DeviceNetwork struct {
 	IPAddressFilter    *onvif.IPAddressFilter
 }
 
+// NetworkInterfaceX is one network interface as the device reports it.
+//
+// It held two more fields, Dot1XConfiguration and Status, and nothing ever assigned either.
+// That was worse than inert: `onvif-cli dump device` JSON-encodes this, so every NIC carried
+// a populated-looking Dot1XConfiguration with an empty Identity and a Dot11Status with an
+// empty SSID -- which an operator reads as the camera reporting no 802.1X identity and no
+// wireless association, when neither question was ever asked.
+//
+// Dot1XConfiguration was also redundant: DeviceNetwork.Dot1XConfiguration already holds every
+// configuration the device has, keyed by token, and is actually filled. Status was simply
+// never implemented; see the TODO beside FetchDeviceNetwork's other missing call.
 type NetworkInterfaceX struct {
-	NetworkInterface   onvif.NetworkInterface
-	Dot1XConfiguration onvif.Dot1XConfiguration
-	Status             onvif.Dot11Status
+	NetworkInterface onvif.NetworkInterface
 }
 
 type CertificateX struct {
@@ -287,7 +300,8 @@ func (p *ProfileS) FetchDeviceSecurity(ctx context.Context) DeviceSecurity {
 
 	wg.Go(func() {
 		if cs, err := device.Call_GetClientCertificateMode(ctx, p.client, device.GetClientCertificateMode{}); err == nil {
-			out.ClientCertificateMode = bool(cs.Enabled)
+			enabled := bool(cs.Enabled)
+			out.ClientCertificateMode = &enabled
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "GetClientCertificateMode").Msg("device")
 		}
@@ -413,6 +427,8 @@ func (p *ProfileS) FetchDeviceNetwork(ctx context.Context) DeviceNetwork {
 	})
 
 	// TODO(jfsmig): ScanAvailableDot11Networks
+	// TODO(jfsmig): GetDot11Status per interface, into NetworkInterfaceX. It takes an
+	// InterfaceToken, so it is a per-NIC fan-out in the shape of FetchPTZ's inner one.
 
 	wg.Wait()
 	return out

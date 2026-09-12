@@ -265,3 +265,85 @@ func TestAddEndpointDropsAnEmbeddedCredential(t *testing.T) {
 		t.Errorf("GetEndpoint(media) = %q, want the service address without the userinfo", got)
 	}
 }
+
+// GetEndpoint indexed the map directly while getEndpoint, which CallMethod uses, resolved
+// through HasEndpoint. Two exported lookups answering the same question differently, and the
+// one with the shorter and more obvious name was the wrong one.
+//
+// The divergence is not hypothetical or rare: ONVIF advertises the event service as "Events",
+// AddEndpoint lowercases that to "events", and serviceEndpointKeys exists to map "event" onto
+// it. So on an ordinary camera Appliance.GetEndpoint("event") returned "" while HasEvent()
+// answered true and CallMethod routed event requests perfectly well. A caller that believed
+// the first concluded the camera had no event service.
+func TestGetEndpointResolvesTheSameWayCallMethodDoes(t *testing.T) {
+	client, err := NewClient(ClientInfo{Xaddr: "10.0.0.1:80"}, nil)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	// Exactly what a device advertises, capitalised its own way.
+	client.AddEndpoint("Events", "http://10.0.0.1/onvif/event_service")
+
+	want, found := client.HasEndpoint("event")
+	if !found {
+		t.Fatal("HasEndpoint cannot resolve `event` from `Events`, so serviceEndpointKeys has changed")
+	}
+	if got := client.GetEndpoint("event"); got != want {
+		t.Errorf("GetEndpoint(%q) = %q, want %q: it disagrees with the resolution "+
+			"CallMethod performs, so a caller reads the service as absent", "event", got, want)
+	}
+
+	// A service the device never advertised must still come back empty, or the fix would
+	// have traded a false negative for a false positive.
+	if got := client.GetEndpoint("ptz"); got != "" {
+		t.Errorf("GetEndpoint(%q) = %q, want empty", "ptz", got)
+	}
+}
+
+// AddEndpoint's rewrite was guarded by `if u, err := url.Parse(Value); err == nil` with no
+// else, so a value that would not parse was stored exactly as the device sent it -- skipping
+// both things the block exists to do: re-point the host at the address the device is actually
+// reachable at, and drop any account it embedded.
+//
+// url.Parse is permissive but it does fail, and on strings a device can plausibly advertise:
+// a stray "%zz" escape, a control character in the path, a trailing bare "%". The credential
+// never reached the wire, because SendSoap's http.NewRequestWithContext re-parses the same
+// string and fails the same way -- but the call then failed at request time with an opaque
+// net/url message instead of here, where the cause is visible, and AGENTS.md's "no ignored
+// errors" was breached in the one place that matters.
+//
+// An endpoint that cannot be parsed cannot be used, so it is not recorded at all: the caller
+// gets ErrNoService naming the service, which is the accurate report.
+func TestAddEndpointRefusesAnUnparseableXAddr(t *testing.T) {
+	for _, bad := range []string{
+		"http://user:pass@10.0.0.1/onvif/%zz",
+		"http://user:pass@10.0.0.1:80/bad%",
+		":://nonsense",
+	} {
+		t.Run(bad, func(t *testing.T) {
+			client, err := NewClient(ClientInfo{Xaddr: "10.0.0.1:80"}, nil)
+			if err != nil {
+				t.Fatalf("NewClient: %v", err)
+			}
+			client.AddEndpoint("Media", bad)
+
+			if got, found := client.HasEndpoint("media"); found {
+				t.Errorf("an unparseable XAddr was recorded as %q; it can never be used, "+
+					"and it still carries whatever the device embedded in it", got)
+			}
+		})
+	}
+
+	// A value that parses is still recorded, host rewritten and userinfo dropped.
+	client, err := NewClient(ClientInfo{Xaddr: "10.0.0.1:80"}, nil)
+	if err != nil {
+		t.Fatalf("NewClient: %v", err)
+	}
+	client.AddEndpoint("Media", "http://user:pass@192.168.9.9/onvif/media_service")
+	got, found := client.HasEndpoint("media")
+	if !found {
+		t.Fatal("a well-formed XAddr was dropped along with the malformed ones")
+	}
+	if want := "http://10.0.0.1:80/onvif/media_service"; got != want {
+		t.Errorf("HasEndpoint = %q, want %q", got, want)
+	}
+}

@@ -97,3 +97,53 @@ func TestConstructorsReflectTheirArgument(t *testing.T) {
 		})
 	}
 }
+
+// Three validators in this file tested the complement of their own rule, so each returned an
+// error for exactly the values it exists to accept and accepted the ones it exists to reject:
+//
+//   - NewNonNegativeInteger errored when data > 0, so it refused every positive integer and
+//     admitted every negative one;
+//   - NewPositiveInteger errored when data >= 0, so it refused everything;
+//   - NewLanguage errored when the pattern *matched*, and the pattern was unanchored, so
+//     regexp.MatchString succeeded on any string containing two letters anywhere.
+//
+// None of the three has a caller in this repository, so nothing ever reached a camera. That
+// is what keeps this a latent defect rather than a wire failure -- and it is also why it went
+// unnoticed: they are exported, so the first caller would have inherited the inversion whole.
+func TestNumericAndLanguageConstructorsAcceptTheirOwnRange(t *testing.T) {
+	t.Run("NonNegativeInteger", func(t *testing.T) {
+		for _, ok := range []int64{0, 7} {
+			if _, err := NonNegativeInteger(0).NewNonNegativeInteger(ok); err != nil {
+				t.Errorf("NewNonNegativeInteger(%d) = %v, want nil", ok, err)
+			}
+		}
+		if _, err := NonNegativeInteger(0).NewNonNegativeInteger(-1); err == nil {
+			t.Error("NewNonNegativeInteger(-1) accepted a negative value")
+		}
+	})
+
+	t.Run("PositiveInteger", func(t *testing.T) {
+		if _, err := PositiveInteger(0).NewPositiveInteger(7); err != nil {
+			t.Errorf("NewPositiveInteger(7) = %v, want nil", err)
+		}
+		for _, bad := range []int64{0, -1} {
+			if _, err := PositiveInteger(0).NewPositiveInteger(bad); err == nil {
+				t.Errorf("NewPositiveInteger(%d) accepted a non-positive value", bad)
+			}
+		}
+	})
+
+	t.Run("Language", func(t *testing.T) {
+		for _, ok := range []string{"en", "en-GB", "x-klingon"} {
+			if _, err := Language("").NewLanguage(Token(ok)); err != nil {
+				t.Errorf("NewLanguage(%q) = %v, want nil", ok, err)
+			}
+		}
+		// Unanchored, the pattern matched the "en" inside these and admitted them whole.
+		for _, bad := range []string{"123", "1en2", ""} {
+			if _, err := Language("").NewLanguage(Token(bad)); err == nil {
+				t.Errorf("NewLanguage(%q) accepted a value that is not a language tag", bad)
+			}
+		}
+	})
+}

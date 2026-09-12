@@ -24,7 +24,10 @@ import (
 )
 
 type Ptz struct {
-	Capabilities  ptz.Capabilities
+	// A pointer, so that a failed GetServiceCapabilities is null in a dump rather than a
+	// struct of false bools, which reads as a camera that supports nothing. Same shape as
+	// DeviceDescriptor.Capabilities, and the same reason.
+	Capabilities  *ptz.Capabilities
 	Nodes         []onvif.PTZNode
 	Configuration []onvif.PTZConfiguration
 }
@@ -43,7 +46,7 @@ func (p *ProfileS) FetchPTZ(ctx context.Context) Ptz {
 
 	wg.Go(func() {
 		if caps, err := ptz.Call_GetServiceCapabilities(ctx, p.client, ptz.GetServiceCapabilities{}); err == nil {
-			out.Capabilities = caps.Capabilities
+			out.Capabilities = &caps.Capabilities
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("ptz")
 		}

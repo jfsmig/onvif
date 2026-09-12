@@ -23,7 +23,10 @@ import (
 )
 
 type Event struct {
-	Capabilities event.Capabilities
+	// A pointer, so that a failed GetServiceCapabilities is null in a dump rather than a
+	// struct of false bools, which reads as a camera that supports nothing. Same shape as
+	// DeviceDescriptor.Capabilities, and the same reason.
+	Capabilities *event.Capabilities
 	Properties   event.GetEventPropertiesResponse
 }
 
@@ -40,7 +43,7 @@ func (p *ProfileS) FetchEvent(ctx context.Context) Event {
 
 	wg.Go(func() {
 		if capa, err := event.Call_GetServiceCapabilities(ctx, p.client, event.GetServiceCapabilities{}); err == nil {
-			out.Capabilities = capa.Capabilities
+			out.Capabilities = &capa.Capabilities
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("event")
 		}

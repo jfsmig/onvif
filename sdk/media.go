@@ -69,7 +69,7 @@ func (p *ProfileS) FetchMedia(ctx context.Context) Media {
 
 	wg.Go(func() {
 		if caps, err := media.Call_GetServiceCapabilities(ctx, p.client, media.GetServiceCapabilities{}); err == nil {
-			out.Capabilities = caps.Capabilities
+			out.Capabilities = &caps.Capabilities
 		} else {
 			Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("media")
 		}

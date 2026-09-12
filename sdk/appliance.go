@@ -89,9 +89,12 @@ type Appliance interface {
 }
 
 type Media struct {
-	Video        Video
-	Audio        Audio
-	Capabilities media.Capabilities
+	Video Video
+	Audio Audio
+	// A pointer, so that a failed GetServiceCapabilities is null in a dump rather than a
+	// struct of false bools, which reads as a camera that supports nothing. Same shape as
+	// DeviceDescriptor.Capabilities, and the same reason.
+	Capabilities *media.Capabilities
 }
 
 type deviceWrapper struct {

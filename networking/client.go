@@ -197,28 +197,47 @@ func (client *Client) deviceNow() time.Time {
 // that adjusted what it had just printed would silently reroute the client's calls.
 func (client *Client) GetServices() map[string]string { return maps.Clone(client.endpoints) }
 
-// GetEndpoint returns specific ONVIF service endpoint address
-func (client *Client) GetEndpoint(name string) string { return client.endpoints[name] }
+// GetEndpoint returns the address the device advertised for a service, and the empty string
+// when it advertised none.
+//
+// It resolves through HasEndpoint rather than indexing the map, so that it gives the answer
+// CallMethod would give. A raw lookup missed `event`, which devices advertise as `Events` and
+// serviceEndpointKeys exists to map -- so this reported no event service on a camera whose
+// event calls were routing correctly.
+func (client *Client) GetEndpoint(name string) string {
+	endpointURL, _ := client.HasEndpoint(name)
+	return endpointURL
+}
 
 func (client *Client) AddEndpoint(Key, Value string) {
 	//use lowCaseKey
 	//make key having ability to handle Mixed Case for Different vendor devcie (e.g. Events EVENTS, events)
 	lowCaseKey := strings.ToLower(Key)
 
-	// Replace host with host from device params.
-	if u, err := url.Parse(Value); err == nil {
-		u.Host = client.xaddr
-		// And drop any account the device embedded in the address it advertised. We
-		// authenticate with a WS-Security UsernameToken of our own, so a credential in the
-		// URI is never wanted -- and net/http turns req.URL.User into an HTTP Basic
-		// Authorization header, so keeping it would put a device-chosen credential on every
-		// request and into any error or log line carrying the endpoint. Same rule as
-		// FetchStreamURI's: a secret must not reach a log or a dump.
-		u.User = nil
-		Value = u.String()
+	// An address that will not parse is not recorded at all. The rewrite below used to be
+	// skipped on a parse failure while the raw value was stored anyway, which kept both of
+	// the things this function exists to prevent -- a host the device named from its own
+	// point of view, and an account it embedded -- and deferred the failure to request time,
+	// where http.NewRequestWithContext rejects the same string with an opaque net/url
+	// message naming no service. Dropping it means HasEndpoint reports the service as
+	// absent, and the caller gets ErrNoService naming it, which is the accurate answer: an
+	// endpoint nothing can parse is an endpoint nothing can call.
+	u, err := url.Parse(Value)
+	if err != nil {
+		return
 	}
 
-	client.endpoints[lowCaseKey] = Value
+	// Replace host with host from device params.
+	u.Host = client.xaddr
+	// And drop any account the device embedded in the address it advertised. We
+	// authenticate with a WS-Security UsernameToken of our own, so a credential in the
+	// URI is never wanted -- and net/http turns req.URL.User into an HTTP Basic
+	// Authorization header, so keeping it would put a device-chosen credential on every
+	// request and into any error or log line carrying the endpoint. Same rule as
+	// FetchStreamURI's: a secret must not reach a log or a dump.
+	u.User = nil
+
+	client.endpoints[lowCaseKey] = u.String()
 }
 
 // AtDeviceHost re-points a URI the device handed out at the host it is actually reachable
