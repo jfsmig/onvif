@@ -144,7 +144,7 @@ type GotoPreset struct {
 	XMLName      string               `xml:"tptz:GotoPreset"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
 	PresetToken  onvif.ReferenceToken `xml:"tptz:PresetToken"`
-	Speed        onvif.PTZSpeed       `xml:"tptz:Speed"`
+	Speed        *onvif.PTZSpeed      `xml:"tptz:Speed,omitempty"`
 }
 
 type GotoPresetResponse struct {
@@ -153,7 +153,7 @@ type GotoPresetResponse struct {
 type GotoHomePosition struct {
 	XMLName      string               `xml:"tptz:GotoHomePosition"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
-	Speed        onvif.PTZSpeed       `xml:"tptz:Speed"`
+	Speed        *onvif.PTZSpeed      `xml:"tptz:Speed,omitempty"`
 }
 
 type GotoHomePositionResponse struct {
@@ -171,7 +171,7 @@ type ContinuousMove struct {
 	XMLName      string               `xml:"tptz:ContinuousMove"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
 	Velocity     onvif.PTZSpeed       `xml:"tptz:Velocity"`
-	Timeout      xsd.Duration         `xml:"tptz:Timeout"`
+	Timeout      xsd.Duration         `xml:"tptz:Timeout,omitempty"`
 }
 
 type ContinuousMoveResponse struct {
@@ -181,7 +181,7 @@ type RelativeMove struct {
 	XMLName      string               `xml:"tptz:RelativeMove"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
 	Translation  onvif.PTZVector      `xml:"tptz:Translation"`
-	Speed        onvif.PTZSpeed       `xml:"tptz:Speed"`
+	Speed        *onvif.PTZSpeed      `xml:"tptz:Speed,omitempty"`
 }
 
 type RelativeMoveResponse struct {
@@ -200,7 +200,7 @@ type AbsoluteMove struct {
 	XMLName      string               `xml:"tptz:AbsoluteMove"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
 	Position     onvif.PTZVector      `xml:"tptz:Position"`
-	Speed        onvif.PTZSpeed       `xml:"tptz:Speed"`
+	Speed        *onvif.PTZSpeed      `xml:"tptz:Speed,omitempty"`
 }
 
 type AbsoluteMoveResponse struct {
@@ -210,19 +210,26 @@ type GeoMove struct {
 	XMLName      string               `xml:"tptz:GeoMove"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
 	Target       onvif.GeoLocation    `xml:"tptz:Target"`
-	Speed        onvif.PTZSpeed       `xml:"tptz:Speed"`
-	AreaHeight   xsd.Float            `xml:"tptz:AreaHeight"`
-	AreaWidth    xsd.Float            `xml:"tptz:AreaWidth"`
+	Speed        *onvif.PTZSpeed      `xml:"tptz:Speed,omitempty"`
+	AreaHeight   xsd.Float            `xml:"tptz:AreaHeight,omitempty"`
+	AreaWidth    xsd.Float            `xml:"tptz:AreaWidth,omitempty"`
 }
 
 type GeoMoveResponse struct {
 }
 
+// Stop halts the axes it names, and every axis when it names none.
+//
+// PanTilt and Zoom are pointers because docs/wsdl/ptz.wsdl:540 gives both minOccurs="0" and
+// makes the absence, not the value, the instruction: "If PanTilt arguments are not present,
+// this command stops these movements." So nil stops the axis, false explicitly leaves it
+// running, and a plain bool could not hold the difference -- the zero Stop used to send
+// false for both, which is a well-formed request to stop nothing at all.
 type Stop struct {
 	XMLName      string               `xml:"tptz:Stop"`
 	ProfileToken onvif.ReferenceToken `xml:"tptz:ProfileToken"`
-	PanTilt      xsd.Boolean          `xml:"tptz:PanTilt"`
-	Zoom         xsd.Boolean          `xml:"tptz:Zoom"`
+	PanTilt      *xsd.Boolean         `xml:"tptz:PanTilt,omitempty"`
+	Zoom         *xsd.Boolean         `xml:"tptz:Zoom,omitempty"`
 }
 
 type StopResponse struct {

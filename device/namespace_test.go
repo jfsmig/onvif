@@ -105,3 +105,24 @@ func TestDeviceRequestWireFormatUnchanged(t *testing.T) {
 		t.Fatalf("device request wire format changed: %s", got)
 	}
 }
+
+// docs/wsdl/devicemgmt.wsdl gives SetDynamicDNS's Name and TTL minOccurs="0". Both are string
+// kinds, so without omitempty the zero value went out as an empty element -- and "" is not in
+// the lexical space of xs:duration, which requires P and at least one component. A device that
+// validates its input rejects the whole request over a field the caller never set; one that
+// does not applies its own default, which is not what an absent element means either.
+func TestSetDynamicDNSOmitsWhatItWasNotGiven(t *testing.T) {
+	b, err := xml.Marshal(SetDynamicDNS{Type: "ServerUpdates"})
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	got := string(b)
+	for _, dead := range []string{"<tds:TTL>", "<tds:Name>"} {
+		if strings.Contains(got, dead) {
+			t.Errorf("an unset optional element is still on the wire: %s", got)
+		}
+	}
+	if !strings.Contains(got, "<tds:Type>ServerUpdates</tds:Type>") {
+		t.Errorf("the mandatory Type did not survive: %s", got)
+	}
+}

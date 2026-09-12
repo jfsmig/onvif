@@ -455,11 +455,18 @@ type GetDynamicDNSResponse struct {
 	DynamicDNSInformation onvif.DynamicDNSInformation
 }
 
+// SetDynamicDNS carries only the parts the caller means to set.
+//
+// docs/wsdl/devicemgmt.wsdl gives Name and TTL minOccurs="0", and both are string kinds whose
+// zero value is "". Without omitempty an unset TTL went out as <tds:TTL></tds:TTL>, and the
+// empty string is not in the lexical space of xs:duration, which requires P and at least one
+// component -- so a validating device rejects the whole request over a field the caller never
+// meant to send.
 type SetDynamicDNS struct {
 	XMLName string               `xml:"tds:SetDynamicDNS"`
 	Type    onvif.DynamicDNSType `xml:"tds:Type"`
-	Name    onvif.DNSName        `xml:"tds:Name"`
-	TTL     xsd.Duration         `xml:"tds:TTL"`
+	Name    onvif.DNSName        `xml:"tds:Name,omitempty"`
+	TTL     xsd.Duration         `xml:"tds:TTL,omitempty"`
 }
 
 type SetDynamicDNSResponse struct {

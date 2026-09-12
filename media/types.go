@@ -551,10 +551,16 @@ type SetAudioDecoderConfiguration struct {
 type SetAudioDecoderConfigurationResponse struct {
 }
 
+// The seven Get*ConfigurationOptions requests below all declare ConfigurationToken before
+// ProfileToken, and both omitempty, because that is what docs/wsdl/media.wsdl declares: a
+// two-element xs:sequence, ConfigurationToken first, both minOccurs="0". The schema sets
+// elementFormDefault="qualified", so the order is normative and a transposed pair is a fault
+// rather than a nicety -- and an optional token that is always emitted asks the device for
+// the configuration whose token is the empty string.
 type GetVideoSourceConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetVideoSourceConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetVideoSourceConfigurationOptionsResponse struct {
@@ -563,8 +569,8 @@ type GetVideoSourceConfigurationOptionsResponse struct {
 
 type GetVideoEncoderConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetVideoEncoderConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetVideoEncoderConfigurationOptionsResponse struct {
@@ -573,8 +579,8 @@ type GetVideoEncoderConfigurationOptionsResponse struct {
 
 type GetAudioSourceConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetAudioSourceConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetAudioSourceConfigurationOptionsResponse struct {
@@ -583,8 +589,8 @@ type GetAudioSourceConfigurationOptionsResponse struct {
 
 type GetAudioEncoderConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetAudioEncoderConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetAudioEncoderConfigurationOptionsResponse struct {
@@ -593,8 +599,8 @@ type GetAudioEncoderConfigurationOptionsResponse struct {
 
 type GetMetadataConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetMetadataConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetMetadataConfigurationOptionsResponse struct {
@@ -603,8 +609,8 @@ type GetMetadataConfigurationOptionsResponse struct {
 
 type GetAudioOutputConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetAudioOutputConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetAudioOutputConfigurationOptionsResponse struct {
@@ -613,8 +619,8 @@ type GetAudioOutputConfigurationOptionsResponse struct {
 
 type GetAudioDecoderConfigurationOptions struct {
 	XMLName            string               `xml:"trt:GetAudioDecoderConfigurationOptions"`
-	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken"`
-	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken"`
+	ConfigurationToken onvif.ReferenceToken `xml:"trt:ConfigurationToken,omitempty"`
+	ProfileToken       onvif.ReferenceToken `xml:"trt:ProfileToken,omitempty"`
 }
 
 type GetAudioDecoderConfigurationOptionsResponse struct {
