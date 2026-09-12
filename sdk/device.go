@@ -102,6 +102,12 @@ func (p *ProfileS) FetchDeviceDescriptor(ctx context.Context) DeviceDescriptor {
 
 	wg.Go(func() {
 		if capa, err := device.Call_GetCapabilities(ctx, p.client, device.GetCapabilities{Category: "All"}); err == nil {
+			// The device's own reply, handed back whole and encoded whole by `dump all`.
+			// Its thirteen XAddr fields never pass through networking.AddEndpoint, which
+			// only ever sees a copy on the way into the routing table -- so without this a
+			// dump showed the account stripped from the GetServices() map and kept in the
+			// Capabilities block printed just below it.
+			redactURIs(&capa.Capabilities)
 			out.Capabilities = &capa.Capabilities
 		} else {
 			rpcFailure(p.client, err, "GetCapabilities").Msg("device")

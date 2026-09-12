@@ -26,6 +26,10 @@ COMMAND:
   streams [-a]             the same probe, then one line per media profile of every
                            device found:
                              INTERFACE XADDR UUID PROFILE STREAM_URI SNAPSHOT_URI
+                           The URIs carry no credentials, even when the camera answered
+                           with some embedded: they are printed on stdout, and a password
+                           does not belong there. Supply your own at the point of use —
+                           `ffplay -rtsp_transport tcp rtsp://user:pass@HOST/path`.
   subscribe TARGET...      hold an ONVIF real-time pull-point subscription on each named
                            camera and print one JSON object per line, one line per event,
                            until interrupted. Ctrl-C or SIGTERM ends the run successfully.

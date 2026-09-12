@@ -197,11 +197,17 @@ func (dw *deviceWrapper) GetDeviceEndpoint() string { return dw.GetEndpoint("dev
 // FetchStreamURI returns the stream URI of the appliance's first media profile, or "" when
 // it has none.
 //
-// It carries no credentials. It used to interpolate the username and password into the
-// RTSP URL, which put a password into a string callers log, print and pass to other
-// processes -- against the rule in AGENTS.md that a secret must not reach a dump. A caller
-// that needs authenticated RTSP should add its own credentials at the point of use, where
-// it can decide how they are handled.
+// It carries no credentials, in either direction. It used to interpolate our own username
+// and password into the RTSP URL, which put a password into a string callers log, print and
+// pass to other processes -- against the rule in AGENTS.md that a secret must not reach a
+// dump. It now also drops any account the *device* embedded in its answer, which firmware
+// commonly does: rtsp://admin:secret@host/... is an ordinary reply to GetStreamUri, and this
+// string is printed on stdout by `onvif-cli streams`.
+//
+// So a URI from here will not authenticate on its own, and that is the deliberate cost. A
+// caller that needs authenticated RTSP adds its own credentials at the point of use, where it
+// can decide how they are handled -- which is the only place that decision can be made
+// safely, since this package cannot know whether its result is about to be logged.
 //
 // "First" is now the lowest profile token in lexicographic order. It used to be whichever
 // key the map yielded first, so an appliance with several profiles answered differently

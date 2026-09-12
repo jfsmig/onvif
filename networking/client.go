@@ -271,15 +271,42 @@ func (client *Client) AddEndpoint(Key, Value string) {
 
 	// Replace host with host from device params.
 	u.Host = client.xaddr
-	// And drop any account the device embedded in the address it advertised. We
-	// authenticate with a WS-Security UsernameToken of our own, so a credential in the
-	// URI is never wanted -- and net/http turns req.URL.User into an HTTP Basic
-	// Authorization header, so keeping it would put a device-chosen credential on every
-	// request and into any error or log line carrying the endpoint. Same rule as
-	// FetchStreamURI's: a secret must not reach a log or a dump.
+	// And drop any account the device embedded in the address it advertised, for the
+	// reasons set out on WithoutUserinfo. Done here rather than through it because the URL
+	// is already parsed.
 	u.User = nil
 
 	client.endpoints[lowCaseKey] = u.String()
+}
+
+// WithoutUserinfo drops any account a device embedded in a URI it handed out, and returns a
+// URI it cannot parse unchanged.
+//
+// Devices do this. Firmware answers GetStreamUri with rtsp://admin:secret@host/... and
+// advertises XAddrs the same way, and those strings are printed by `onvif-cli streams`,
+// JSON-encoded by `onvif-cli dump`, and passed to other processes. AGENTS.md's rule is that a
+// secret must not reach a log or a dump, and this is the only thing that enforces it for a
+// URI, because the json:"-" mechanism cannot: these are not secret-bearing fields, they are
+// ordinary fields whose value happens to contain one.
+//
+// There is a second reason for the endpoint callers, and it is why this cannot be left to the
+// caller's discretion: net/http turns req.URL.User into an HTTP Basic Authorization header,
+// so a credential left in an endpoint would be sent to the device on every request beside the
+// WS-Security UsernameToken we actually authenticate with -- which ONVIF Core section 5.12.1
+// advises against in as many words.
+//
+// A URI that will not parse comes back as it stands. That is deliberate here, unlike in
+// AddEndpoint where such a value is refused outright: this function is used where the URI is
+// the device's answer to a question and the caller has nothing better to show, so replacing
+// it with an error would lose information rather than protect anything. Its callers do not
+// route on it.
+func WithoutUserinfo(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.User == nil {
+		return raw
+	}
+	u.User = nil
+	return u.String()
 }
 
 // AtDeviceHost re-points a URI the device handed out at the host it is actually reachable
@@ -311,7 +338,7 @@ func (client *Client) AtDeviceHost(raw string) string {
 		return raw
 	}
 
-	// Drop any account the device embedded, for the reason AddEndpoint drops it.
+	// Drop any account the device embedded, for the reasons set out on WithoutUserinfo.
 	u.User = nil
 
 	host := client.xaddr

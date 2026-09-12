@@ -20,7 +20,9 @@ import (
 	"sync"
 
 	"github.com/jfsmig/onvif/media"
+	"github.com/jfsmig/onvif/networking"
 	"github.com/jfsmig/onvif/ptz"
+	"github.com/jfsmig/onvif/xsd"
 	"github.com/jfsmig/onvif/xsd/onvif"
 )
 
@@ -136,13 +138,25 @@ func (p *ProfileS) FetchMediaProfileUris(ctx context.Context, protocol onvif.Tra
 	}
 
 	if uris, err := media.Call_GetStreamUri(ctx, p.client, streamRequest); err == nil {
+		// Redacted, because these two URIs are the whole output of `onvif-cli streams` and
+		// are JSON-encoded by `dump profile`: firmware commonly answers with the account
+		// spliced in, as rtsp://admin:secret@host/..., and AGENTS.md's rule is that a secret
+		// must not reach a log or a dump. It is the same rule networking.AddEndpoint and
+		// AtDeviceHost apply to every other URI a device hands over; this family was the one
+		// it had never reached, and the one printed by default.
+		//
+		// The cost is stated where a caller will meet it, on FetchStreamURI: a URI from here
+		// will not authenticate on its own, and a caller that needs authenticated RTSP adds
+		// its own credentials at the point of use, where it can decide how they are handled.
 		out.Stream = uris.MediaUri
+		out.Stream.Uri = xsd.AnyURI(networking.WithoutUserinfo(string(uris.MediaUri.Uri)))
 	} else {
 		rpcFailure(p.client, err, "GetStreamUri").Msg("profile")
 	}
 
 	if uris, err := media.Call_GetSnapshotUri(ctx, p.client, media.GetSnapshotUri{ProfileToken: token}); err == nil {
 		out.Snapshot = uris.MediaUri
+		out.Snapshot.Uri = xsd.AnyURI(networking.WithoutUserinfo(string(uris.MediaUri.Uri)))
 	} else {
 		rpcFailure(p.client, err, "GetSnapshotUri").Msg("profile")
 	}

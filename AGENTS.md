@@ -219,6 +219,14 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   reason, never log a `ClientAuth` (it has no redacting `String()`, so `%v` prints the
   password) or a SOAP envelope (it carries the UsernameToken digest and nonce).
 
+  A URI needs its own rule, because the tag cannot reach it: a stream URI or an advertised
+  XAddr is not a secret-bearing field, it is an ordinary field whose value may contain an
+  account. `networking.WithoutUserinfo` is that rule, applied by `AddEndpoint` and
+  `AtDeviceHost` on the way in and by `sdk`'s `redactURIs` to a reply handed back whole.
+  `sdk/uri_redaction_test.go` walks a `Capabilities` reflectively rather than listing its
+  thirteen `XAddr` fields, because the defect it pins was one family of URI being missed while
+  two others were handled.
+
   One exception is deliberate, and it is the shape any future one has to take. The DTO in
   `credentials/store.go` cannot carry `json:"-"`: it exists to be *unmarshalled* from a
   credentials file. It is unexported, lives only inside the loader, is converted to a
