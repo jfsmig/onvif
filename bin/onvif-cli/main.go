@@ -78,6 +78,13 @@ var (
 	//
 	// Package-level like httpClient above, and for the same reason: there is exactly one
 	// per process, and every command needs it.
+	//
+	// Safe to read from the fan-out goroutines by phase separation, not by synchronisation:
+	// cobra runs PersistentPreRunE to completion before any RunE, so the write happens before
+	// every read and nothing else ever writes it. That is the whole guarantee. Reloading
+	// credentials later -- on SIGHUP, say -- would be a data race against every in-flight
+	// credentialsFor, and no lock added at that point could fix it; such a reload has to
+	// swap an atomic pointer, or not happen.
 	resolver credentials.Resolver
 
 	// baseDir is where --basedir puts its argument. Empty means "not named", which is

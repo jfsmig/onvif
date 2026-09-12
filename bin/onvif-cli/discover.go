@@ -159,6 +159,15 @@ func discover(ctx context.Context, opts discoverOptions) error {
 		return nil
 	}
 
+	// How large a fleet this takes is bounded by the process file-descriptor limit and by
+	// nothing here, exactly as in subscribe.go's streamFleet -- and this is the command an
+	// operator points at a whole LAN, so it is the one that finds the limit first. Each
+	// camera costs an endpoint load and then a FetchMediaProfiles that itself fans out about
+	// a dozen requests per media profile, and httpClient's MaxConnsPerHost is per host, so it
+	// caps nothing across a fleet of distinct hosts. Forty cameras is a few hundred sockets
+	// at once, inside the one minute runOneShot allows. Past the limit the failures read as
+	// unreachable cameras, and `ulimit -n` is the answer.
+	//
 	// One goroutine per camera, each writing only its own slot. Every camera costs an
 	// endpoint load and then a GetProfiles, and doing that in the print loop made a fleet
 	// cost the sum of its cameras under a deadline the whole run shares. Same shape as

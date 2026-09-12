@@ -29,15 +29,9 @@ import (
 //TODO: type <typeName> struct {Any string} convert to type <typeName> AnyType
 //TODO: process restrictions
 
-//todo посмотреть все Extensions (Any string)
-//todo что делать с xs:any = Any
-//todo IntList и ему подобные. Проверить нужен ли слайс. Изменить на slice
-//todo посмотреть можно ли заменить StreamType и ему подобные типы на вмтроенные типы
-//todo оттестировать тип VideoSourceMode из-за Description-а
-
-//todo в документации описать, что Capabilities повторяеся у каждого сервиса, поэтому у каждого свой Capabilities (MediaCapabilities)
-//todo AuxiliaryData и другие simpleTypes, как реализовать рестрикшн
-//todo Name и ему подобные необходимо изучить на наличие "List of..." ошибок
+// Capabilities is deliberately not one type: ONVIF gives each service its own element of
+// that name with its own content, which is why MediaCapabilities, PTZCapabilities and their
+// siblings exist separately below rather than sharing one.
 
 //todo Add in buit in
 

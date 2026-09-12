@@ -72,6 +72,12 @@ func SendSoap(ctx context.Context, httpClient *http.Client, endpoint, message st
 // deliberately generous: the largest legitimate ONVIF reply is not a configuration but a
 // log, since GetSystemLog and GetSystemSupportInformation return device text wholesale, and
 // a tight limit would truncate a real answer.
+//
+// Per reply, which is the number to keep in mind when changing anything that fans out: the
+// peak a caller can reach is this times the number of replies it reads at once. `dump all`
+// offers about a hundred operations against one camera and http.Client's MaxConnsPerHost --
+// 4 in bin/onvif-cli -- is what actually bounds the concurrent reads, so raising that raises
+// the memory ceiling with it.
 const MaxResponseBytes = 32 << 20
 
 // ReadAndParse consumes the reply body and unmarshals it into reply.

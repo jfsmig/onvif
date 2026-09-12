@@ -196,3 +196,25 @@ func TestSubscribeRequestWireFormatUnchanged(t *testing.T) {
 		}
 	}
 }
+
+// xsd/onvif/t-1.xsd:10 declares the element in lower case:
+//
+//	<xsd:element minOccurs="0" name="documentation" type="wstop:Documentation"/>
+//
+// and encoding/xml matches a field name against an element name case-sensitively, so an
+// untagged Documentation field bound to nothing at all: the topic documentation a device
+// sends in its GetEventProperties reply was parsed, matched no field, and dropped silently.
+// The comment that used to sit here noted the lower-case spelling without drawing the
+// conclusion, which is why it survived so long.
+func TestTopicDocumentationIsCaptured(t *testing.T) {
+	const reply = `<TopicSet><documentation>what this topic means</documentation></TopicSet>`
+
+	var out TopicSetType
+	if err := xml.Unmarshal([]byte(reply), &out); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if got := string(out.Documentation); !strings.Contains(got, "what this topic means") {
+		t.Errorf("Documentation = %q, want the text the device sent: an untagged field "+
+			"never matches the schema's lower-case element name", got)
+	}
+}

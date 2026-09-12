@@ -13,6 +13,22 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+// Package sdk is the layer a caller wants: NewDevice connects to a camera, loads the service
+// endpoints it advertises, and hands back an Appliance offering one client per ONVIF Profile.
+//
+// The contract that governs almost everything here, and that surprises people: a Fetch*
+// method returns a struct and no error. A sub-call that failed is logged at trace level on
+// the package-level Logger and leaves its field zero, so that one operation a camera does not
+// implement cannot lose a whole dump -- cameras vary wildly in what they implement, and a
+// partial answer is worth more than an error. Two things follow from that and are easy to get
+// wrong. A field that swallowing can leave zero is a pointer wherever its zero value would
+// also be a legal answer, so null in a dump means "never answered" rather than "answered no".
+// And an expired or cancelled context is not swallowed by this rule at all: it is the
+// caller's own deadline and says nothing about the camera, so check ctx.Err() before treating
+// a returned struct as a reading.
+//
+// PullPoint is the deliberate exception, and its name says so: it is a chain in which every
+// link is load-bearing, so it returns errors.
 package sdk
 
 import (

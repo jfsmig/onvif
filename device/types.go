@@ -637,7 +637,10 @@ type DeleteCertificates struct {
 type DeleteCertificatesResponse struct {
 }
 
-// TODO: Откуда onvif:data = cid:21312413412
+// The Attributes BinaryData carries its payload by reference, as "cid:<content-id>",
+// which is an XOP/MTOM attachment reference: SOAP 1.2 Part 1 section 5.3 and the XOP
+// recommendation. This client sends the value inline and does not build MIME parts, so
+// a device that insists on the attachment form is not supported here.
 type GetPkcs10Request struct {
 	XMLName       string           `xml:"tds:GetPkcs10Request"`
 	CertificateID xsd.Token        `xml:"tds:CertificateID"`

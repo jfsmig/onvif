@@ -120,7 +120,13 @@ type TopicSetType struct { //wstop http://docs.oasis-open.org/wsn/t-1.xsd
 
 // ExtensibleDocumented struct
 type ExtensibleDocumented struct { //wstop http://docs.oasis-open.org/wsn/t-1.xsd
-	Documentation Documentation //к xsd-документе documentation с маленькой буквы начинается
+	// Tagged, because the element is spelled "documentation" in lower case --
+	// xsd/onvif/t-1.xsd:10 -- and encoding/xml matches a field name against an element name
+	// case-sensitively. Untagged, this field therefore bound to nothing: a device's topic
+	// documentation was parsed, matched no field, and was dropped without a word. The
+	// upstream comment here flagged the lower-case spelling and stopped short of the
+	// consequence.
+	Documentation Documentation `xml:"documentation"`
 	//here can be anyAttribute
 }
 

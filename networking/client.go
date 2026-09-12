@@ -13,6 +13,21 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+// Package networking is the SOAP client underneath everything else: Client.CallMethod
+// marshals a request struct, wraps it in a SOAP 1.2 envelope, signs it with a WS-Security
+// UsernameToken and POSTs it; ReadAndParse turns the reply back into a struct or into an
+// error naming the operation and, when the device sent one, the ter: subcode of its fault.
+//
+// The trap to know before adding anything here: CallMethod chooses the service endpoint from
+// the Go *package* the request struct lives in, through reflect.TypeOf(method).PkgPath(). So
+// the directory names device, media, ptz and event are entries in a routing table rather than
+// organisation, and renaming one silently routes its calls to no endpoint at all -- a failure
+// that compiles, vets and passes every test that does not specifically look for it, which is
+// what sdk/routing_test.go exists to do. A new service package is named after its ONVIF
+// endpoint. One request type may override the choice by implementing WSAAddressee, and only
+// the event service does.
+//
+// Like every package below sdk, this one returns errors and logs nothing.
 package networking
 
 import (

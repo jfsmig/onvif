@@ -13,12 +13,15 @@
 # Field 1 is the Go package directory, which is what CallMethod routes on: `event`, not
 # `events`. Every operation is checked against <package>/calls.txt at generation time.
 #
-# Four entries of the specification's tables are deliberately absent:
+# Two kinds of row in the specification's tables are deliberately absent:
 #   - Notify, TopicFilter, MessageContentFilter (7.7): not client-callable operations.
 #     Notify is the NotificationConsumer side, which a client serves rather than calls.
-#   - rows whose Service column is "Core" or "Streaming" (7.1, 7.9, 8.2): WS-Security and
-#     RTSP obligations, not SOAP operations. Note 7.1 makes HTTP Digest Client MANDATORY,
-#     which this library does not yet implement.
+#   - every row whose Service column is "Core" or "Streaming", wherever it occurs: those are
+#     WS-Security, WS-Discovery and RTSP obligations rather than SOAP operations, and nothing
+#     here could route them. They appear in 7.1, 7.3, 7.8, 7.9, 8.1 and 8.2 today, and the
+#     rule is stated rather than the list enumerated, so that a row in a section added later
+#     cannot be dropped silently. Note 7.1 makes HTTP Digest Client MANDATORY, which this
+#     library does not yet implement.
 # One entry is renamed: 7.5 lists "Reboot"; the WSDL operation is SystemReboot.
 # One section title is corrected: 8.17 is "IP Address Filtering" in the body, while its
 #   own function-list headers repeat "Relay Outputs" from 8.13. The body title is used.
@@ -71,7 +74,7 @@ feature 7.7   Event Handling
 event   CreatePullPointSubscription                M*  7.7
 event   GetEventProperties                         O   7.7
 event   PullMessages                               M*  7.7
-event   Renew                                      O   7.7
+event   Renew                                      M*  7.7
 event   SetSynchronizationPoint                    O   7.7
 event   Subscribe                                  M*  7.7
 event   Unsubscribe                                O   7.7

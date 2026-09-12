@@ -106,6 +106,17 @@ const (
 	ProtocolRTSP = onvif.TransportProtocol("RTSP")
 )
 
+// StreamTypeDefault is the StreamSetup.Stream value sent with every GetStreamUri here.
+//
+// The value is not a spelling docs/wsdl/media.wsdl uses: its three documented setups all give
+// StreamType as "RTP_unicast", and "000" appears nowhere in that file. It is inherited from
+// upstream and it works against the cameras this has been run on, which is the only evidence
+// there is -- tt:StreamType is declared in onvif.xsd, and that schema is not vendored here
+// (see docs/README.md), so nothing in the tree can say whether "000" is in its enumeration.
+//
+// Left as it stands rather than corrected blind: changing what every stream request sends, on
+// the strength of a document we do not have, risks breaking the cameras it currently works
+// with. Confirm against real hardware before touching it.
 const (
 	StreamTypeDefault = onvif.StreamType("000")
 )

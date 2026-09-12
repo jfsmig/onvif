@@ -80,7 +80,7 @@ verified by building and by running the CLI against a real camera.
 
 ## The generator — read this before touching `device/`, `media/`, `ptz/`, `event/`
 
-206 of the 263 `.go` files are generated. **Never hand-edit a `*_auto.go` file**; CI
+206 `.go` files are generated. **Never hand-edit a `*_auto.go` file**; CI
 regenerates them and diffs, so an edit is reverted and the build fails.
 
 The pipeline: each package has a `calls.txt` (one ONVIF method name per line, `#`
@@ -155,6 +155,14 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   zero, so one unsupported operation cannot lose a whole dump. Keep that shape — cameras
   vary wildly in what they implement.
 
+  Two corollaries, both learnt the hard way. A `Fetch*` swallows a per-call failure because
+  that failure is the camera's answer about itself; it does **not** swallow a cancelled or
+  expired context, which is the caller's own deadline and says nothing about the camera, so a
+  caller must check `ctx.Err()` before treating the result as a reading — `bin/onvif-cli`'s
+  `dumpSomething` and `streamLines` do. And a field that swallowing can leave zero must be one
+  whose zero value is not also a legal answer: use a pointer where it is, as
+  `DeviceDescriptor.Capabilities` and `DeviceSecurity.ClientCertificateMode` do.
+
   `sdk.PullPoint` is outside that rule and its name says so: it is a single chain in which
   every link is load-bearing, long-lived, and with no partial struct to hand back, since
   without the subscription manager URI there is nothing to pull from. It returns errors. A
@@ -193,8 +201,8 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   wholesale to stdout, and cameras do return passwords that ONVIF says they should not.
   So a secret-bearing field carries `json:"-"` while keeping its `xml:` tag — the request
   path legitimately sends a secret, `CreateUsers` and `SetUser` need it. Seven fields are
-  tagged today: six in `xsd/onvif/onvif.go` (the rationale sits at `:1221`) plus
-  `UserCredential.Password` in `device/types.go`. `xsd/onvif/redaction_test.go` pins both
+  tagged today: six in `xsd/onvif/onvif.go`, with the rationale in the comment above them,
+  plus `UserCredential.Password` in `device/types.go`. `xsd/onvif/redaction_test.go` pins both
   directions — dropped from JSON, kept in XML — so a new type carrying a password, key,
   passphrase or private key needs the tag *and* a new case in that test. For the same
   reason, never log a `ClientAuth` (it has no redacting `String()`, so `%v` prints the
@@ -212,7 +220,7 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   about the loader's body, which no test can enforce: keep it out of every format string.
 
 - **Never `log.Print*` to the standard logger.** Diagnostics go through a replaceable
-  logger: `sdk` exports a package-level `zerolog` `Logger` (`sdk/appliance.go:43`) that an
+  logger: `sdk` exports a package-level `zerolog` `Logger` (in `sdk/appliance.go`) that an
   application can swap out, and the CLI has its own in `bin/onvif-cli/main.go`. Packages
   below `sdk` — `networking`, `xsd`, `utils`, `credentials` — return errors and log
   nothing, with no exceptions left: `xsd/built_in.go` used to call `log.Fatalln` from a constructor and so

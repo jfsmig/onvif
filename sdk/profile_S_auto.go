@@ -629,7 +629,7 @@ func (p *ProfileS) RemoveVideoSourceConfiguration(ctx context.Context, request m
 
 // Renew performs the ONVIF event operation Renew.
 //
-// Profile S 7.7 Event Handling, optional.
+// Profile S 7.7 Event Handling, mandatory for clients, subject to the footnote of that section.
 func (p *ProfileS) Renew(ctx context.Context, request event.Renew) (event.RenewResponse, error) {
 	return event.Call_Renew(ctx, p.client, request)
 }
