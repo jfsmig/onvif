@@ -187,6 +187,28 @@ func streamFleet(ctx context.Context, cams []networking.ClientInfo, out io.Write
 		// the operator knows why the stream is empty, because they asked for it, and
 		// establishError's "no camera could be subscribed" would blame the fleet for a
 		// Ctrl-C. An interrupt is the successful end of this command wherever it lands.
+		//
+		// What was opened before the signal landed still has to be released. The streaming
+		// loop below is what normally does that, through streamCamera's defer, and it is
+		// never reached from here -- so a camera that answered CreatePullPointSubscription
+		// in the moment before the Ctrl-C was left holding an orphan until its termination
+		// time. PullPoint.Unsubscribe runs on context.WithoutCancel for exactly this
+		// instant, and MaxPullPoints is one to four on real firmware, so a supervisor
+		// restarting this collector exhausts a camera in a handful of runs -- after which
+		// CreatePullPointSubscription faults in a way that reads like a bad password.
+		var releasing sync.WaitGroup
+		for i, dev := range cams {
+			if opened[i] == nil {
+				continue
+			}
+			releasing.Go(func() {
+				if err := opened[i].Unsubscribe(ctx); err != nil {
+					Logger.Debug().Str("addr", dev.Xaddr).Err(err).Msg("pull point not released")
+				}
+			})
+		}
+		releasing.Wait()
+
 		Logger.Debug().Int("subscribed", live).Msg("stopped while subscribing")
 		return nil
 	}

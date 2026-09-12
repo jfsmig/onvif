@@ -170,6 +170,18 @@ var shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
 // Separate from main() so that a test can inspect the tree without running it -- the
 // PersistentPreRunE below is an invariant cobra does not enforce -- and so that main()
 // stays what it says it is: a context, a tree and Execute.
+// missingSubcommand reports a command that needs one, and shows which ones exist.
+//
+// PersistentPreRunE silences the usage block for every error, which is right for all of them
+// but this one: a missing sub-command is a usage error, and the block is the answer rather
+// than noise. Printing it here rather than un-silencing keeps that exception narrow, and
+// keeps it on stderr -- these commands write machine-parsable output, and a usage block on
+// stdout would be indistinguishable from data to whatever is parsing it.
+func missingSubcommand(cmd *cobra.Command, _ []string) error {
+	cmd.PrintErr(cmd.UsageString())
+	return ErrMissingSubcommand
+}
+
 func newRootCommand(ctx context.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		// cobra takes the first word of Use as the command name and builds every usage
@@ -181,7 +193,7 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 		// Now that there are flags there are usage errors, and cobra already prints
 		// "Error: ..." with the usage block; the Fatal below would say it a second time.
 		SilenceErrors: true,
-		RunE:          func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
+		RunE:          missingSubcommand,
 	}
 
 	// --basedir is the exception to the rule below, and the comment there says which side
@@ -296,7 +308,7 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 		Aliases: []string{"detail", "details"},
 		Short:   "Dump the configuration of the given camera",
 		Args:    cobra.NoArgs,
-		RunE:    func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
+		RunE:    missingSubcommand,
 	}
 
 	// Every leaf takes the same single positional and differs only in what it prints, so

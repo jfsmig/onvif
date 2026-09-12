@@ -187,11 +187,20 @@ func (dw *deviceWrapper) GetDeviceEndpoint() string { return dw.GetEndpoint("dev
 // "First" is now the lowest profile token in lexicographic order. It used to be whichever
 // key the map yielded first, so an appliance with several profiles answered differently
 // between runs -- the same defect HasEndpoint was fixed for.
+//
+// And it is the first profile that actually has a URI, not simply the first profile. A
+// profile whose media configuration is incomplete -- no video encoder attached -- faults
+// GetStreamUri, and FetchMediaProfileUris swallows that by design and leaves the field empty.
+// Returning the lowest-sorting slot regardless therefore reported "no stream" for a camera
+// that was streaming from its next profile, and Profile_1 before Profile_2 is the common
+// vendor naming. Empty is now reserved for what the doc says it means: no profile has one.
 func (p *ProfileS) FetchStreamURI(ctx context.Context) string {
 	profiles := p.FetchMediaProfiles(ctx)
 
 	for _, token := range slices.Sorted(maps.Keys(profiles.Profiles)) {
-		return string(profiles.Profiles[token].Uris.Stream.Uri)
+		if uri := string(profiles.Profiles[token].Uris.Stream.Uri); uri != "" {
+			return uri
+		}
 	}
 	return ""
 }

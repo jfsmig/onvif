@@ -41,6 +41,15 @@ const (
 // streamStub answers with the given media profiles, each carrying a distinctive stream URI.
 func streamStub(t *testing.T, tokens ...string) *httptest.Server {
 	t.Helper()
+	return faultingStreamStub(t, "", tokens...)
+}
+
+// faultingStreamStub is streamStub, except that GetStreamUri answers a SOAP fault for the one
+// profile token named in faultFor. That is the ordinary case a camera presents: a profile
+// whose media configuration is incomplete -- no video encoder attached -- faults on
+// GetStreamUri while its sibling answers perfectly.
+func faultingStreamStub(t *testing.T, faultFor string, tokens ...string) *httptest.Server {
+	t.Helper()
 
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -66,10 +75,22 @@ func streamStub(t *testing.T, tokens ...string) *httptest.Server {
 		case strings.Contains(req, "GetProfiles"):
 			out = soap(`<trt:GetProfilesResponse>` + profiles.String() + `</trt:GetProfilesResponse>`)
 		case strings.Contains(req, "GetStreamUri"):
+			if faultFor != "" && strings.Contains(req, ">"+faultFor+"<") {
+				// ONVIF Core section 5.11.2.2 Table 5: a request naming a profile the
+				// device cannot stream is ter:InvalidArgVal.
+				w.Header().Set("Content-Type", "application/soap+xml")
+				w.WriteHeader(http.StatusBadRequest)
+				_, _ = w.Write([]byte(soap(`<env:Fault>` +
+					`<env:Code><env:Value>env:Sender</env:Value>` +
+					`<env:Subcode><env:Value>ter:InvalidArgVal</env:Value></env:Subcode></env:Code>` +
+					`<env:Reason><env:Text xml:lang="en">No stream for this profile</env:Text></env:Reason>` +
+					`</env:Fault>`)))
+				return
+			}
 			// The token is not echoed back, so every profile yields the same URI. That is
 			// fine: this test is about credentials and stability, not about which URI.
 			out = soap(`<trt:GetStreamUriResponse><trt:MediaUri>` +
-				`<tt:Uri>rtsp://` + host + `/stream</tt:Uri>` +
+				`<tt:Uri>rtsp://` + host + `/stream/` + streamToken(req) + `</tt:Uri>` +
 				`</trt:MediaUri></trt:GetStreamUriResponse>`)
 		default:
 			out = soap(`<tds:Empty/>`)
@@ -143,5 +164,51 @@ func TestStreamURIIsDeterministic(t *testing.T) {
 			t.Fatalf("iteration %d returned %q, first returned %q; the profile is chosen "+
 				"by map iteration order", i, got, first)
 		}
+	}
+}
+
+// streamToken echoes back the ProfileToken a GetStreamUri request named, so a test can tell
+// which profile produced the URI it was handed.
+func streamToken(req string) string {
+	const open = "<trt:ProfileToken>"
+	i := strings.Index(req, open)
+	if i < 0 {
+		return "unknown"
+	}
+	rest := req[i+len(open):]
+	j := strings.Index(rest, "<")
+	if j < 0 {
+		return "unknown"
+	}
+	return rest[:j]
+}
+
+// FetchStreamURI returned whatever the lowest-sorting profile token held, and returned it
+// unconditionally on the loop's first iteration. Uris.Stream.Uri is also empty when
+// GetStreamUri *failed* for that one profile, which FetchMediaProfileUris swallows at trace
+// level by design -- so a camera exposing a broken Profile_1 beside a working Profile_2, the
+// common vendor naming, reported no stream at all while it was streaming.
+//
+// Same class as the determinism fix above: a wrong answer where a right one was available.
+func TestStreamURISkipsAProfileThatHasNoURI(t *testing.T) {
+	profileS := streamProfileS(t, faultingStreamStub(t, "Profile_1", "Profile_1", "Profile_2"))
+
+	uri := profileS.FetchStreamURI(context.Background())
+	if uri == "" {
+		t.Fatal("FetchStreamURI gave up at the first profile, which has no URI, " +
+			"while Profile_2 answers perfectly")
+	}
+	if !strings.HasSuffix(uri, "/Profile_2") {
+		t.Errorf("FetchStreamURI = %q, want the URI of Profile_2", uri)
+	}
+}
+
+// A camera whose every profile faults still has no stream URI, and must say so rather than
+// inventing one.
+func TestStreamURIIsEmptyWhenNoProfileAnswers(t *testing.T) {
+	profileS := streamProfileS(t, faultingStreamStub(t, "Profile_1", "Profile_1"))
+
+	if uri := profileS.FetchStreamURI(context.Background()); uri != "" {
+		t.Errorf("FetchStreamURI = %q, want empty: no profile reported a stream", uri)
 	}
 }

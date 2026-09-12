@@ -652,3 +652,58 @@ func TestATargetNamedTwiceIsSubscribedOnce(t *testing.T) {
 		})
 	}
 }
+
+// A pull point created before the operator's Ctrl-C landed is a pull point the device is
+// still holding.
+//
+// streamFleet returned from its "stopped while subscribing" branch with every established
+// subscription still sitting in `opened`, releasing none of them: the only Unsubscribe in
+// this command is the defer inside streamCamera, and the streaming loop that reaches it is
+// below that return. It even logs how many are open on the way past.
+//
+// Neither -race nor the compiler can see this. Every goroutine exits and the memory is
+// collected; what leaks is on the camera. sdk.PullPoint.Unsubscribe runs on
+// context.WithoutCancel precisely so that it still works from a cancelled path -- see its
+// comment on MaxPullPoints being one to four on real firmware, and on the resubscribe fault
+// reading like a rejected credential. A supervisor restarting the collector a few times is
+// all it takes.
+//
+// TestStoppingWhileSubscribingIsNotAFailure above looks like it covers this window and does
+// not: its open always fails, so no subscription is ever created for it to leak.
+func TestSubscriptionsOpenedBeforeTheStopAreReleased(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cams := []networking.ClientInfo{{Xaddr: "192.168.1.70:80"}, {Xaddr: "192.168.1.71:80"}}
+
+	live := &fakeStream{pull: func(context.Context, int) ([]sdk.Notification, error) {
+		t.Error("a camera was pulled after the run had been stopped")
+		return nil, nil
+	}}
+
+	// The two open calls run concurrently, so the interrupt is sequenced behind the first
+	// subscription rather than raced against it.
+	subscribed := make(chan struct{})
+	open := func(establishing context.Context, dev networking.ClientInfo) (stream, error) {
+		if dev.Xaddr == cams[0].Xaddr {
+			close(subscribed) // this camera's pull point now exists on the device
+			return live, nil
+		}
+		<-subscribed
+		cancel()
+		<-establishing.Done()
+		return nil, fmt.Errorf("connecting to %s: %w", dev.Xaddr, context.Canceled)
+	}
+
+	var out bytes.Buffer
+	if err := streamFleet(ctx, cams, &out, open, noDelay); err != nil {
+		t.Fatalf("streamFleet = %v, want nil -- an interrupt is a successful end", err)
+	}
+	if got := live.releases(); got != 1 {
+		t.Errorf("Unsubscribe called %d times on the camera subscribed before the stop, want 1: "+
+			"the device is left holding that pull point until its termination time", got)
+	}
+	if out.Len() != 0 {
+		t.Errorf("the interrupted run wrote to stdout: %q", out.String())
+	}
+}

@@ -171,10 +171,22 @@ func discover(ctx context.Context, opts discoverOptions) error {
 	}
 	wg.Wait()
 
+	printed := 0
 	for _, camera := range lines {
 		for _, line := range camera {
 			fmt.Print(line)
+			printed++
 		}
+	}
+
+	// Cameras answered discovery and not one of them yielded a stream. Empty stdout is also
+	// what an empty LAN produces, and an operator piping this into awk cannot tell the two
+	// apart -- so say which one it was. Warn rather than trace, because the tool promises
+	// that warnings and errors print whatever the verbosity, and the per-call causes that
+	// sdk swallows are the one thing -vvv is for.
+	if printed == 0 {
+		Logger.Warn().Int("cameras", len(found)).
+			Msg("No camera reported a stream, re-run with -vvv for the per-call failures")
 	}
 	return nil
 }
@@ -209,6 +221,18 @@ func streamLines(ctx context.Context, itf string, dev networking.ClientInfo) []s
 	// that was not one. Sprintln rather than Sprint, because Sprint inserts no separator
 	// between two strings and every column here is a string type.
 	profiles := profileS.FetchMediaProfiles(ctx).Profiles
+
+	// Same boundary dumpSomething draws, and for the same reason: FetchMediaProfiles
+	// swallows a per-call fault because that is the camera's answer, but an expired deadline
+	// is ours and says nothing about the camera. Without this a run that timed out
+	// contributed no line and no diagnostic, which is indistinguishable from a camera that
+	// genuinely has no media profile.
+	if err := ctx.Err(); err != nil {
+		Logger.Warn().Str("itf", itf).Str("addr", dev.Xaddr).Str("uuid", uuidColumn(dev.Uuid)).
+			Err(err).Msg("Camera not fully queried before the deadline, no stream reported")
+		return nil
+	}
+
 	lines := make([]string, 0, len(profiles))
 	for _, id := range slices.Sorted(maps.Keys(profiles)) {
 		profile := profiles[id]

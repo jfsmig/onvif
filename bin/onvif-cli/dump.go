@@ -174,7 +174,19 @@ func dumpSomething(ctx context.Context, params networking.ClientInfo, generate f
 	if !ok {
 		return ErrNoProfileS
 	}
+	out := generate(sdkDev, profileS)
+
+	// Fetch* swallows a per-call fault deliberately, so that a camera which does not
+	// implement one operation does not lose the rest of the dump. A context expiry is the
+	// other thing entirely: it is our deadline rather than the camera's answer, and every
+	// remaining field is zero because nothing was asked, not because nothing was there.
+	// Encoding it anyway prints a plausible camera with no features and exits 0 -- which is
+	// exactly what ErrNoProfileS above refuses to do, for the same reason.
+	if err := ctx.Err(); err != nil {
+		return fmt.Errorf("the dump of %s is incomplete: %w", params.Xaddr, err)
+	}
+
 	encoder := json.NewEncoder(os.Stdout)
 	encoder.SetIndent("", "  ")
-	return encoder.Encode(generate(sdkDev, profileS))
+	return encoder.Encode(out)
 }

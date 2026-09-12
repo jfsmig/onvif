@@ -25,6 +25,7 @@ package main
 // tool rather than a wire format.
 
 import (
+	"bytes"
 	"context"
 	"go/ast"
 	"go/parser"
@@ -289,5 +290,45 @@ func TestMainLetsASecondSignalThrough(t *testing.T) {
 	if !found {
 		t.Error("main() no longer arms a second-signal escape, so a `subscribe` whose stdout " +
 			"has stopped draining can only be ended with SIGKILL")
+	}
+}
+
+// A bare `onvif-cli`, and a bare `onvif-cli dump`, used to print one line: the fatal
+// "missing sub-command", with no hint that discover, streams, subscribe or dump exist. That
+// is the first thing an operator types, before they have learnt that --help is there.
+//
+// Mistyping a subcommand was always handled well -- cobra answers `dump Ptz` with
+// `unknown command "Ptz"` and the whole usage block -- which is the proof that the usage
+// block is what helps here. SilenceUsage is set unconditionally in PersistentPreRunE on the
+// reasoning that parsing has already succeeded, and that is right for every other error;
+// a missing subcommand is the one case where the usage block *is* the message.
+//
+// It goes to stderr, not stdout: these commands print machine-parsable output, and a usage
+// block in the middle of it would be indistinguishable from data to whatever is reading.
+func TestABareInvocationSaysWhichCommandsExist(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{"root", []string{}},
+		{"dump", []string{"dump"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := newRootCommand(context.Background())
+			var out, errOut bytes.Buffer
+			root.SetOut(&out)
+			root.SetErr(&errOut)
+			root.SetArgs(tc.args)
+
+			if err := root.Execute(); err == nil {
+				t.Fatal("a missing sub-command is still an error, and must stay one")
+			}
+			if got := errOut.String(); !strings.Contains(got, "Available Commands:") {
+				t.Errorf("nothing on stderr lists the commands:\n%s", got)
+			}
+			if out.Len() != 0 {
+				t.Errorf("the usage block reached stdout, where data belongs: %q", out.String())
+			}
+		})
 	}
 }
