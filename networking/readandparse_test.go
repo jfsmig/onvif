@@ -128,3 +128,61 @@ func TestReadAndParseBoundsTheResponseSize(t *testing.T) {
 		t.Fatal("ReadAndParse did not stop reading; the response size is unbounded")
 	}
 }
+
+// The SOAP fault used to be thrown away whole.
+//
+// ONVIF Core section 5.11.2.1 makes the SOAP 1.2 fault the only channel for an operation
+// error, and section 5.11.2.2 Table 5 makes the ter: Subcode the normative discriminator:
+// ter:NotAuthorized, ter:InvalidArgVal, ter:ActionNotSupported, ter:WellFormed,
+// ter:TagMismatch. Under the SOAP 1.2 HTTP binding an env:Sender fault arrives as 400 and an
+// env:Receiver fault as 500, so ReadAndParse's status-only report collapsed "wrong password",
+// "unsupported operation" and "malformed request" into one indistinguishable
+// "http request error: GetProfiles: 400 Bad Request".
+//
+// The 200 case is the worse half: the generated Envelope has no field a soap:Fault can match,
+// so xml.Unmarshal succeeded and the call returned a zero response and a nil error. Firmware
+// that answers a fault with 200 is not conformant and is common, and sdk.Fetch* cannot tell
+// that apart from a camera with genuinely nothing to say.
+const faultNotAuthorized = `<?xml version="1.0"?>
+<env:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope"
+              xmlns:ter="http://www.onvif.org/ver10/error">
+ <env:Body><env:Fault>
+  <env:Code><env:Value>env:Sender</env:Value>
+   <env:Subcode><env:Value>ter:NotAuthorized</env:Value></env:Subcode></env:Code>
+  <env:Reason><env:Text xml:lang="en">Sender not Authorized</env:Text></env:Reason>
+ </env:Fault></env:Body>
+</env:Envelope>`
+
+func TestReadAndParseSurfacesTheSOAPFault(t *testing.T) {
+	for _, status := range []int{http.StatusOK, http.StatusBadRequest, http.StatusInternalServerError} {
+		resp := reply(t, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/soap+xml")
+			w.WriteHeader(status)
+			_, _ = w.Write([]byte(faultNotAuthorized))
+		})
+
+		var out struct {
+			Body struct{ GetProfilesResponse struct{} }
+		}
+		err := ReadAndParse(resp, &out, "GetProfiles")
+		if err == nil {
+			t.Fatalf("status %d: a SOAP Fault parsed as a successful reply", status)
+		}
+		if !errors.Is(err, utils.ErrSOAPFault) {
+			t.Errorf("status %d: error %v does not match utils.ErrSOAPFault", status, err)
+		}
+		// The subcode is the whole point: it is what tells a rejected credential from an
+		// operation the device does not implement.
+		if !strings.Contains(err.Error(), "ter:NotAuthorized") {
+			t.Errorf("status %d: error %q does not name the fault subcode", status, err)
+		}
+		if !strings.Contains(err.Error(), "GetProfiles") {
+			t.Errorf("status %d: error %q does not name the operation", status, err)
+		}
+		// A faulted non-200 must keep matching ErrHTTP as well, because callers already
+		// match on it and a fault is additional information, not a different failure.
+		if status != http.StatusOK && !errors.Is(err, utils.ErrHTTP) {
+			t.Errorf("status %d: error %v no longer matches utils.ErrHTTP", status, err)
+		}
+	}
+}

@@ -30,6 +30,18 @@ const (
 	// ErrNotOnvif reports a host that answered but does not speak ONVIF.
 	ErrNotOnvif = constError("not an ONVIF device")
 
+	// ErrSOAPFault reports that the device answered with a SOAP 1.2 fault rather than the
+	// response the operation declares. Callers wrap it with the code, the subcode and the
+	// reason, so match it with errors.Is rather than ==.
+	//
+	// It is separate from ErrHTTP because the two answer different questions and a reply can
+	// be both. ONVIF Core section 5.11.2.1 makes the fault the only channel for an operation
+	// error and section 5.11.2.2 makes the ter: subcode the discriminator, while the HTTP
+	// status only says which half of SOAP 1.2's binding the fault fell into -- 400 for
+	// env:Sender, 500 for env:Receiver. A device that answers a fault with 200, which is not
+	// conformant and is common, yields this and no ErrHTTP at all.
+	ErrSOAPFault = constError("soap fault")
+
 	// ErrNoService reports that the appliance advertises no endpoint for the service a
 	// request was addressed to. It is a property of the device, not a failure of the
 	// exchange: nothing was sent. Callers need to tell it apart from a rejected request

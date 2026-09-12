@@ -85,13 +85,10 @@ const MaxResponseBytes = 32 << 20
 // http.NewRequestWithContext in SendSoap, which covers this body read, so checking ctx here
 // would have been theatre.
 func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error {
-	if httpReply.StatusCode != http.StatusOK {
-		// Keep the status: telling 401 (wrong credentials) from 500 (device fault)
-		// otherwise needs a packet capture. ErrHTTP stays the first wrapped error so
-		// errors.Is keeps matching it.
-		return fmt.Errorf("%w: %s: %s", utils.ErrHTTP, tag, httpReply.Status)
-	}
-
+	// The body is read whatever the status, which it was not before. A non-200 returned on
+	// the status alone and never looked, so the fault explaining it was discarded unread;
+	// see soapFault.
+	//
 	// One byte past the cap, so a reply that sits exactly on it is still accepted and only
 	// a genuinely oversized one is refused.
 	b, err := io.ReadAll(io.LimitReader(httpReply.Body, MaxResponseBytes+1))
@@ -101,10 +98,91 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 	if len(b) > MaxResponseBytes {
 		return fmt.Errorf("%s: reply exceeds %d bytes", tag, MaxResponseBytes)
 	}
+
+	if fault, ok := parseSOAPFault(b); ok {
+		if httpReply.StatusCode != http.StatusOK {
+			// Both, because a faulted non-200 is both things and callers already match
+			// ErrHTTP. fmt.Errorf wraps every %w, so errors.Is finds either one.
+			return fmt.Errorf("%w: %w: %s: %s", utils.ErrHTTP, utils.ErrSOAPFault, tag, fault)
+		}
+		return fmt.Errorf("%w: %s: %s", utils.ErrSOAPFault, tag, fault)
+	}
+
+	if httpReply.StatusCode != http.StatusOK {
+		// Keep the status: telling 401 (wrong credentials) from 500 (device fault)
+		// otherwise needs a packet capture. ErrHTTP stays the first wrapped error so
+		// errors.Is keeps matching it.
+		return fmt.Errorf("%w: %s: %s", utils.ErrHTTP, tag, httpReply.Status)
+	}
+
 	if err := xml.Unmarshal(b, reply); err != nil {
 		return fmt.Errorf("%s: %w", tag, err)
 	}
 	return nil
+}
+
+// soapFault is the SOAP 1.2 fault, reduced to the three parts that identify it.
+//
+// ONVIF Core section 5.11.2.1 makes the fault the only channel for an operation error, and
+// section 5.11.2.2 Table 5 makes the Subcode the normative discriminator: ter:NotAuthorized,
+// ter:InvalidArgVal, ter:ActionNotSupported, ter:WellFormed, ter:TagMismatch. Without it a
+// rejected credential and an unimplemented operation are the same 400 to a caller, and
+// sdk.Fetch* renders both as an empty field.
+//
+// None of the tags names a namespace, so each matches on local name alone. That is
+// deliberate: the fault arrives under whatever prefix the device bound to the SOAP envelope
+// namespace, and the Subcode value is itself a prefixed QName ("ter:NotAuthorized") whose
+// prefix is equally the device's choice. The prefix is kept verbatim rather than resolved,
+// because it is what the specification's own tables print and what an operator searches for.
+type soapFault struct {
+	Code struct {
+		Value   string `xml:"Value"`
+		Subcode struct {
+			Value string `xml:"Value"`
+		} `xml:"Subcode"`
+	} `xml:"Code"`
+	Reason struct {
+		Text string `xml:"Text"`
+	} `xml:"Reason"`
+}
+
+func (f soapFault) String() string {
+	code := f.Code.Value
+	if sub := f.Code.Subcode.Value; sub != "" {
+		code += "/" + sub
+	}
+	if f.Reason.Text == "" {
+		return code
+	}
+	return code + ": " + f.Reason.Text
+}
+
+// parseSOAPFault reports the fault an envelope carries, and whether it carries one at all.
+//
+// A reply that is not a fault is not an error here: the generated response structs have no
+// field a Fault can bind to, so an unmarshal against them succeeds on a fault body and
+// yields a zero response -- which is exactly how a fault answered with HTTP 200, common in
+// firmware and not conformant, used to reach a caller as a successful empty reply.
+func parseSOAPFault(b []byte) (soapFault, bool) {
+	// Cheap first, because every reply of every call reaches this and some are large: the
+	// 32 MiB cap above is sized for GetSystemLog, and unmarshalling all of it a second time
+	// to discover it holds no fault is a cost paid on the successful path. The element's
+	// local name is literally "Fault" whatever prefix the device bound, so a body without
+	// those five bytes cannot be one. A false positive costs only the structured parse below.
+	if !bytes.Contains(b, []byte("Fault")) {
+		return soapFault{}, false
+	}
+
+	var envelope struct {
+		Body struct {
+			Fault soapFault `xml:"Fault"`
+		} `xml:"Body"`
+	}
+	if err := xml.Unmarshal(b, &envelope); err != nil {
+		return soapFault{}, false
+	}
+	fault := envelope.Body.Fault
+	return fault, fault.Code.Value != "" || fault.Reason.Text != ""
 }
 
 // addWSATo emits the wsa:To header ONVIF Core section 9.10.5 shows on a request addressed
