@@ -180,22 +180,27 @@ func discover(ctx context.Context, opts discoverOptions) error {
 	}
 	wg.Wait()
 
-	printed := 0
+	silent := 0
 	for _, camera := range lines {
+		if len(camera) == 0 {
+			silent++
+		}
 		for _, line := range camera {
 			fmt.Print(line)
-			printed++
 		}
 	}
 
-	// Cameras answered discovery and not one of them yielded a stream. Empty stdout is also
-	// what an empty LAN produces, and an operator piping this into awk cannot tell the two
-	// apart -- so say which one it was. Warn rather than trace, because the tool promises
-	// that warnings and errors print whatever the verbosity, and the per-call causes that
-	// sdk swallows are the one thing -vvv is for.
-	if printed == 0 {
-		Logger.Warn().Int("cameras", len(found)).
-			Msg("No camera reported a stream, re-run with -vvv for the per-call failures")
+	// A camera that answered discovery and then reported no stream is the shape a wrong
+	// password takes here: sdk swallows the per-call fault at trace level, so stdout simply
+	// has one fewer line than the LAN has cameras, and nothing says which camera or why.
+	// Counting them is what makes a partial failure visible at all -- a fleet of four with
+	// one line printed looks exactly like a fleet of one.
+	//
+	// Warn rather than trace, because the tool promises that warnings and errors print
+	// whatever the verbosity, while -vvv is for the per-call causes underneath.
+	if silent > 0 {
+		Logger.Warn().Int("cameras", len(found)).Int("silent", silent).
+			Msg("Cameras answered discovery but reported no stream, re-run with -vvv for the cause")
 	}
 	return nil
 }
