@@ -28,7 +28,10 @@ package iso8601
 // PnYnMnDTnHnMnS, where each component is optional and the T separates the date components
 // from the time ones.
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestISO8601Duration(t *testing.T) {
 	for _, tc := range []struct {
@@ -54,6 +57,81 @@ func TestISO8601Duration(t *testing.T) {
 			}
 			if got := d.ISO8601Duration(); got != tc.want {
 				t.Errorf("ISO8601Duration() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// TestNewDurationRejectsPartialMatches pins the other half of this constructor: it validates,
+// and it was validating almost nothing.
+//
+// The two patterns read `^$|[0-9]+` and `^$|[0-9]+(\.[0-9]+)?`. Alternation binds at the top
+// level, so the anchors belong to the empty-string branch alone and the digit branch carries
+// none -- and regexp.MatchString searches rather than matches. Any subject holding a digit run
+// anywhere therefore passed, and ISO8601Duration concatenates its components verbatim, so
+// "12abc" years came back as "P12abcY" and "-5" as "P-5Y".
+//
+// Verified against the xs:duration lexical space, XML Schema Part 2 section 3.2.6: each
+// component is an unsigned integer and only the seconds component may carry a decimal
+// fraction. A schema pattern constrains the whole literal, which is what the anchors say --
+// the same slip, and the same reasoning, as the one recorded above NewLanguage in
+// xsd/built_in.go.
+//
+// Reachable, despite having no caller in this repository: xsd.Duration.NewDuration is
+// exported, documented, and delegates straight to here.
+func TestNewDurationRejectsPartialMatches(t *testing.T) {
+	// Each of these is a whole component value, not a fragment: every one was accepted.
+	for _, bad := range []string{"12abc", "abc12", "-5", " 5", "1.5", "+5"} {
+		t.Run("years/"+bad, func(t *testing.T) {
+			if _, err := NewDuration(bad, "", "", "", "", ""); err == nil {
+				t.Errorf("NewDuration accepted %q as a number of years", bad)
+			}
+		})
+	}
+
+	// The seconds component is the only one allowed a fraction, and one fraction only.
+	for _, bad := range []string{"1.2.3", "1.", ".5", "x1", "1x"} {
+		t.Run("seconds/"+bad, func(t *testing.T) {
+			if _, err := NewDuration("", "", "", "", "", bad); err == nil {
+				t.Errorf("NewDuration accepted %q as a number of seconds", bad)
+			}
+		})
+	}
+
+	// Anchoring must not cost the accept path: an empty component means absent, and the
+	// seconds fraction stays legal.
+	if _, err := NewDuration("", "", "", "", "", "1.5"); err != nil {
+		t.Errorf("NewDuration rejected a fractional number of seconds: %v", err)
+	}
+	if _, err := NewDuration("1", "2", "3", "4", "5", "6"); err != nil {
+		t.Errorf("NewDuration rejected a well-formed duration: %v", err)
+	}
+}
+
+// TestNewDurationNamesTheComponentItRejected pins four copy-pasted diagnostics: days, hours
+// and minutes all reported "months value = ", and seconds reported "years value = ". The
+// entire output of a validator is its diagnostic, so naming the wrong component defeats it --
+// and it would misdirect the first person to meet the anchoring fix above.
+func TestNewDurationNamesTheComponentItRejected(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args [6]string
+	}{
+		{"years", [6]string{"x", "", "", "", "", ""}},
+		{"months", [6]string{"", "x", "", "", "", ""}},
+		{"days", [6]string{"", "", "x", "", "", ""}},
+		{"hours", [6]string{"", "", "", "x", "", ""}},
+		{"minutes", [6]string{"", "", "", "", "x", ""}},
+		{"seconds", [6]string{"", "", "", "", "", "x"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			a := tc.args
+			_, err := NewDuration(a[0], a[1], a[2], a[3], a[4], a[5])
+			if err == nil {
+				t.Fatalf("NewDuration accepted %q as a number of %s", "x", tc.name)
+			}
+			if !strings.Contains(err.Error(), tc.name) {
+				t.Errorf("rejecting the %s component reported %q", tc.name, err)
 			}
 		})
 	}

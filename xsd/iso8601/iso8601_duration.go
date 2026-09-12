@@ -35,57 +35,48 @@ type Duration struct {
 	seconds string //= the number of seconds
 }
 
-// NewDuration return duration
+// NewDuration returns a Duration, or an error naming the component that was not a number.
+//
+// Each component is validated whole. The patterns used to read `^$|[0-9]+`, where alternation
+// binds at the top level, so the anchors belonged to the empty branch alone and the digit
+// branch had none -- and regexp.MatchString searches rather than matches, so any value holding
+// a digit run anywhere was accepted. ISO8601Duration concatenates verbatim, so "12abc" years
+// produced "P12abcY". A schema pattern constrains the whole literal, which is what the anchors
+// now say.
+//
+// The lexical space is XML Schema Part 2 section 3.2.6: each component an unsigned integer --
+// no sign, the sign of a duration belongs in front of the P -- and only the seconds component
+// fractional. An empty string means the component is absent.
+//
+// The six used to be validated by six copied blocks, four of which named the wrong component
+// in their error. A loop cannot drift that way.
 func NewDuration(years, months, days, hours, minutes, seconds string) (*Duration, error) {
-	// Pattern for Years, Months, Days, Hours and Minutes components
-	pattern1 := "^$|[0-9]+"
-	// Pattern for Seconds component
-	pattern2 := "^$|[0-9]+(\\.[0-9]+)?"
-
-	matched, err := regexp.MatchString(pattern1, years)
-	if err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, errors.New("years value = " + years + " does not match pattern " + pattern1)
-	}
-
-	matched, err = regexp.MatchString(pattern1, months)
-	if err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, errors.New("months value = " + months + " does not match pattern " + pattern1)
-	}
-
-	matched, err = regexp.MatchString(pattern1, days)
-	if err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, errors.New("months value = " + days + " does not match pattern " + pattern1)
-	}
-
-	matched, err = regexp.MatchString(pattern1, hours)
-	if err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, errors.New("months value = " + hours + " does not match pattern " + pattern1)
-	}
-
-	matched, err = regexp.MatchString(pattern1, minutes)
-	if err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, errors.New("months value = " + minutes + " does not match pattern " + pattern1)
-	}
-
-	matched, err = regexp.MatchString(pattern2, seconds)
-	if err != nil {
-		return nil, err
-	} else if !matched {
-		return nil, errors.New("years value = " + seconds + " does not match pattern " + pattern2)
+	for _, c := range []struct {
+		name    string
+		value   string
+		pattern *regexp.Regexp
+	}{
+		{"years", years, unsignedInteger},
+		{"months", months, unsignedInteger},
+		{"days", days, unsignedInteger},
+		{"hours", hours, unsignedInteger},
+		{"minutes", minutes, unsignedInteger},
+		{"seconds", seconds, unsignedDecimal},
+	} {
+		if !c.pattern.MatchString(c.value) {
+			return nil, errors.New(c.name + " value = " + c.value +
+				" does not match pattern " + c.pattern.String())
+		}
 	}
 
 	return &Duration{years: years, months: months, hours: hours, days: days, minutes: minutes, seconds: seconds}, nil
 }
+
+var (
+	// Empty means absent, which is why the quantifier is * rather than + with an alternation.
+	unsignedInteger = regexp.MustCompile(`^[0-9]*$`)
+	unsignedDecimal = regexp.MustCompile(`^([0-9]+(\.[0-9]+)?)?$`)
+)
 
 // ISO8601Duration to string
 func (duration Duration) ISO8601Duration() string {
