@@ -45,7 +45,7 @@ func (p *ProfileS) FetchEvent(ctx context.Context) Event {
 		if capa, err := event.Call_GetServiceCapabilities(ctx, p.client, event.GetServiceCapabilities{}); err == nil {
 			out.Capabilities = &capa.Capabilities
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("event")
+			rpcFailure(p.client, err, "GetServiceCapabilities").Msg("event")
 		}
 	})
 
@@ -53,7 +53,7 @@ func (p *ProfileS) FetchEvent(ctx context.Context) Event {
 		if props, err := event.Call_GetEventProperties(ctx, p.client, event.GetEventProperties{}); err == nil {
 			out.Properties = props
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetEventProperties").Msg("event")
+			rpcFailure(p.client, err, "GetEventProperties").Msg("event")
 		}
 	})
 

@@ -76,31 +76,50 @@ func sdkFiles(t *testing.T) (*token.FileSet, []*ast.File) {
 	return fset, files
 }
 
-// rpcLabel returns the single Str("rpc", …) literal reachable inside node, and whether
-// exactly one was found. The call sits at the end of a zerolog chain, so it is looked for
-// anywhere below rather than at a fixed depth.
+// rpcLabel returns the single operation label reachable inside node, and whether exactly one
+// was found. The call sits at the end of a zerolog chain, so it is looked for anywhere below
+// rather than at a fixed depth.
+//
+// Two spellings carry the label, and both have to be recognised or this test constrains only
+// half the package. rpcFailure(client, err, "Op") is the one every Fetch* site uses now: it
+// decides the level, raising a rejected credential from trace to warn once per appliance,
+// and the operation name is its third argument. A bare Str("rpc", "Op") is still legitimate
+// for a site that is not a swallowed per-call failure and so has no level to decide.
 func rpcLabel(node ast.Node) (string, bool) {
 	var found []string
+	literal := func(expr ast.Expr) (string, bool) {
+		lit, ok := expr.(*ast.BasicLit)
+		if !ok || lit.Kind != token.STRING {
+			return "", false
+		}
+		v, err := strconv.Unquote(lit.Value)
+		return v, err == nil
+	}
+
 	ast.Inspect(node, func(n ast.Node) bool {
 		call, ok := n.(*ast.CallExpr)
-		if !ok || len(call.Args) != 2 {
+		if !ok {
 			return true
 		}
-		sel, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok || sel.Sel.Name != "Str" {
-			return true
-		}
-		key, ok := call.Args[0].(*ast.BasicLit)
-		if !ok || key.Kind != token.STRING {
-			return true
-		}
-		if k, err := strconv.Unquote(key.Value); err != nil || k != "rpc" {
-			return true
-		}
-		if value, ok := call.Args[1].(*ast.BasicLit); ok && value.Kind == token.STRING {
-			if v, err := strconv.Unquote(value.Value); err == nil {
+
+		// rpcFailure(client, err, "Op")
+		if ident, ok := call.Fun.(*ast.Ident); ok && ident.Name == "rpcFailure" && len(call.Args) == 3 {
+			if v, ok := literal(call.Args[2]); ok {
 				found = append(found, v)
 			}
+			return true
+		}
+
+		// …Str("rpc", "Op")
+		sel, ok := call.Fun.(*ast.SelectorExpr)
+		if !ok || sel.Sel.Name != "Str" || len(call.Args) != 2 {
+			return true
+		}
+		if k, ok := literal(call.Args[0]); !ok || k != "rpc" {
+			return true
+		}
+		if v, ok := literal(call.Args[1]); ok {
+			found = append(found, v)
 		}
 		return true
 	})

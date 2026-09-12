@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/beevik/etree"
 	"github.com/jfsmig/go-wsd/gosoap"
@@ -105,11 +106,26 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 		return fmt.Errorf("%s: reply exceeds %d bytes", tag, MaxResponseBytes)
 	}
 
+	// A rejected credential is wrapped as such wherever it is recognised, in addition to the
+	// errors below rather than instead of them. sdk needs to tell this one cause from every
+	// other per-call failure: the rest describe what the camera implements and are swallowed
+	// into an empty field on purpose, while this one means every other call will fail the
+	// same way. See utils.ErrNotAuthorized.
+	rejected := httpReply.StatusCode == http.StatusUnauthorized ||
+		httpReply.StatusCode == http.StatusForbidden
+
 	if fault, ok := parseSOAPFault(b); ok {
-		if httpReply.StatusCode != http.StatusOK {
+		rejected = rejected || fault.notAuthorized()
+		switch {
+		case httpReply.StatusCode != http.StatusOK && rejected:
+			return fmt.Errorf("%w: %w: %w: %s: %s",
+				utils.ErrHTTP, utils.ErrSOAPFault, utils.ErrNotAuthorized, tag, fault)
+		case httpReply.StatusCode != http.StatusOK:
 			// Both, because a faulted non-200 is both things and callers already match
 			// ErrHTTP. fmt.Errorf wraps every %w, so errors.Is finds either one.
 			return fmt.Errorf("%w: %w: %s: %s", utils.ErrHTTP, utils.ErrSOAPFault, tag, fault)
+		case rejected:
+			return fmt.Errorf("%w: %w: %s: %s", utils.ErrSOAPFault, utils.ErrNotAuthorized, tag, fault)
 		}
 		return fmt.Errorf("%w: %s: %s", utils.ErrSOAPFault, tag, fault)
 	}
@@ -118,6 +134,10 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 		// Keep the status: telling 401 (wrong credentials) from 500 (device fault)
 		// otherwise needs a packet capture. ErrHTTP stays the first wrapped error so
 		// errors.Is keeps matching it.
+		if rejected {
+			return fmt.Errorf("%w: %w: %s: %s",
+				utils.ErrHTTP, utils.ErrNotAuthorized, tag, httpReply.Status)
+		}
 		return fmt.Errorf("%w: %s: %s", utils.ErrHTTP, tag, httpReply.Status)
 	}
 
@@ -150,6 +170,21 @@ type soapFault struct {
 	Reason struct {
 		Text string `xml:"Text"`
 	} `xml:"Reason"`
+}
+
+// notAuthorized reports the one subcode sdk has to act on differently.
+//
+// The comparison is on the local part alone. The Subcode value is a QName carrying whatever
+// prefix the device bound to http://www.onvif.org/ver10/error -- "ter" in every example the
+// specification prints, and in every camera seen so far, but the prefix is the device's
+// choice and not a fact about the fault. The local part is what ONVIF Core section 5.11.2.2
+// Table 5 actually standardises.
+func (f soapFault) notAuthorized() bool {
+	sub := f.Code.Subcode.Value
+	if i := strings.LastIndex(sub, ":"); i >= 0 {
+		sub = sub[i+1:]
+	}
+	return sub == "NotAuthorized"
 }
 
 func (f soapFault) String() string {

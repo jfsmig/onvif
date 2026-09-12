@@ -129,6 +129,17 @@ type Client struct {
 	// setter and is read by every concurrent CallMethod, so it is the one field where that
 	// argument does not hold. An atomic costs nothing on this path and settles it.
 	clockOffset atomic.Int64
+
+	// authRejected records that this device has refused our credentials at least once.
+	//
+	// Atomic for the same reason clockOffset is, and written for a different one: it exists
+	// only so that a caller can report the fact once per appliance instead of once per
+	// operation. A single `dump all` against a camera with the wrong password produced 41
+	// identical authentication faults -- every one of them true, and forty of them noise
+	// that would bury the first.
+	//
+	// This package logs nothing, here as everywhere below sdk. It records; sdk reports.
+	authRejected atomic.Bool
 }
 
 type ClientAuth struct {
@@ -210,6 +221,22 @@ func (client *Client) deviceNow() time.Time {
 // A copy, because the map is the client's own routing table: CallMethod resolves against
 // it, and bin/onvif-cli/dump.go hands this result straight to a json.Encoder, so a caller
 // that adjusted what it had just printed would silently reroute the client's calls.
+// Xaddr returns the address this client was built for, which is where every request goes
+// whatever the device advertised. Read-only: it is set at construction, like the fields
+// around it.
+func (client *Client) Xaddr() string { return client.xaddr }
+
+// NoteAuthRejected records that the device refused our credentials, and reports whether this
+// is the first time it has been told so.
+//
+// The first call returns true and every later one false, so a caller that logs the fact
+// prints one line per appliance rather than one per operation. Concurrency-safe by
+// construction: the whole point is that a fan-out of goroutines all discover the same
+// rejection at once, and exactly one of them should say so.
+func (client *Client) NoteAuthRejected() bool {
+	return client.authRejected.CompareAndSwap(false, true)
+}
+
 func (client *Client) GetServices() map[string]string { return maps.Clone(client.endpoints) }
 
 // GetEndpoint returns the address the device advertised for a service, and the empty string

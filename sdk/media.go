@@ -71,7 +71,7 @@ func (p *ProfileS) FetchMedia(ctx context.Context) Media {
 		if caps, err := media.Call_GetServiceCapabilities(ctx, p.client, media.GetServiceCapabilities{}); err == nil {
 			out.Capabilities = &caps.Capabilities
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("media")
+			rpcFailure(p.client, err, "GetServiceCapabilities").Msg("media")
 		}
 	})
 
@@ -92,7 +92,7 @@ func (p *ProfileS) FetchMediaVideo(ctx context.Context) Video {
 	wg.Go(func() {
 		sources, err := media.Call_GetVideoSources(ctx, p.client, media.GetVideoSources{})
 		if err != nil {
-			Logger.Trace().Err(err).Str("rpc", "GetVideoSources").Msg("video")
+			rpcFailure(p.client, err, "GetVideoSources").Msg("video")
 			return
 		}
 
@@ -105,7 +105,7 @@ func (p *ProfileS) FetchMediaVideo(ctx context.Context) Video {
 		if configs, err := media.Call_GetVideoSourceConfigurations(ctx, p.client, media.GetVideoSourceConfigurations{}); err == nil {
 			shared = configs.Configurations
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetVideoSourceConfigurations").Msg("video")
+			rpcFailure(p.client, err, "GetVideoSourceConfigurations").Msg("video")
 		}
 
 		for _, src := range sources.VideoSources {
@@ -119,11 +119,11 @@ func (p *ProfileS) FetchMediaVideo(ctx context.Context) Video {
 				if cfgDetail, err := media.Call_GetVideoAnalyticsConfiguration(ctx, p.client, media.GetVideoAnalyticsConfiguration{ConfigurationToken: cfg.Token}); err == nil {
 					out.AnalyticsConfigurations = append(out.AnalyticsConfigurations, cfgDetail.Configuration)
 				} else {
-					Logger.Trace().Err(err).Str("rpc", "GetVideoAnalyticsConfiguration").Msg("video")
+					rpcFailure(p.client, err, "GetVideoAnalyticsConfiguration").Msg("video")
 				}
 			}
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetVideoAnalyticsConfigurations").Msg("video")
+			rpcFailure(p.client, err, "GetVideoAnalyticsConfigurations").Msg("video")
 		}
 	})
 
@@ -134,17 +134,17 @@ func (p *ProfileS) FetchMediaVideo(ctx context.Context) Video {
 				if cfgDetail, err := media.Call_GetVideoEncoderConfiguration(ctx, p.client, media.GetVideoEncoderConfiguration{ConfigurationToken: cfg.Token}); err == nil {
 					ve.Configuration = cfgDetail.Configuration
 				} else {
-					Logger.Trace().Err(err).Str("rpc", "GetVideoEncoderConfiguration").Msg("video")
+					rpcFailure(p.client, err, "GetVideoEncoderConfiguration").Msg("video")
 				}
 				if cfgOptions, err := media.Call_GetVideoEncoderConfigurationOptions(ctx, p.client, media.GetVideoEncoderConfigurationOptions{ConfigurationToken: cfg.Token}); err == nil {
 					ve.Options = cfgOptions.Options
 				} else {
-					Logger.Trace().Err(err).Str("rpc", "GetVideoEncoderConfigurationOptions").Msg("video")
+					rpcFailure(p.client, err, "GetVideoEncoderConfigurationOptions").Msg("video")
 				}
 				out.Encoders = append(out.Encoders, ve)
 			}
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetVideoEncoderConfigurations").Msg("video")
+			rpcFailure(p.client, err, "GetVideoEncoderConfigurations").Msg("video")
 		}
 	})
 
@@ -162,7 +162,7 @@ func (p *ProfileS) FetchMediaAudio(ctx context.Context) Audio {
 	wg.Go(func() {
 		sources, err := media.Call_GetAudioSources(ctx, p.client, media.GetAudioSources{})
 		if err != nil {
-			Logger.Trace().Err(err).Str("rpc", "GetAudioSources").Msg("audio")
+			rpcFailure(p.client, err, "GetAudioSources").Msg("audio")
 			return
 		}
 
@@ -173,7 +173,7 @@ func (p *ProfileS) FetchMediaAudio(ctx context.Context) Audio {
 		if configs, err := media.Call_GetAudioSourceConfigurations(ctx, p.client, media.GetAudioSourceConfigurations{}); err == nil {
 			shared = configs.Configurations
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetAudioSourceConfigurations").Msg("audio")
+			rpcFailure(p.client, err, "GetAudioSourceConfigurations").Msg("audio")
 		}
 
 		for _, src := range sources.AudioSources {
@@ -188,17 +188,17 @@ func (p *ProfileS) FetchMediaAudio(ctx context.Context) Audio {
 				if cfgDetail, err := media.Call_GetAudioEncoderConfiguration(ctx, p.client, media.GetAudioEncoderConfiguration{ConfigurationToken: cfg.Token}); err == nil {
 					ve.Configuration = cfgDetail.Configuration
 				} else {
-					Logger.Trace().Err(err).Str("rpc", "GetAudioEncoderConfiguration").Msg("audio")
+					rpcFailure(p.client, err, "GetAudioEncoderConfiguration").Msg("audio")
 				}
 				if cfgOptions, err := media.Call_GetAudioEncoderConfigurationOptions(ctx, p.client, media.GetAudioEncoderConfigurationOptions{ConfigurationToken: cfg.Token}); err == nil {
 					ve.Options = cfgOptions.Options
 				} else {
-					Logger.Trace().Err(err).Str("rpc", "GetAudioEncoderConfigurationOptions").Msg("audio")
+					rpcFailure(p.client, err, "GetAudioEncoderConfigurationOptions").Msg("audio")
 				}
 				out.Encoders = append(out.Encoders, ve)
 			}
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetAudioEncoderConfigurations").Msg("audio")
+			rpcFailure(p.client, err, "GetAudioEncoderConfigurations").Msg("audio")
 		}
 	})
 
@@ -216,7 +216,7 @@ func (p *ProfileS) FetchMediaAudio(ctx context.Context) Audio {
 				out.Outputs[output.Token] = &ao
 			}
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetAudioOutputs").Msg("audio")
+			rpcFailure(p.client, err, "GetAudioOutputs").Msg("audio")
 		}
 
 		if configurations, err := media.Call_GetAudioOutputConfigurations(ctx, p.client, media.GetAudioOutputConfigurations{}); err == nil {
@@ -229,7 +229,7 @@ func (p *ProfileS) FetchMediaAudio(ctx context.Context) Audio {
 				ao.Configurations = append(ao.Configurations, config)
 			}
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetAudioOutputConfigurations").Msg("audio")
+			rpcFailure(p.client, err, "GetAudioOutputConfigurations").Msg("audio")
 		}
 	})
 

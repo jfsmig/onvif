@@ -48,14 +48,14 @@ func (p *ProfileS) FetchPTZ(ctx context.Context) Ptz {
 		if caps, err := ptz.Call_GetServiceCapabilities(ctx, p.client, ptz.GetServiceCapabilities{}); err == nil {
 			out.Capabilities = &caps.Capabilities
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetServiceCapabilities").Msg("ptz")
+			rpcFailure(p.client, err, "GetServiceCapabilities").Msg("ptz")
 		}
 	})
 
 	wg.Go(func() {
 		nodes, err := ptz.Call_GetNodes(ctx, p.client, ptz.GetNodes{})
 		if err != nil {
-			Logger.Trace().Err(err).Str("rpc", "GetNodes").Msg("ptz")
+			rpcFailure(p.client, err, "GetNodes").Msg("ptz")
 			return
 		}
 
@@ -71,7 +71,7 @@ func (p *ProfileS) FetchPTZ(ctx context.Context) Ptz {
 				if node, err := ptz.Call_GetNode(ctx, p.client, ptz.GetNode{NodeToken: n.Token}); err == nil {
 					detailed[i], filled[i] = node.PTZNode, true
 				} else {
-					Logger.Trace().Err(err).Str("rpc", "GetNode").Msg("ptz")
+					rpcFailure(p.client, err, "GetNode").Msg("ptz")
 				}
 			})
 		}
@@ -88,7 +88,7 @@ func (p *ProfileS) FetchPTZ(ctx context.Context) Ptz {
 		if cfgs, err := ptz.Call_GetConfigurations(ctx, p.client, ptz.GetConfigurations{}); err == nil {
 			out.Configuration = cfgs.PTZConfiguration
 		} else {
-			Logger.Trace().Err(err).Str("rpc", "GetConfigurations").Msg("ptz")
+			rpcFailure(p.client, err, "GetConfigurations").Msg("ptz")
 		}
 	})
 

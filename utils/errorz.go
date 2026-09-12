@@ -42,6 +42,19 @@ const (
 	// conformant and is common, yields this and no ErrHTTP at all.
 	ErrSOAPFault = constError("soap fault")
 
+	// ErrNotAuthorized reports that the device rejected our credentials. It is wrapped
+	// alongside ErrSOAPFault or ErrHTTP rather than instead of them, so matching either of
+	// those keeps working.
+	//
+	// It exists because this one cause has to be told from every other per-call failure.
+	// ONVIF makes whole services and many operations conditional, so a fault usually means
+	// "this camera does not do that" -- which is an answer about the camera, and which sdk
+	// deliberately swallows into an empty field. A rejected credential is not an answer about
+	// the camera at all: every other call will fail the same way, and the empty result an
+	// operator is left holding says nothing about why. ONVIF Core section 5.11.2.2 Table 5
+	// gives it the subcode ter:NotAuthorized; the HTTP binding gives it 401 or 403.
+	ErrNotAuthorized = constError("not authorized")
+
 	// ErrNoService reports that the appliance advertises no endpoint for the service a
 	// request was addressed to. It is a property of the device, not a failure of the
 	// exchange: nothing was sent. Callers need to tell it apart from a rejected request

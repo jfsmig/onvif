@@ -186,3 +186,63 @@ func TestReadAndParseSurfacesTheSOAPFault(t *testing.T) {
 		}
 	}
 }
+
+// An authentication failure has to be distinguishable from every other fault.
+//
+// ONVIF makes whole services and many operations conditional, so most faults mean "this
+// camera does not do that" -- an answer about the camera, which sdk swallows into an empty
+// field on purpose. A rejected credential is not that: every other call will fail the same
+// way, and the empty result the operator is left with says nothing about why. Against the
+// bench, one `dump all` on a camera with the wrong password produced 41 identical faults and
+// not one word above trace level.
+//
+// Two shapes reach us, and both must match. A conformant device sends the SOAP fault with
+// subcode ter:NotAuthorized (Core section 5.11.2.2, Table 5); a device that rejects the
+// credentials at the HTTP layer sends a bare 401 or 403 with nothing to parse.
+func TestReadAndParseRecognisesARejectedCredential(t *testing.T) {
+	const fault = `<?xml version="1.0"?>
+<env:Envelope xmlns:env="http://www.w3.org/2003/05/soap-envelope"
+              xmlns:ter="http://www.onvif.org/ver10/error">
+ <env:Body><env:Fault>
+  <env:Code><env:Value>env:Sender</env:Value>
+   <env:Subcode><env:Value>ter:NotAuthorized</env:Value></env:Subcode></env:Code>
+  <env:Reason><env:Text xml:lang="en">Sender not Authorized</env:Text></env:Reason>
+ </env:Fault></env:Body>
+</env:Envelope>`
+
+	for _, tc := range []struct {
+		name   string
+		status int
+		body   string
+		want   bool
+	}{
+		{"fault subcode", http.StatusBadRequest, fault, true},
+		{"fault subcode on a 200", http.StatusOK, fault, true},
+		{"bare 401", http.StatusUnauthorized, "not xml at all", true},
+		{"bare 403", http.StatusForbidden, "", true},
+		// The discriminator has to discriminate: an operation the device does not
+		// implement is the ordinary case, and must stay ordinary.
+		{"unsupported operation", http.StatusBadRequest,
+			strings.Replace(fault, "ter:NotAuthorized", "ter:ActionNotSupported", 1), false},
+		{"server error", http.StatusInternalServerError, "boom", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := reply(t, func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/soap+xml")
+				w.WriteHeader(tc.status)
+				_, _ = w.Write([]byte(tc.body))
+			})
+
+			var out struct {
+				Body struct{ GetProfilesResponse struct{} }
+			}
+			err := ReadAndParse(resp, &out, "GetProfiles")
+			if err == nil {
+				t.Fatal("no error at all")
+			}
+			if got := errors.Is(err, utils.ErrNotAuthorized); got != tc.want {
+				t.Errorf("errors.Is(%v, ErrNotAuthorized) = %v, want %v", err, got, tc.want)
+			}
+		})
+	}
+}

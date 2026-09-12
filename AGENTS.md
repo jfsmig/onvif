@@ -153,7 +153,18 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
 - **`sdk` swallows per-call errors by design.** The `Fetch*` methods return a struct, not
   `(struct, error)`; a failed sub-call is logged at trace level and leaves its field
   zero, so one unsupported operation cannot lose a whole dump. Keep that shape — cameras
-  vary wildly in what they implement.
+  vary wildly in what they implement. Log through `rpcFailure`, never `Logger.Trace()`
+  directly, so that the one exception below stays in one place; `sdk/rpc_label_test.go`
+  checks the operation name every site passes.
+
+  One failure is reported louder, and only one: a device that rejects the credentials. That
+  is not a statement about what the camera implements — every other call will fail the same
+  way — so it is logged at **warn**, once per appliance, by `rpcFailure` in `sdk`, which every
+  `Fetch*` site logs through. `utils.ErrNotAuthorized` is what marks it and
+  `networking.Client.NoteAuthRejected` is what makes it once. The swallowing itself is
+  unchanged: the call still fails quietly, the field is still left zero, and the trace line is
+  still emitted. One `dump all` against a camera with the wrong password produces 41
+  authentication faults, which is why the count matters as much as the level.
 
   Two corollaries, both learnt the hard way. A `Fetch*` swallows a per-call failure because
   that failure is the camera's answer about itself; it does **not** swallow a cancelled or
