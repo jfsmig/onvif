@@ -16,6 +16,7 @@
 package xsd
 
 import (
+	"encoding/xml"
 	"strings"
 	"testing"
 	"time"
@@ -210,5 +211,125 @@ func TestGregorianConstructorsPadANegativeYear(t *testing.T) {
 	}
 	if got, want := string(GYearMonth("").NewGYearMonth(bce)), "-0044-03"; got != want {
 		t.Errorf("NewGYearMonth = %q, want %q", got, want)
+	}
+}
+
+// TestStringTypesConstrainOnlyTheirOwnLexicalSpace pins two constructors that rejected
+// perfectly legal values.
+//
+// Both refused any string containing '<', '>' or '&'. Those are ordinary characters in both
+// value spaces: XML Schema Part 2 section 3.3.1 defines normalizedString as the strings
+// containing no carriage return, line feed or tab, and nothing else, and 3.3.2 adds only the
+// space rules for token. Escaping them is the XML writer's job, and encoding/xml already does
+// it -- so the constructors were enforcing a serialisation concern one layer too low, and a
+// legal ONVIF value such as a URI query string could not be built at all.
+//
+// NewToken also treated every Unicode space separator as whitespace, through [\s\p{Zs}],
+// where 3.3.2 constrains only #x20.
+func TestStringTypesConstrainOnlyTheirOwnLexicalSpace(t *testing.T) {
+	t.Run("NormalizedString", func(t *testing.T) {
+		for _, ok := range []string{"a<b", "a>b", "?a=1&b=2", "plain", "two  spaces", " padded "} {
+			if _, err := NormalizedString("").NewNormalizedString(ok); err != nil {
+				t.Errorf("NewNormalizedString(%q) = %v, want nil", ok, err)
+			}
+		}
+		// The three that genuinely are outside the value space.
+		for _, bad := range []string{"a\rb", "a\nb", "a\tb"} {
+			if _, err := NormalizedString("").NewNormalizedString(bad); err == nil {
+				t.Errorf("NewNormalizedString(%q) accepted a line break or tab", bad)
+			}
+		}
+	})
+
+	t.Run("Token", func(t *testing.T) {
+		// A non-breaking space is not #x20, so token's space rules have nothing to say about
+		// it and a value carrying one is legal.
+		for _, ok := range []string{"a<b", "?a=1&b=2", "one two", "a b"} {
+			if _, err := Token("").NewToken(NormalizedString(ok)); err != nil {
+				t.Errorf("NewToken(%q) = %v, want nil", ok, err)
+			}
+		}
+		// Leading, trailing, doubled, and the characters normalizedString already excludes.
+		for _, bad := range []string{" a", "a ", "a  b", "a\tb", "a\nb"} {
+			if _, err := Token("").NewToken(NormalizedString(bad)); err == nil {
+				t.Errorf("NewToken(%q) accepted a value outside the token lexical space", bad)
+			}
+		}
+	})
+}
+
+// TestNewLanguageAcceptsTheRecommendationsTags is a second axis on NewLanguage, separate from
+// the anchoring and inversion repaired earlier: the pattern itself was the 2001 working
+// draft's, which the comment cites honestly.
+//
+// That pattern admits only a two-letter primary subtag and no digits in any subtag, so "eng",
+// "und" and "de-1996" were rejected though they are legal. XML Schema Part 2 section 3.3.3
+// gives the pattern as [a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*.
+func TestNewLanguageAcceptsTheRecommendationsTags(t *testing.T) {
+	for _, ok := range []string{"en", "eng", "und", "de-1996", "en-US-x-1", "x-klingon", "i-navajo"} {
+		if _, err := Language("").NewLanguage(Token(ok)); err != nil {
+			t.Errorf("NewLanguage(%q) = %v, want nil", ok, err)
+		}
+	}
+	// Still rejected, and the reason the anchors matter: a digit-led tag has no letters to
+	// start it, and an over-long subtag is out of range.
+	for _, bad := range []string{"123", "1en2", "", "-en", "en-", "abcdefghi"} {
+		if _, err := Language("").NewLanguage(Token(bad)); err == nil {
+			t.Errorf("NewLanguage(%q) accepted a value that is not a language tag", bad)
+		}
+	}
+}
+
+// TestListTypesMarshalAsOneSpaceSeparatedElement pins the three list datatypes.
+//
+// XML Schema Part 2 makes NMTOKENS, IDREFS and ENTITIES list types: the lexical space is
+// white-space separated tokens inside ONE element. A bare Go slice with no marshaller emits
+// one element per item instead, which is a different document.
+//
+// No field in this repository is of any of these types, so this is entirely for the first
+// caller -- and the round trip is asserted, because a type that marshals as a list and
+// unmarshals as repeated elements is worse than one that is consistently wrong.
+func TestListTypesMarshalAsOneSpaceSeparatedElement(t *testing.T) {
+	type doc struct {
+		XMLName  xml.Name `xml:"doc"`
+		Tokens   NMTOKENS `xml:"tokens"`
+		Refs     IDREFS   `xml:"refs"`
+		Entities ENTITIES `xml:"entities"`
+	}
+
+	in := doc{
+		Tokens:   NMTOKENS{"alpha", "beta"},
+		Refs:     IDREFS{"r1", "r2"},
+		Entities: ENTITIES{"e1"},
+	}
+
+	b, err := xml.Marshal(in)
+	if err != nil {
+		t.Fatalf("Marshal: %v", err)
+	}
+	const want = `<doc><tokens>alpha beta</tokens><refs>r1 r2</refs><entities>e1</entities></doc>`
+	if got := string(b); got != want {
+		t.Errorf("Marshal =\n  %s\nwant\n  %s", got, want)
+	}
+
+	var out doc
+	if err := xml.Unmarshal(b, &out); err != nil {
+		t.Fatalf("Unmarshal: %v", err)
+	}
+	if len(out.Tokens) != 2 || out.Tokens[0] != "alpha" || out.Tokens[1] != "beta" {
+		t.Errorf("round trip lost the list: %#v", out.Tokens)
+	}
+	if len(out.Entities) != 1 || out.Entities[0] != "e1" {
+		t.Errorf("round trip lost a single-item list: %#v", out.Entities)
+	}
+
+	// An empty list is an empty element, not a missing one, and must not come back as a
+	// slice holding one empty string -- which is what a naive Split on "" yields.
+	var empty doc
+	if err := xml.Unmarshal([]byte(`<doc><tokens></tokens></doc>`), &empty); err != nil {
+		t.Fatalf("Unmarshal empty: %v", err)
+	}
+	if len(empty.Tokens) != 0 {
+		t.Errorf("an empty list unmarshalled to %#v, want no items", empty.Tokens)
 	}
 }

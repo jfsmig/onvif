@@ -642,6 +642,13 @@ type PTZSpeed struct {
 	Zoom    Vector1D `xml:"http://www.onvif.org/ver10/schema Zoom"`
 }
 
+// TODO(jfsmig): Space has no ",omitempty", so every vector this library sends carries
+// space="". Whether that is legal, and whether the attribute is optional at all, is defined in
+// onvif.xsd -- which docs/wsdl/ptz.wsdl imports and which this tree does not vendor, as
+// docs/README.md records. Omitting it is probably right, by the same absent-is-not-false
+// reasoning that made ptz.Stop's PanTilt and Zoom pointers, but "probably" is not the standard
+// for anything on the wire: if the attribute turns out to be required, dropping it breaks
+// every move. Vendoring onvif.xsd would settle it. Unverified, not approved.
 type Vector2D struct {
 	X     float64    `xml:"x,attr"`
 	Y     float64    `xml:"y,attr"`

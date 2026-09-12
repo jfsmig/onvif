@@ -22,6 +22,7 @@ package xsd
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"net/url"
@@ -509,6 +510,12 @@ More info: https://www.w3.org/TR/xmlschema-2/#QName
 */
 type QName AnySimpleType
 
+// TODO(jfsmig): this validates nothing. XML Schema Part 2 section 3.2.18 gives the lexical
+// space as NCName (':' NCName)?, and both halves are concatenated here unchecked, so
+// NewQName("a b", "c:d") yields something that is not a QName. Unlike the other constructors
+// in this file it returns no error, so validating means changing its signature -- which is
+// why it is recorded here rather than fixed in passing. Worth doing: xsd.QName is live on the
+// wire, at the Type attribute in xsd/onvif/onvif.go.
 func (tp QName) NewQName(prefix, local string) QName {
 	var result string
 	if len(prefix) == 0 {
@@ -528,40 +535,70 @@ func (tp QName) NewQName(prefix, local string) QName {
 
 type NormalizedString String
 
-// TODO: check normalization
+// NewNormalizedString rejects only what the lexical space excludes: carriage return, line
+// feed and tab, per XML Schema Part 2 section 3.3.1.
+//
+// It used to reject '<', '>' and '&' as well. Those are ordinary characters in the value
+// space -- escaping them is the XML writer's job, and encoding/xml already does it -- so this
+// was enforcing a serialisation concern one layer too low, and a legal ONVIF value such as a
+// URI query string could not be built at all.
+//
+// TODO(jfsmig): normalization is not performed. 3.3.1 gives normalizedString as the strings
+// that do not *contain* those three, so rejecting is a defensible reading; the alternative,
+// replacing each with a space as whiteSpace="replace" prescribes, would silently change a
+// caller's value and belongs in a separate decision.
 func (tp NormalizedString) NewNormalizedString(data string) (NormalizedString, error) {
-	if strings.ContainsAny(data, "\r\n\t<>&") {
-		return NormalizedString(""), errors.New("String " + data + "  contains forbidden symbols")
+	if strings.ContainsAny(data, "\r\n\t") {
+		return NormalizedString(""), errors.New("String " + data + " contains a line break or a tab")
 	}
 	return NormalizedString(data), nil
 }
 
 type Token NormalizedString
 
+// NewToken adds token's three space rules to what normalizedString already excludes: no
+// leading space, no trailing space, no doubled space. XML Schema Part 2 section 3.3.2.
+//
+// The rules are about #x20 and nothing else. The patterns used to be [\s\p{Zs}], which
+// treats every Unicode space separator -- a non-breaking space, above all -- as whitespace,
+// and the character ban carried the same '<', '>', '&' over-restriction as
+// NewNormalizedString did.
 func (tp Token) NewToken(data NormalizedString) (Token, error) {
-	trailing_leading_whitespaces := regexp.MustCompile(`^[\s\p{Zs}]+|[\s\p{Zs}]+$`)
-	multiple_whitespaces := regexp.MustCompile(`[\s\p{Zs}]{2,}`)
-	//Removing trailing and leading whitespaces and multiple spaces
-	/*final := re_leadclose_whtsp.ReplaceAllString(data, "")
-	final = re_inside_whtsp.ReplaceAllString(final, " ")*/
-	if strings.ContainsAny(string(data), "\r\n\t<>&") || trailing_leading_whitespaces.MatchString(string(data)) || multiple_whitespaces.MatchString(string(data)) {
-		return Token(""), errors.New("String " + string(data) + "  contains forbidden symbols or whitespaces")
+	if strings.ContainsAny(string(data), "\r\n\t") {
+		return Token(""), errors.New("String " + string(data) + " contains a line break or a tab")
 	}
-
+	if leadingOrTrailingSpace.MatchString(string(data)) || doubledSpace.MatchString(string(data)) {
+		return Token(""), errors.New("String " + string(data) +
+			" has a leading, trailing or doubled space")
+	}
 	return Token(data), nil
 }
 
+var (
+	leadingOrTrailingSpace = regexp.MustCompile(`^ | $`)
+	doubledSpace           = regexp.MustCompile(`  `)
+)
+
 type Language Token
 
+// languageTag is the pattern XML Schema Part 2 section 3.3.3 gives for xs:language.
+//
+// It was previously the one from https://www.w3.org/2001/05/datatypes.xsd, a working draft,
+// which admits only a two-letter primary subtag and no digits in any subtag -- so the legal
+// "eng", "und" and "de-1996" were all refused. The i- and x- forms the draft spelled out
+// separately are covered by the general form.
+//
+// Anchored, and used with the sense of the test the right way round. It read
+// `if rgxp.MatchString(...)`, so a well-formed tag was the one thing it refused -- and
+// unanchored, MatchString looks for the pattern anywhere, so "1en2" satisfied it through the
+// "en" in the middle. A schema pattern constrains the whole lexical value, which is what the
+// anchors say.
+var languageTag = regexp.MustCompile(`^[a-zA-Z]{1,8}(-[a-zA-Z0-9]{1,8})*$`)
+
 func (tp Language) NewLanguage(data Token) (Language, error) {
-	// Pattern from https://www.w3.org/2001/05/datatypes.xsd, anchored, and the sense of the
-	// test inverted. It read `if rgxp.MatchString(...)`, so a well-formed language tag was
-	// the one thing it refused -- and unanchored, regexp.MatchString looks for the pattern
-	// anywhere, so "1en2" satisfied it through the "en" in the middle. A schema pattern
-	// constrains the whole lexical value, which is what the anchors say.
-	rgxp := regexp.MustCompile(`^([a-zA-Z]{2}|[iI]-[a-zA-Z]+|[xX]-[a-zA-Z]{1,8})(-[a-zA-Z]{1,8})*$`)
-	if !rgxp.MatchString(string(data)) {
-		return Language(""), errors.New("String does not match pattern ([a-zA-Z]{2}|[iI]-[a-zA-Z]+|[xX]-[a-zA-Z]{1,8})(-[a-zA-Z]{1,8})*")
+	if !languageTag.MatchString(string(data)) {
+		return Language(""), errors.New("String " + string(data) +
+			" does not match pattern " + languageTag.String())
 	}
 	return Language(data), nil
 }
@@ -573,7 +610,56 @@ func (tp NMTOKEN) NewNMTOKEN(data string) NMTOKEN {
 	return NMTOKEN(data)
 }
 
+// NMTOKENS, IDREFS and ENTITIES are list datatypes: XML Schema Part 2 makes the lexical space
+// of each a set of white-space separated tokens inside ONE element. A bare Go slice with no
+// marshaller emits one element per item instead, which is a different document -- so each of
+// the three carries the pair below.
+//
+// No field in this repository is of any of these types, which is why nothing noticed. The
+// unmarshal half is here so the round trip holds: a type that marshals as a list and reads
+// back as repeated elements is worse than one that is consistently wrong.
+
+// marshalTokenList writes the items as one space-separated element.
+func marshalTokenList[T ~string](e *xml.Encoder, start xml.StartElement, items []T) error {
+	parts := make([]string, len(items))
+	for i, item := range items {
+		parts[i] = string(item)
+	}
+	return e.EncodeElement(strings.Join(parts, " "), start)
+}
+
+// unmarshalTokenList splits one element back into items.
+//
+// strings.Fields, not Split: the lexical space says white space, not one space, and Fields
+// answers an empty slice for an empty or all-space element -- where Split would answer a
+// slice holding one empty token, turning an empty list into a list of one.
+func unmarshalTokenList[T ~string](d *xml.Decoder, start xml.StartElement) ([]T, error) {
+	var raw string
+	if err := d.DecodeElement(&raw, &start); err != nil {
+		return nil, err
+	}
+	fields := strings.Fields(raw)
+	if len(fields) == 0 {
+		return nil, nil
+	}
+	items := make([]T, len(fields))
+	for i, f := range fields {
+		items[i] = T(f)
+	}
+	return items, nil
+}
+
 type NMTOKENS []NMTOKEN
+
+func (tp NMTOKENS) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return marshalTokenList(e, start, tp)
+}
+
+func (tp *NMTOKENS) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	items, err := unmarshalTokenList[NMTOKEN](d, start)
+	*tp = items
+	return err
+}
 
 func (tp NMTOKENS) NewNMTOKENS(data []NMTOKEN) NMTOKENS {
 	result := make(NMTOKENS, len(data))
@@ -612,6 +698,16 @@ func (tp IDREF) NewIDREF(data NCName) IDREF {
 
 type IDREFS []IDREF
 
+func (tp IDREFS) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return marshalTokenList(e, start, tp)
+}
+
+func (tp *IDREFS) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	items, err := unmarshalTokenList[IDREF](d, start)
+	*tp = items
+	return err
+}
+
 func (tp IDREFS) NewIDREFS(data []IDREF) IDREFS {
 	result := make(IDREFS, len(data))
 	for i, j := range data {
@@ -627,6 +723,16 @@ func (tp ENTITY) NewENTITY(data NCName) ENTITY {
 }
 
 type ENTITIES []ENTITY
+
+func (tp ENTITIES) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	return marshalTokenList(e, start, tp)
+}
+
+func (tp *ENTITIES) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	items, err := unmarshalTokenList[ENTITY](d, start)
+	*tp = items
+	return err
+}
 
 func (tp ENTITIES) NewENTITIES(data []ENTITY) ENTITIES {
 	result := make(ENTITIES, len(data))
