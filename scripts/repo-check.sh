@@ -135,7 +135,7 @@ check_std_logger() {
 check_mit_provenance() {
   local expected actual out
   expected=$(printf '%s\n' \
-    doc.go Imaging/types.go analytics/types.go device/types.go media/types.go \
+    doc.go imaging/types.go analytics/types.go device/types.go media/types.go \
     ptz/types.go event/types.go event/operation.go networking/networking.go \
     xsd/built_in.go xsd/onvif/onvif.go xsd/iso8601/iso8601_duration.go | LC_ALL=C sort)
   actual=$(grep -rl 'LICENSE.MIT' --include='*.go' . | sed 's|^\./||' | LC_ALL=C sort)
@@ -232,6 +232,47 @@ check_regen() {
   echo "$out" | sed 's/^/  /'
 }
 
+# ---------------------------------------------------------------------------
+# 5. A package directory is named after its package.
+#
+# CallMethod routes a request by the last segment of its struct's PkgPath, lowercased, so
+# device/, media/, ptz/ and event/ are entries in a routing table rather than organisation.
+# Go allows a package clause to differ from its directory, and this repository shipped one
+# that did: Imaging/ held `package imaging`, which meant onvif-codegen refused to generate
+# into it -- its own directory-matches-package check -- while README promised the wrappers
+# were all that was missing.
+#
+# The rule is mechanical, so it belongs here rather than in a reviewer's head or in a Go test
+# that cannot see a directory it was not told about. sdk/routing_test.go covers the other
+# half, that the four service names still resolve to an endpoint.
+#
+# Two exemptions, both real: a main package is named for its command and not its directory,
+# and the module root's basename is wherever the repository happens to be cloned.
+# ---------------------------------------------------------------------------
+check_package_dirs() {
+  local out
+  out=$(gofiles | xargs -n1 dirname | LC_ALL=C sort -u | while read -r d; do
+    [ "$d" = "." ] && continue
+    local pkg base
+    # head -1 after the grep, not grep -m1 alone: -m1 stops per file, so a directory of
+    # ninety files yielded ninety package clauses and every comparison below was against
+    # a multi-line string.
+    pkg=$(grep -h '^package ' "$d"/*.go 2>/dev/null | head -1 | awk '{print $2}')
+    if [ -z "$pkg" ] || [ "$pkg" = "main" ]; then
+      continue
+    fi
+    base=$(basename "$d")
+    if [ "$pkg" != "$base" ]; then
+      echo "  $d: directory $base holds package $pkg"
+    fi
+  done)
+  if [ -n "$out" ]; then
+    fail "every package directory is named after its package"; echo "$out"
+  else
+    pass "every package directory is named after its package"
+  fi
+}
+
 run_checks() {
   echo "== licence rules =="
   check_licence_header
@@ -239,6 +280,8 @@ run_checks() {
   check_mit_provenance
   echo "== logging rules =="
   check_std_logger
+  echo "== layout rules =="
+  check_package_dirs
   echo "== generator invariants =="
   check_calls_wrappers
   check_template_regen

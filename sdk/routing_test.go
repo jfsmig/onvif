@@ -22,12 +22,17 @@ package sdk
 // but nothing executed it.
 //
 // The failure it guards against is silent and total. Go permits a package clause that differs
-// from its directory, and this very tree proves it: Imaging/ holds `package imaging`. So
+// from its directory -- this tree used to prove it, with Imaging/ holding `package imaging`,
+// until that was renamed and scripts/repo-check.sh grew a rule forbidding the mismatch. So
 // renaming the directory ptz/ to ptz_service/ while leaving `package ptz` alone compiles,
 // vets, and passes every other test in the repository -- while every PTZ request resolves to
 // getEndpoint("ptz_service"), yields utils.ErrNoService, is swallowed by FetchPTZ at trace
 // level, and prints as `dump ptz` returning nulls with exit 0. Invisible inside the process,
 // invisible in CI.
+//
+// The two checks are complementary and neither replaces the other: repo-check sees that a
+// directory and its package agree, and this sees that the name they agree on is one a device
+// actually advertises.
 //
 // It lives in sdk because sdk is the only package that imports all four services and
 // networking; the same test in networking would be an import cycle.

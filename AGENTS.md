@@ -18,7 +18,7 @@ It is laid out in three layers, low to high:
 | `sdk/` | The high-level layer. `sdk.Appliance` is the interface a caller wants: `NewDevice(ctx, info, auth, httpClient)` connects and loads the service endpoints, then `FetchMedia`, `FetchPTZ`, `FetchDeviceNetwork`, `FetchProfiles`… return fully-hydrated structs. |
 
 Supporting packages: `xsd/` (XSD primitives and the generated ONVIF schema types),
-`Imaging/` and `analytics/` (types only), `utils/` (three sentinel errors, `ErrHTTP`,
+`imaging/` and `analytics/` (types only), `utils/` (three sentinel errors, `ErrHTTP`,
 `ErrNotOnvif` and `ErrNoService`), `credentials/` (a `Resolver` answering "which credentials for the camera
 bearing this identifier?", with a file-backed `Store`, a `Static` blanket and a `Chain`
 stating the precedence between them).
@@ -53,7 +53,8 @@ scripts/repo-check.sh --regen    # the same, plus the generate-then-diff gate
 
 `scripts/repo-check.sh` is where the rules stated in this file that a script can decide
 actually live: the licence notice and the blank line after it, the MIT provenance set, the
-ban on the standard logger below `sdk`, and the generator counts. It exists so that neither
+ban on the standard logger below `sdk`, that every package directory is named after its
+package, and the generator counts. It exists so that neither
 a reviewer nor a language model has to re-derive them by hand on every change. Read-only by
 default, so a `Stop` hook in `.claude/settings.json` runs it on every turn; `--regen` is the
 one mode that rewrites the working tree.
@@ -118,7 +119,7 @@ the AGPL block, because they still contain upstream MIT code:
 
 | Files | Extra provenance block |
 | --- | --- |
-| `doc.go`, `Imaging/types.go`, `analytics/types.go`, `device/types.go`, `media/types.go`, `ptz/types.go`, `event/types.go`, `event/operation.go`, `networking/networking.go`, `xsd/built_in.go`, `xsd/onvif/onvif.go`, `xsd/iso8601/iso8601_duration.go` | derives from goonvif / use-go/onvif, MIT, see `LICENSE.MIT`, © 2018 Yakovlev Dmitry, Zhorzh Palanjyan, Crazybber |
+| `doc.go`, `imaging/types.go`, `analytics/types.go`, `device/types.go`, `media/types.go`, `ptz/types.go`, `event/types.go`, `event/operation.go`, `networking/networking.go`, `xsd/built_in.go`, `xsd/onvif/onvif.go`, `xsd/iso8601/iso8601_duration.go` | derives from goonvif / use-go/onvif, MIT, see `LICENSE.MIT`, © 2018 Yakovlev Dmitry, Zhorzh Palanjyan, Crazybber |
 | everything else, generated files included | none |
 
 **Keep the blank line between the notice and `package X`.** Without it Go takes the licence
@@ -138,7 +139,10 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   `methodEndpoint` and `HasEndpoint`). So the directory names
   `device`, `media`, `ptz`, `event` are load-bearing: renaming one silently routes its
   calls to the wrong service, or to none. A new service package must be named after its
-  ONVIF endpoint.
+  ONVIF endpoint — and after its own directory, which is the same requirement seen from the
+  other side: `onvif-codegen` refuses to generate into a directory whose name differs from its
+  package clause, and `scripts/repo-check.sh` fails the build for the mismatch. `Imaging/`
+  held `package imaging` for years, which silently made that package ungeneratable.
 
 - **One request type can override that routing, and only the event service does.** A
   request struct implementing `networking.WSAAddressee` names its own destination, which

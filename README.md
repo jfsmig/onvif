@@ -223,11 +223,19 @@ Low-Level go packages implement the OnVIF unitary SOAP calls. For each call :
 
 Two more packages carry the request and reply **types only** — they have no `calls.txt` and
 so no `Call_*` wrappers, which means their operations cannot be issued yet:
-- [github.com/jfsmig/onvif/Imaging](https://pkg.go.dev/github.com/jfsmig/onvif/Imaging)
+- [github.com/jfsmig/onvif/imaging](https://pkg.go.dev/github.com/jfsmig/onvif/imaging)
 - [github.com/jfsmig/onvif/analytics](https://pkg.go.dev/github.com/jfsmig/onvif/analytics)
 
 `imaging` and `analytics` are already among the service names `networking` will route, so
 what is missing is the wrappers rather than the plumbing.
+
+> **Breaking change.** The directory was `Imaging/` until it was renamed to `imaging/`, so the
+> import path `github.com/jfsmig/onvif/Imaging` is gone and is spelled `…/imaging` now. It was
+> the only capitalised package here, and the mismatch was not cosmetic: `onvif-codegen` refuses
+> to generate into a directory whose name differs from its package clause, so the sentence
+> above was false for `Imaging` — the wrappers could never have been added without this rename.
+> The package exports request and reply types only and has no callable operation, so an
+> importer's fix is the path and nothing else.
 
 Helpers:
 - [github.com/jfsmig/onvif/credentials](https://pkg.go.dev/github.com/jfsmig/onvif/credentials)
