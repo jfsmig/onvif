@@ -18,7 +18,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
+	"slices"
 	"sync"
 
 	"github.com/jfsmig/go-wsd/wsd"
@@ -32,6 +34,13 @@ import (
 // April 2005 draft that ONVIF mandates. HopLimit carries over the TTL the previous
 // implementation was set to.
 var probeOptions = wsd.ProbeOptions{HopLimit: 4}
+
+// foundDevice is one device a probe reported, carrying the interface it answered on so the
+// output keeps that column after the cameras are queried out of order.
+type foundDevice struct {
+	itf string
+	dev networking.ClientInfo
+}
 
 // itfProbe is the outcome of probing one interface, kept so the probes can run
 // concurrently while the output stays in interface order.
@@ -122,52 +131,91 @@ func discover(ctx context.Context, opts discoverOptions) error {
 		return err
 	}
 
+	// The probes are flattened before anything is fetched or printed, so the output order is
+	// settled by discovery -- interface order, then the order a device answered in -- and not
+	// by whichever camera turns out to be quickest to talk to below.
+	var found []foundDevice
 	for _, probe := range probes {
 		if probe.err != nil {
 			Logger.Warn().Str("itf", probe.name).Err(probe.err).Msg("lan discovery failed")
 			continue
 		}
 		Logger.Trace().Str("itf", probe.name).Int("devices", len(probe.devices)).Msg("lan discovery")
-		for _, found := range probe.devices {
+		for _, dev := range probe.devices {
 			// The true identifier travels, and the placeholder is applied only where the
 			// line is printed: a device that reported none would otherwise be looked up
 			// under the name "-".
-			dev := networking.ClientInfo{Xaddr: found.Xaddr, Uuid: found.UUID}
-			if !opts.streams {
-				fmt.Println(probe.name, dev.Xaddr, uuidColumn(dev.Uuid))
-				continue
-			}
-			printStreams(ctx, probe.name, dev)
+			found = append(found, foundDevice{
+				itf: probe.name,
+				dev: networking.ClientInfo{Xaddr: dev.Xaddr, Uuid: dev.UUID},
+			})
+		}
+	}
+
+	if !opts.streams {
+		for _, f := range found {
+			fmt.Println(f.itf, f.dev.Xaddr, uuidColumn(f.dev.Uuid))
+		}
+		return nil
+	}
+
+	// One goroutine per camera, each writing only its own slot. Every camera costs an
+	// endpoint load and then a GetProfiles, and doing that in the print loop made a fleet
+	// cost the sum of its cameras under a deadline the whole run shares. Same shape as
+	// fanOutProbes above: the slice is sized first, nothing is appended, and wg.Wait is what
+	// orders the writes against the printing below.
+	lines := make([][]string, len(found))
+	var wg sync.WaitGroup
+	for i, f := range found {
+		wg.Go(func() { lines[i] = streamLines(ctx, f.itf, f.dev) })
+	}
+	wg.Wait()
+
+	for _, camera := range lines {
+		for _, line := range camera {
+			fmt.Print(line)
 		}
 	}
 	return nil
 }
 
-// printStreams prints one line per media profile of one camera.
+// streamLines builds one line per media profile of one camera, and returns them rather than
+// printing them: it runs in its own goroutine, and a camera that answered first has no claim
+// on being printed first. A camera that could not be reached contributes no line, which is
+// what its early returns below already meant.
 //
 // This is where the credentials become per-camera: the identifier discovery reported keys
 // the lookup, and a camera no file names still gets the blanket credentials, which is what
 // a set ONVIF_USERNAME means. What a device claims is not canonicalised here -- the store
 // does that on both sides of the comparison, and never rejects an identifier a device may
 // legitimately have spelled its own way.
-func printStreams(ctx context.Context, itf string, dev networking.ClientInfo) {
+func streamLines(ctx context.Context, itf string, dev networking.ClientInfo) []string {
 	auth, source := credentialsFor(dev.Uuid)
 	cam, err := sdk.NewDevice(ctx, dev, auth, &httpClient)
 	if err != nil {
 		Logger.Error().Str("itf", itf).Str("addr", dev.Xaddr).Str("uuid", uuidColumn(dev.Uuid)).
 			Str("credentials", source).Err(err).Msg("Camera instantiation failure")
-		return
+		return nil
 	}
 	profileS, ok := cam.ProfileS()
 	if !ok {
 		Logger.Warn().Str("itf", itf).Str("addr", dev.Xaddr).Str("uuid", uuidColumn(dev.Uuid)).
 			Msg("No ONVIF Profile S service advertised, no stream to report")
-		return
+		return nil
 	}
-	for id, profile := range profileS.FetchMediaProfiles(ctx).Profiles {
-		fmt.Println(itf, dev.Xaddr, uuidColumn(dev.Uuid), id,
-			profile.Uris.Stream.Uri, profile.Uris.Snapshot.Uri)
+
+	// Sorted, for the same reason sdk.FetchStreamURI sorts the same map: a range over it
+	// reordered a camera's lines on every run, and an operator diffing two runs saw a change
+	// that was not one. Sprintln rather than Sprint, because Sprint inserts no separator
+	// between two strings and every column here is a string type.
+	profiles := profileS.FetchMediaProfiles(ctx).Profiles
+	lines := make([]string, 0, len(profiles))
+	for _, id := range slices.Sorted(maps.Keys(profiles)) {
+		profile := profiles[id]
+		lines = append(lines, fmt.Sprintln(itf, dev.Xaddr, uuidColumn(dev.Uuid), id,
+			profile.Uris.Stream.Uri, profile.Uris.Snapshot.Uri))
 	}
+	return lines
 }
 
 // resolveTarget turns the single argument of a dump sub-command into the parameters of a

@@ -37,9 +37,16 @@ import (
 //go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen profile sdk ./profiles
 
 var (
-	// Logger is a zerolog logger, that can be safely used from any part of the application.
-	// It gathers the format and the output. The application can replace the default Logger
-	// for an alternative that meets its own output.
+	// Logger gathers the format and the destination of the diagnostics written here, and is
+	// a variable so that it can be replaced: an application wanting JSON rather than the
+	// console writer, or a file rather than stderr, assigns its own.
+	//
+	// Ownership, stated the way networking.Client states it for its own fields: reading it is
+	// safe from any goroutine -- that is what zerolog is built for -- but replacing it is a
+	// plain assignment to a package variable that every fan-out goroutine reads. That belongs
+	// in initialisation, before the first call. A swap while calls are in flight is a data
+	// race, and no lock here can cover it: the previous wording, "can be safely used from any
+	// part of the application", read as permission to do exactly that.
 	Logger = zerolog.
 		New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().

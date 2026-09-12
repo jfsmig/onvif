@@ -55,6 +55,12 @@ const DefaultTimeout = 30 * time.Second
 //     device's own tt: prefix into an envelope this library builds. Two prefixes for one
 //     namespace is legal, and the alternative is an envelope that is not namespace-well-formed
 //     and that a device rejects whole.
+//
+// Ownership, the same rule the Client fields carry below: CallMethod hands this map to
+// AddRootNamespaces on every call, so every goroutine of an sdk fan-out reads it at once. It
+// is exported to be read, never to be written -- a prefix a caller needs belongs in the
+// literal here, and assigning into the map while calls are in flight is a data race that no
+// lock in this package can cover.
 var Xlmns = map[string]string{
 	"onvif":   "http://www.onvif.org/ver10/schema",
 	"tt":      "http://www.onvif.org/ver10/schema",

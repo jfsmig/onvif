@@ -31,9 +31,16 @@ import (
 )
 
 var (
-	// Logger is a zerolog logger, that can be safely used from any part of the application.
-	// It gathers the format and the output. The application can replace the default Logger
-	// for an alternative that meets its own output.
+	// Logger gathers the format and the destination of the diagnostics written here, and is
+	// a variable so that it can be replaced: an application wanting JSON rather than the
+	// console writer, or a file rather than stderr, assigns its own.
+	//
+	// Ownership, stated the way networking.Client states it for its own fields: reading it is
+	// safe from any goroutine -- that is what zerolog is built for -- but replacing it is a
+	// plain assignment to a package variable that every fan-out goroutine reads. That belongs
+	// in initialisation, before the first call. A swap while calls are in flight is a data
+	// race, and no lock here can cover it: the previous wording, "can be safely used from any
+	// part of the application", read as permission to do exactly that.
 	Logger = zerolog.
 		New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().
@@ -281,9 +288,12 @@ func newRootCommand(ctx context.Context) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error { return subscribe(ctx, args) },
 	}
 
+	// "all" is deliberately not an alias here, though it reads like one: a child of this
+	// command already owns that name. With both, `onvif-cli all` resolved to the bare parent
+	// -- an error -- while `onvif-cli dump all` dumped, so one word meant two things.
 	cmdDump := &cobra.Command{
 		Use:     "dump",
-		Aliases: []string{"all", "detail", "details"},
+		Aliases: []string{"detail", "details"},
 		Short:   "Dump the configuration of the given camera",
 		Args:    cobra.NoArgs,
 		RunE:    func(cmd *cobra.Command, args []string) error { return ErrMissingSubcommand },
@@ -335,6 +345,13 @@ func main() {
 	// recordWriter holds its mutex, so anything here that took a lock of ours would deadlock
 	// the escape hatch.
 	context.AfterFunc(ctx, stop)
+
+	// The default level, established before Execute rather than only in the root's
+	// PersistentPreRunE, because cobra skips that hook on its help and completion paths: a
+	// plain `onvif-cli --help` otherwise ran at zerolog's own default and ended with a
+	// timestamped DBG line under the usage block. The hook still runs for every real
+	// command, and only ever lowers this.
+	zerolog.SetGlobalLevel(verbosityLevel(0))
 
 	cmd := newRootCommand(ctx)
 
