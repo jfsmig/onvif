@@ -2,5 +2,17 @@
   "attribution": {
     "commit": "Assisted-By: Claude Code",
     "pr": "Assisted-By: Claude Code"
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/scripts/repo-check.sh --hook"
+          }
+        ]
+      }
+    ]
   }
 }

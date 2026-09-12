@@ -14,6 +14,11 @@ jobs:
       # detector over the stub-device tests is the only automated check on the fan-out.
       - run: go test -race ./...
       - run: go vet ./...
+      # The rules a script can decide, rather than a reviewer: the AGPL notice and the blank
+      # line after it, the MIT provenance set, the ban on the standard logger below sdk, and
+      # the calls.txt-to-wrapper counts. The same script runs from a Stop hook while an agent
+      # works; this is what enforces it on a human pull request, where no hook fires.
+      - run: scripts/repo-check.sh
       - run:
           name: "Check the formatting"
           command: |

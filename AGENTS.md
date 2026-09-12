@@ -47,11 +47,23 @@ go test -race ./...              # the regression suite; keep it green
 gofmt -l .                       # must print nothing
 go generate ./... && git diff --quiet --exit-code   # generated files must match the template
 go run ./bin/onvif-cli discover  # smoke-test against the LAN
+scripts/repo-check.sh            # the mechanical rules below, checked deterministically
+scripts/repo-check.sh --regen    # the same, plus the generate-then-diff gate
 ```
 
-`.circleci/config.yml` gates on `go install`, `go test -race`, `go vet`, `gofmt -l`, and
-that last generate-then-diff check — so a data race and a formatting slip both fail CI,
-which matters because the `sdk` fan-out has no other automated check.
+`scripts/repo-check.sh` is where the rules stated in this file that a script can decide
+actually live: the licence notice and the blank line after it, the MIT provenance set, the
+ban on the standard logger below `sdk`, and the generator counts. It exists so that neither
+a reviewer nor a language model has to re-derive them by hand on every change. Read-only by
+default, so a `Stop` hook in `.claude/settings.json` runs it on every turn; `--regen` is the
+one mode that rewrites the working tree.
+
+`.circleci/config.yml` gates on `go install`, `go test -race`, `go vet`, `scripts/repo-check.sh`,
+`gofmt -l`, and that last generate-then-diff check — so a data race and a formatting slip both
+fail CI, which matters because the `sdk` fan-out has no other automated check. The script runs
+there as well as from the `Stop` hook, because the hook fires only while an agent is working:
+a human pull request would otherwise be the one path where nothing checks the licence headers
+or the generator counts.
 
 The tests are a regression suite rather than coverage: every one pins a bug that was
 actually found. Their number is deliberately not quoted here — it changes every time

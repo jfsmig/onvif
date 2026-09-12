@@ -15,74 +15,81 @@ Your user is a network engineer with a camera on a bench and no patience. They w
 discover the tool by typing `onvif-cli --help`, and they will pipe its output into `jq`
 or `awk`.
 
-## The tool as it stands
+## Your input
 
-Cobra (`spf13/cobra`), tree built by hand in `main()` at `bin/onvif-cli/main.go:63-165`.
-No `init()`, no persistent flags, **no flags at all**.
+The diff is a file named in your prompt. Read it first. Do not run `git`, and do not go
+looking for the change yourself.
 
-- `discover` (aliases `find, crawl, probe`) and `streams` (alias `stream`) — both
-  `NoArgs`, both call `discover(ctx, bool)`.
-- `dump` (aliases `all, detail, details`) — a parent that returns `ErrMissingSubcommand`,
-  with children `descriptor` (`minimal, mini`), `all` (`full`), `media`, `ptz` (`PTZ`),
-  `event` (`events, evt`), `profile` (`profiles, prof`), `device` (`devices, dev`), each
-  `ExactArgs(1)` taking `IP:PORT`.
+## Read the tool, not its source
 
-**Output discipline is already correct and must stay correct.** Data goes to stdout;
-diagnostics go through the zerolog logger to stderr (`main.go:31-39`). That is what keeps
-`onvif-cli dump all 10.0.0.5:80 | jq` working. Two output shapes exist:
+**Run it.** The cobra tree is built by hand in `main()`, but you should almost never read
+that code:
 
-- `dump*`: indented JSON from a single call site, `dump.go:132-134`.
-- `discover` / `streams`: space-separated fields via `fmt.Println` — `discover.go:78`
-  (`itf xaddr uuid`) and `discover.go:89` (`itf xaddr uuid profileID streamURI
-  snapshotURI`). These are the only `fmt.Print*` calls in non-test code.
+```sh
+go run ./bin/onvif-cli --help
+go run ./bin/onvif-cli <subcommand> --help
+```
 
-## Known live defects
+That is the interface as an operator meets it, in a few hundred bytes, and it cannot go
+stale the way a description in this file would. Reading the four source files behind it
+costs roughly sixty kilobytes to learn the same thing, and tells you what the author
+intended rather than what the tool does. Go to the source only to locate a string you
+have already decided is wrong.
 
-Confirm each against the current tree before reporting it — do not assume this list is
-still accurate, and do not report one that a diff has already fixed:
+Do not maintain an inventory of subcommands here. `--help` is the inventory.
 
-- Root command is `Use: "main"` (`main.go:64`), so every help line and usage error reads
-  `main discover …` instead of `onvif-cli discover …`.
-- `dump`'s alias `all` collides with its own child `all`, so `onvif-cli all` and
-  `onvif-cli dump all` mean different things.
-- `streams` lists `streams` as its own alias.
-- No subcommand has a `Long` or an `Example`. For a tool whose argument is an
-  `IP:PORT` nobody guesses, an `Example` line is worth more than any prose.
-- No flags: no `--output`/`-o` to pick text or JSON, no log-level control — so the
-  `Logger.Trace()` calls at `discover.go:62-71` can never be seen, since zerolog's
-  default global level discards them.
-- JSON keys diverge from the subcommand that produces them: `event` → `Events`,
-  `profile` → `Profiles`, `ptz` → `Ptz` (`dump.go:29-45`). `descriptor` returns a
-  different anonymous struct again (`dump.go:71-75`).
-- Credentials default silently to `admin`/`admin` (`main.go:47-48`). Nothing tells the
-  operator which credential was used, and an auth failure looks like a protocol failure.
-- `Logger.Info().Msg("Exiting")` (`main.go:170`) fires on every successful run.
-- `discover` prints inconsistent placeholders: a missing UUID becomes `-`
-  (`discover.go:74-76`), which a parser must know about.
-- `streams` instantiates each camera inside the print loop (`discover.go:80`), so output
-  arrives in bursts with long silences and no indication anything is happening.
+## What is settled, and must stay settled
+
+**Output discipline.** Data goes to stdout; diagnostics go through the zerolog logger to
+stderr. That is what keeps `onvif-cli dump all 10.0.0.5:80 | jq` working. Check it by
+running a command with stdout and stderr separated, not by reading code:
+
+```sh
+go run ./bin/onvif-cli discover >/tmp/out 2>/tmp/err
+```
+
+Anything diagnostic in `/tmp/out` is a finding. The only `fmt.Print*` calls in non-test
+code are the space-separated discovery lines in `discover.go`; a new one anywhere else
+deserves a look.
+
+**The three output shapes**, each with a different contract:
+
+- `dump*` — indented JSON of `sdk` structs, encoded wholesale. Field names are Go field
+  names, which is why they diverge from the subcommand that produced them. That is a
+  consequence of encoding structs directly; treat a rename as an interface break.
+- `discover` / `streams` — space-separated columns, for `awk` and `cut`. Column count and
+  order are the contract. Check what a missing value prints: a placeholder a parser must
+  know about is a finding if it is undocumented, and a worse one if it is inconsistent
+  between commands.
+- `subscribe` — JSON Lines, one object per notification. Its record is **designed**, not
+  derived: see the commentary at the top of `bin/onvif-cli/record.go`, which explains why
+  the keys are lower case, why every value is a string, and why field order is what it is.
+  This is the one output whose field names an operator types by hand in a `jq` filter, so
+  it is the one where a rename hurts most. Read that commentary before proposing a change
+  to it, and argue against its stated reasoning rather than around it.
 
 ## README.md is part of the interface
 
-`README.md:18-32` is the user-facing contract and **has drifted**: it omits `streams`,
-`dump descriptor` and `dump profile`, and describes `discover` output as "one line
-(IP:PORT CRLF) per device", which is not what `discover.go:78` prints. Treat a CLI change
-as incomplete until you have checked this section. `AGENTS.md` also summarises the CLI
-and can drift the same way.
+The command reference in `README.md` is the user-facing contract and drifts easily. Treat
+a CLI change as incomplete until you have checked it against `--help` output. `AGENTS.md`
+also summarises the CLI and can drift the same way.
 
 ## How to report
 
 Ranked by how much operator time it wastes. For each finding:
 
-1. `path:line`, and the exact command an operator would type to hit it.
+1. The exact command an operator would type to hit it.
 2. What they see, and what they expected.
 3. **The replacement text, verbatim and ready to paste** — a `Short`, a `Long`, an
    `Example` block, a flag declaration. Do not describe a help string in prose; write it.
    Keep `Short` under about 60 characters so `--help` stays a readable column, and make
-   `Long` say what the command needs (the `IP:PORT`, the two env vars) rather than
-   restating `Short`.
+   `Long` say what the command needs (the address argument, the credential sources)
+   rather than restating `Short`.
 4. For an output-format change, state explicitly whether it breaks an existing parser.
    Breaking a documented output shape is a bigger finding than an ugly one.
 
 Judge stdout by whether `jq`, `awk` or `cut` can consume it without special cases. Judge
 help text by whether someone who has never seen ONVIF can get a stream URL from it.
+
+Report nothing rather than manufacture findings. "The help text covers the new flag and
+the README matches" is a useful answer.
