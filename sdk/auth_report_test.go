@@ -48,6 +48,14 @@ import (
 // fault ONVIF Core section 5.11.2.2 Table 5 names for a rejected credential.
 func rejectingStub(t *testing.T) *ProfileS {
 	t.Helper()
+	return rejectingStubWithChallenge(t, "")
+}
+
+// rejectingStubWithChallenge is rejectingStub with control over the WWW-Authenticate header,
+// so the same fixture serves both a device that refuses the password and a device that
+// refuses the whole scheme. An empty challenge sends no header at all.
+func rejectingStubWithChallenge(t *testing.T, challenge string) *ProfileS {
+	t.Helper()
 
 	var srv *httptest.Server
 	srv = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -66,6 +74,13 @@ func rejectingStub(t *testing.T) *ProfileS {
 				`<tt:Media><tt:XAddr>http://` + host + `/onvif/media_service</tt:XAddr></tt:Media>` +
 				`</tds:Capabilities></tds:GetCapabilitiesResponse>`)))
 		default:
+			// A digest-only device answers 401 with its challenge rather than a SOAP
+			// fault, because it refuses the request before any SOAP is parsed.
+			if challenge != "" {
+				w.Header().Set("WWW-Authenticate", challenge)
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
 			w.WriteHeader(http.StatusBadRequest)
 			_, _ = w.Write([]byte(soap(`<env:Fault>` +
 				`<env:Code><env:Value>env:Sender</env:Value>` +
@@ -157,5 +172,42 @@ func TestARejectedCredentialIsReportedOncePerAppliance(t *testing.T) {
 	// Everything else stays at trace, which is the Fetch* contract and is not being changed.
 	if len(sink.lines("trace")) == 0 {
 		t.Error("the per-call failures stopped being logged at trace level")
+	}
+}
+
+// TestADigestOnlyDeviceIsNotReportedAsAWrongPassword pins the distinction the warning above
+// could not make.
+//
+// ONVIF Core 5.12.1 makes HTTP Digest the scheme a device "shall" be protected with and
+// WS-UsernameToken the legacy exception; this library implements only the exception, which
+// the header of sdk/profiles/S.profile discloses. So on a digest-only device every call is
+// refused whatever the credentials are.
+//
+// Before this, that device tripped the same "rejected the credentials" warning -- true in the
+// narrow sense that the exchange was refused, and actively misleading as advice: it sends an
+// operator to rotate a password that was never the problem, and no number of rotations fixes
+// a scheme mismatch.
+func TestADigestOnlyDeviceIsNotReportedAsAWrongPassword(t *testing.T) {
+	profileS := rejectingStubWithChallenge(t, `Digest realm="IP Camera", nonce="deadbeef"`)
+	sink := withCapturedLogger(t)
+
+	ctx := context.Background()
+	_ = profileS.FetchDeviceSystem(ctx)
+	_ = profileS.FetchMediaProfiles(ctx)
+
+	warnings := sink.lines("warn")
+	if len(warnings) != 1 {
+		t.Fatalf("%d warnings for one appliance, want exactly 1:\n%s",
+			len(warnings), strings.Join(warnings, "\n"))
+	}
+
+	// Naming the scheme is the whole point: it is the one word that tells the operator the
+	// password is not what needs changing.
+	if !strings.Contains(strings.ToLower(warnings[0]), "digest") {
+		t.Errorf("the warning does not name the scheme the device asked for: %s", warnings[0])
+	}
+	if strings.Contains(warnings[0], "rejected the credentials") {
+		t.Errorf("the warning still blames the credentials, which may be correct: %s",
+			warnings[0])
 	}
 }

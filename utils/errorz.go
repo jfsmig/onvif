@@ -55,6 +55,20 @@ const (
 	// gives it the subcode ter:NotAuthorized; the HTTP binding gives it 401 or 403.
 	ErrNotAuthorized = constError("not authorized")
 
+	// ErrDigestRequired reports that the device answered a rejected credential with an HTTP
+	// Digest challenge. It is wrapped alongside ErrNotAuthorized, never instead of it, for the
+	// same reason ErrNotAuthorized is wrapped alongside ErrHTTP: a caller matching the broader
+	// cause must keep matching.
+	//
+	// It is a narrower answer to the question ErrNotAuthorized raises. ONVIF Core section
+	// 5.12.1 makes digest the scheme a device "shall" be protected with and WS-UsernameToken
+	// the legacy exception, and this library implements only the exception -- see the header of
+	// sdk/profiles/S.profile, which discloses it. So on a digest-only device every call is
+	// rejected whatever the credentials are, and reporting that as a wrong password sends an
+	// operator to rotate one that was never at fault. RFC 7235 section 4.1 puts the scheme in
+	// the WWW-Authenticate header, which is where this is read from.
+	ErrDigestRequired = constError("device requires HTTP digest authentication")
+
 	// ErrNoService reports that the appliance advertises no endpoint for the service a
 	// request was addressed to. It is a property of the device, not a failure of the
 	// exchange: nothing was sent. Callers need to tell it apart from a rejected request

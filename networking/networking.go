@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/beevik/etree"
@@ -114,18 +115,23 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 	rejected := httpReply.StatusCode == http.StatusUnauthorized ||
 		httpReply.StatusCode == http.StatusForbidden
 
+	// Only worth asking once the credential is known to have been refused: a challenge on a
+	// reply the device accepted describes what it would also have taken, not why this failed.
+	digest := rejected && wantsDigest(httpReply.Header)
+
 	if fault, ok := parseSOAPFault(b); ok {
 		rejected = rejected || fault.notAuthorized()
 		switch {
 		case httpReply.StatusCode != http.StatusOK && rejected:
-			return fmt.Errorf("%w: %w: %w: %s: %s",
-				utils.ErrHTTP, utils.ErrSOAPFault, utils.ErrNotAuthorized, tag, fault)
+			return andDigest(digest, fmt.Errorf("%w: %w: %w: %s: %s",
+				utils.ErrHTTP, utils.ErrSOAPFault, utils.ErrNotAuthorized, tag, fault))
 		case httpReply.StatusCode != http.StatusOK:
 			// Both, because a faulted non-200 is both things and callers already match
 			// ErrHTTP. fmt.Errorf wraps every %w, so errors.Is finds either one.
 			return fmt.Errorf("%w: %w: %s: %s", utils.ErrHTTP, utils.ErrSOAPFault, tag, fault)
 		case rejected:
-			return fmt.Errorf("%w: %w: %s: %s", utils.ErrSOAPFault, utils.ErrNotAuthorized, tag, fault)
+			return andDigest(digest,
+				fmt.Errorf("%w: %w: %s: %s", utils.ErrSOAPFault, utils.ErrNotAuthorized, tag, fault))
 		}
 		return fmt.Errorf("%w: %s: %s", utils.ErrSOAPFault, tag, fault)
 	}
@@ -135,8 +141,8 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 		// otherwise needs a packet capture. ErrHTTP stays the first wrapped error so
 		// errors.Is keeps matching it.
 		if rejected {
-			return fmt.Errorf("%w: %w: %s: %s",
-				utils.ErrHTTP, utils.ErrNotAuthorized, tag, httpReply.Status)
+			return andDigest(digest, fmt.Errorf("%w: %w: %s: %s",
+				utils.ErrHTTP, utils.ErrNotAuthorized, tag, httpReply.Status))
 		}
 		return fmt.Errorf("%w: %s: %s", utils.ErrHTTP, tag, httpReply.Status)
 	}
@@ -196,6 +202,65 @@ func (f soapFault) String() string {
 		return code
 	}
 	return code + ": " + f.Reason.Text
+}
+
+// andDigest adds the digest cause to an error that already reports a rejected credential.
+//
+// Added to the chain rather than substituted into it, so every caller matching
+// utils.ErrNotAuthorized keeps matching -- the discipline utils.ErrSOAPFault already follows
+// against utils.ErrHTTP.
+func andDigest(digest bool, err error) error {
+	if !digest {
+		return err
+	}
+	return fmt.Errorf("%w: %w", err, utils.ErrDigestRequired)
+}
+
+// wantsDigest reports whether the device offered HTTP Digest in its challenge.
+//
+// Values, not Get: RFC 7235 section 4.1 lets a server offer several schemes either as one
+// comma-separated list or as one header line each, and firmware does both. Get would see
+// only the first line.
+//
+// The scheme is compared case-insensitively, per RFC 7235 section 2.1, and only where a
+// scheme can appear -- at the start of a line or just after a comma. Quoted parameter values
+// are removed before the search so that a device whose realm happens to be named "Digest"
+// while offering only Basic is not misreported; that is the case the negative tests pin.
+func wantsDigest(h http.Header) bool {
+	for _, challenge := range h.Values("WWW-Authenticate") {
+		if digestScheme.MatchString(stripQuoted(challenge)) {
+			return true
+		}
+	}
+	return false
+}
+
+var digestScheme = regexp.MustCompile(`(?i)(?:^|,)\s*digest(?:[\s,]|$)`)
+
+// stripQuoted blanks the contents of every quoted-string in a header value, keeping the
+// delimiters so that the surrounding structure -- above all the commas that separate one
+// challenge from the next -- is unchanged. Backslash escapes are honoured, as RFC 7230
+// section 3.2.6 defines quoted-pair.
+func stripQuoted(s string) string {
+	var (
+		out     strings.Builder
+		inQuote bool
+		escaped bool
+	)
+	for _, r := range s {
+		switch {
+		case escaped:
+			escaped = false
+		case inQuote && r == '\\':
+			escaped = true
+		case r == '"':
+			inQuote = !inQuote
+			out.WriteRune(r)
+		case !inQuote:
+			out.WriteRune(r)
+		}
+	}
+	return out.String()
 }
 
 // parseSOAPFault reports the fault an envelope carries, and whether it carries one at all.

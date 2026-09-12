@@ -246,3 +246,68 @@ func TestReadAndParseRecognisesARejectedCredential(t *testing.T) {
 		})
 	}
 }
+
+// TestReadAndParseNamesADigestChallenge pins the one thing that tells "your password is
+// wrong" apart from "this device does not accept passwords the way you are offering them".
+//
+// Core 5.12.1 makes HTTP Digest the required scheme and WS-UsernameToken the legacy
+// exception, and this library implements only the exception. A digest-only device therefore
+// 401s every call with credentials that may be perfectly correct. Without this, sdk reports
+// that as a rejected credential and sends the operator to rotate a password that was never
+// the problem.
+//
+// The negative cases carry the weight: telling every ordinary rejection that it needs digest
+// would be a worse diagnostic than saying nothing.
+func TestReadAndParseNamesADigestChallenge(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		// challenges are sent as separate WWW-Authenticate header lines, which is how a
+		// server offering more than one scheme usually spells it.
+		challenges []string
+		want       bool
+	}{
+		{"digest alone", []string{`Digest realm="IP Camera", nonce="deadbeef"`}, true},
+		{"no challenge at all", nil, false},
+		{"basic alone", []string{`Basic realm="IP Camera"`}, false},
+
+		// Both spellings of "several schemes offered": one header line each, and one line
+		// holding a comma-separated list. RFC 7235 allows either.
+		{"one line each", []string{`Basic realm="x"`, `Digest realm="y"`}, true},
+		{"comma separated", []string{`Basic realm="x", Digest realm="y"`}, true},
+
+		// The scheme token is case-insensitive per RFC 7235 3.1, and firmware spells it
+		// every way there is.
+		{"lowercase", []string{`digest realm="x"`}, true},
+
+		// Not a challenge: the word appears inside a quoted parameter value. A device whose
+		// realm is named after the scheme it does not offer must not be misreported.
+		{"digest only inside a realm", []string{`Basic realm="Digest"`}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			resp := reply(t, func(w http.ResponseWriter, r *http.Request) {
+				for _, c := range tc.challenges {
+					w.Header().Add("WWW-Authenticate", c)
+				}
+				w.WriteHeader(http.StatusUnauthorized)
+			})
+
+			var out struct {
+				Body struct{ GetProfilesResponse struct{} }
+			}
+			err := ReadAndParse(resp, &out, "GetProfiles")
+			if err == nil {
+				t.Fatal("no error at all")
+			}
+
+			// Whatever the challenge says, a 401 is still a rejected credential: the new
+			// sentinel is wrapped in addition to that one, never instead of it, so every
+			// caller already matching ErrNotAuthorized keeps matching.
+			if !errors.Is(err, utils.ErrNotAuthorized) {
+				t.Errorf("errors.Is(%v, ErrNotAuthorized) = false, want true", err)
+			}
+			if got := errors.Is(err, utils.ErrDigestRequired); got != tc.want {
+				t.Errorf("errors.Is(%v, ErrDigestRequired) = %v, want %v", err, got, tc.want)
+			}
+		})
+	}
+}

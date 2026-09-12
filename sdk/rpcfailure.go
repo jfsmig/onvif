@@ -52,7 +52,27 @@ func rpcFailure(client *networking.Client, err error, rpc string) *zerolog.Event
 	// it always did.
 	if errors.Is(err, utils.ErrNotAuthorized) && client.NoteAuthRejected() {
 		Logger.Warn().Err(err).Str("addr", client.Xaddr()).Str("rpc", rpc).
-			Msg("Camera rejected the credentials, whatever it reports will be incomplete")
+			Msg(authAdvice(err))
 	}
 	return Logger.Trace().Err(err).Str("rpc", rpc)
+}
+
+// authAdvice picks the sentence that tells the operator what to change.
+//
+// The two cases need opposite actions, and the wrong one wastes real time. A refused password
+// is fixed by supplying another. A device that asked for HTTP Digest refuses every password
+// this library can offer, because ONVIF Core 5.12.1 makes digest the required scheme and
+// WS-UsernameToken the legacy exception, and only the exception is implemented here -- see
+// the header of sdk/profiles/S.profile. Reporting that as a rejected credential sends an
+// operator round a loop of rotations that cannot end.
+//
+// Deliberately not a third case for "both": a device that offers digest alongside something
+// else still gets this sentence, because what the operator needs to know is that the scheme
+// is in play at all.
+func authAdvice(err error) string {
+	if errors.Is(err, utils.ErrDigestRequired) {
+		return "Camera asked for HTTP digest authentication, which this library does not " +
+			"speak; the credentials may be correct and whatever it reports will be incomplete"
+	}
+	return "Camera rejected the credentials, whatever it reports will be incomplete"
 }
