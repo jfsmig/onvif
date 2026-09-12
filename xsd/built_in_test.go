@@ -147,3 +147,68 @@ func TestNumericAndLanguageConstructorsAcceptTheirOwnRange(t *testing.T) {
 		}
 	})
 }
+
+// TestGregorianConstructorsEmitNumericFields pins five constructors that ignored the format
+// written in the doc comment directly above each of them.
+//
+// Four built their result with fmt.Sprint on a time.Month, whose String method yields the
+// English month name, so NewGYearMonth returned "2026-August" where xs:gYearMonth is CCYY-MM.
+// NewGDay and NewGYear had the other half of the problem: no zero padding, so the fifth of the
+// month was "---5" and the year 500 was "500".
+//
+// Verified against XML Schema Part 2: section 3.2.10 gYearMonth CCYY-MM, 3.2.11 gYear CCYY,
+// 3.2.12 gMonthDay --MM-DD, 3.2.13 gDay ---DD, 3.2.14 gMonth --MM. Every field is a numeral of
+// fixed width and none may be left-truncated.
+//
+// None has a caller in this repository, which is what kept it latent -- and, as with the three
+// inverted validators below, is also why it went unnoticed: they are exported, so the first
+// caller inherits the defect whole.
+func TestGregorianConstructorsEmitNumericFields(t *testing.T) {
+	// A year below 1000 and a day below 10, so the padding is what is being measured. The
+	// month name would be "March", which no assertion below could mistake for "03".
+	padded := time.Date(500, time.March, 5, 0, 0, 0, 0, time.UTC)
+
+	for _, tc := range []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"GYearMonth", string(GYearMonth("").NewGYearMonth(reference)), "2026-08"},
+		{"GMonthDay", string(GMonthDay("").NewGMonthDay(reference)), "--08-31"},
+		{"GMonth", string(GMonth("").NewGMonth(reference)), "--08"},
+		{"GDay", string(GDay("").NewGDay(reference)), "---31"},
+		{"GYear", string(GYear("").NewGYear(reference)), "2026"},
+
+		{"GYearMonth pads", string(GYearMonth("").NewGYearMonth(padded)), "0500-03"},
+		{"GMonthDay pads", string(GMonthDay("").NewGMonthDay(padded)), "--03-05"},
+		{"GMonth pads", string(GMonth("").NewGMonth(padded)), "--03"},
+		{"GDay pads", string(GDay("").NewGDay(padded)), "---05"},
+		{"GYear pads", string(GYear("").NewGYear(padded)), "0500"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.got != tc.want {
+				t.Errorf("= %q, want %q", tc.got, tc.want)
+			}
+			if strings.ContainsAny(tc.got, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") {
+				t.Errorf("= %q, still carries a month name: fmt.Sprint is calling "+
+					"time.Month.String()", tc.got)
+			}
+		})
+	}
+}
+
+// TestGregorianConstructorsPadANegativeYear covers the trap in the fix rather than in the
+// defect: %04d counts the sign in its width, so a plain %04d turns year -1 into "-001" where
+// the lexical space wants four digits after the sign.
+//
+// The year numbering itself is deliberately not addressed here -- see the TODO at NewGYear.
+func TestGregorianConstructorsPadANegativeYear(t *testing.T) {
+	bce := time.Date(-44, time.March, 15, 0, 0, 0, 0, time.UTC)
+
+	if got, want := string(GYear("").NewGYear(bce)), "-0044"; got != want {
+		t.Errorf("NewGYear = %q, want %q", got, want)
+	}
+	if got, want := string(GYearMonth("").NewGYearMonth(bce)), "-0044-03"; got != want {
+		t.Errorf("NewGYearMonth = %q, want %q", got, want)
+	}
+}

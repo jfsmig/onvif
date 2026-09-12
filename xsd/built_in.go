@@ -333,8 +333,8 @@ type GYearMonth AnySimpleType
 /*
 Construct an instance of xsd GYearMonth type
 */
-func (tp GYearMonth) NewGYearMonth(time time.Time) GYearMonth {
-	return GYearMonth(fmt.Sprint(time.Year(), "-", time.Month()))
+func (tp GYearMonth) NewGYearMonth(t time.Time) GYearMonth {
+	return GYearMonth(fmt.Sprintf("%s-%02d", paddedYear(t.Year()), int(t.Month())))
 }
 
 /*
@@ -354,8 +354,23 @@ type GYear AnySimpleType
 /*
 Construct an instance of xsd GYear type
 */
-func (tp GYear) NewGYear(time time.Time) GYear {
-	return GYear(fmt.Sprint(time.Year()))
+// TODO(jfsmig): the year numbering is not adjusted. XML Schema 1.0 has no year zero and
+// numbers 1 BCE as -0001, while Go's time package uses astronomical numbering where year zero
+// is 1 BCE, so the two differ by one for BCE dates. XML Schema 1.1 adopts Go's convention.
+// Deciding which edition this package targets is a separate question from the padding, and no
+// camera will ever send a BCE date.
+func (tp GYear) NewGYear(t time.Time) GYear {
+	return GYear(paddedYear(t.Year()))
+}
+
+// paddedYear renders CCYY with no left truncation, which is what every xs:gYear-shaped type
+// in this file needs. The sign is handled apart from the padding because %04d counts it in
+// the width, so a plain %04d turns -1 into "-001" rather than "-0001".
+func paddedYear(y int) string {
+	if y < 0 {
+		return fmt.Sprintf("-%04d", -y)
+	}
+	return fmt.Sprintf("%04d", y)
 }
 
 /*
@@ -373,8 +388,8 @@ type GMonthDay AnySimpleType
 /*
 Construct an instance of xsd GMonthDay type
 */
-func (tp GMonthDay) NewGMonthDay(time time.Time) GMonthDay {
-	return GMonthDay(fmt.Sprint("--", time.Month(), "-", time.Day()))
+func (tp GMonthDay) NewGMonthDay(t time.Time) GMonthDay {
+	return GMonthDay(fmt.Sprintf("--%02d-%02d", int(t.Month()), t.Day()))
 }
 
 /*
@@ -393,8 +408,8 @@ type GDay AnySimpleType
 /*
 Construct an instance of xsd GDay type
 */
-func (tp GDay) NewGDay(time time.Time) GDay {
-	return GDay(fmt.Sprint("---", time.Day()))
+func (tp GDay) NewGDay(t time.Time) GDay {
+	return GDay(fmt.Sprintf("---%02d", t.Day()))
 }
 
 /*
@@ -411,8 +426,8 @@ More info: https://www.w3.org/TR/xmlschema-2/#gMonth
 */
 type GMonth AnySimpleType
 
-func (tp GMonth) NewGMonth(time time.Time) GMonth {
-	return GMonth(fmt.Sprint("--", time.Month()))
+func (tp GMonth) NewGMonth(t time.Time) GMonth {
+	return GMonth(fmt.Sprintf("--%02d", int(t.Month())))
 }
 
 /*
