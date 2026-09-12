@@ -117,7 +117,8 @@ func ReadAndParse(httpReply *http.Response, reply interface{}, tag string) error
 
 	// Only worth asking once the credential is known to have been refused: a challenge on a
 	// reply the device accepted describes what it would also have taken, not why this failed.
-	digest := rejected && wantsDigest(httpReply.Header)
+	// Note what this does and does not establish -- see utils.ErrDigestOffered.
+	digest := rejected && offersDigest(httpReply.Header)
 
 	if fault, ok := parseSOAPFault(b); ok {
 		rejected = rejected || fault.notAuthorized()
@@ -204,7 +205,8 @@ func (f soapFault) String() string {
 	return code + ": " + f.Reason.Text
 }
 
-// andDigest adds the digest cause to an error that already reports a rejected credential.
+// andDigest records, on an error that already reports a rejected credential, that the device
+// offered digest as well.
 //
 // Added to the chain rather than substituted into it, so every caller matching
 // utils.ErrNotAuthorized keeps matching -- the discipline utils.ErrSOAPFault already follows
@@ -213,10 +215,11 @@ func andDigest(digest bool, err error) error {
 	if !digest {
 		return err
 	}
-	return fmt.Errorf("%w: %w", err, utils.ErrDigestRequired)
+	return fmt.Errorf("%w: %w", err, utils.ErrDigestOffered)
 }
 
-// wantsDigest reports whether the device offered HTTP Digest in its challenge.
+// offersDigest reports whether the device offered HTTP Digest in its challenge. Offered, not
+// required: see utils.ErrDigestOffered for what that distinction costs.
 //
 // Values, not Get: RFC 7235 section 4.1 lets a server offer several schemes either as one
 // comma-separated list or as one header line each, and firmware does both. Get would see
@@ -226,7 +229,7 @@ func andDigest(digest bool, err error) error {
 // scheme can appear -- at the start of a line or just after a comma. Quoted parameter values
 // are removed before the search so that a device whose realm happens to be named "Digest"
 // while offering only Basic is not misreported; that is the case the negative tests pin.
-func wantsDigest(h http.Header) bool {
+func offersDigest(h http.Header) bool {
 	for _, challenge := range h.Values("WWW-Authenticate") {
 		if digestScheme.MatchString(stripQuoted(challenge)) {
 			return true

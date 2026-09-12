@@ -305,8 +305,8 @@ func TestReadAndParseNamesADigestChallenge(t *testing.T) {
 			if !errors.Is(err, utils.ErrNotAuthorized) {
 				t.Errorf("errors.Is(%v, ErrNotAuthorized) = false, want true", err)
 			}
-			if got := errors.Is(err, utils.ErrDigestRequired); got != tc.want {
-				t.Errorf("errors.Is(%v, ErrDigestRequired) = %v, want %v", err, got, tc.want)
+			if got := errors.Is(err, utils.ErrDigestOffered); got != tc.want {
+				t.Errorf("errors.Is(%v, ErrDigestOffered) = %v, want %v", err, got, tc.want)
 			}
 		})
 	}

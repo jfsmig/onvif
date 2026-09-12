@@ -55,19 +55,25 @@ const (
 	// gives it the subcode ter:NotAuthorized; the HTTP binding gives it 401 or 403.
 	ErrNotAuthorized = constError("not authorized")
 
-	// ErrDigestRequired reports that the device answered a rejected credential with an HTTP
-	// Digest challenge. It is wrapped alongside ErrNotAuthorized, never instead of it, for the
-	// same reason ErrNotAuthorized is wrapped alongside ErrHTTP: a caller matching the broader
-	// cause must keep matching.
+	// ErrDigestOffered reports that the device's rejection carried an HTTP Digest challenge.
+	// It is wrapped alongside ErrNotAuthorized, never instead of it, for the same reason
+	// ErrNotAuthorized is wrapped alongside ErrHTTP: a caller matching the broader cause must
+	// keep matching.
 	//
-	// It is a narrower answer to the question ErrNotAuthorized raises. ONVIF Core section
-	// 5.12.1 makes digest the scheme a device "shall" be protected with and WS-UsernameToken
-	// the legacy exception, and this library implements only the exception -- see the header of
-	// sdk/profiles/S.profile, which discloses it. So on a digest-only device every call is
-	// rejected whatever the credentials are, and reporting that as a wrong password sends an
-	// operator to rotate one that was never at fault. RFC 7235 section 4.1 puts the scheme in
-	// the WWW-Authenticate header, which is where this is read from.
-	ErrDigestRequired = constError("device requires HTTP digest authentication")
+	// Read it as "the device also speaks digest", not as "the device speaks only digest".
+	// Every camera on the development bench sends this challenge on a refused password and
+	// then accepts WS-UsernameToken once the password is right, so it does not tell a wrong
+	// credential apart from a scheme this library cannot satisfy. It cannot: WS-UsernameToken
+	// is not an HTTP authentication scheme, so a device that supports it has nothing to say
+	// about it in WWW-Authenticate.
+	//
+	// It is still worth surfacing, because ONVIF Core 5.12.1 makes digest the scheme a device
+	// shall be protected with and WS-UsernameToken the legacy exception, and only the
+	// exception is implemented here -- see the header of sdk/profiles/S.profile. So on a
+	// device that has dropped the exception, this is the only hint available. RFC 7235
+	// section 4.1 puts the scheme in the WWW-Authenticate header, which is where it is read
+	// from.
+	ErrDigestOffered = constError("device offered HTTP digest authentication")
 
 	// ErrNoService reports that the appliance advertises no endpoint for the service a
 	// request was addressed to. It is a property of the device, not a failure of the

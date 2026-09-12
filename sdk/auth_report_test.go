@@ -175,19 +175,25 @@ func TestARejectedCredentialIsReportedOncePerAppliance(t *testing.T) {
 	}
 }
 
-// TestADigestOnlyDeviceIsNotReportedAsAWrongPassword pins the distinction the warning above
-// could not make.
+// TestADigestChallengeIsNamedWithoutExcusingTheCredentials pins the order of the two causes
+// in the warning, which is the part that took a bench to get right.
 //
-// ONVIF Core 5.12.1 makes HTTP Digest the scheme a device "shall" be protected with and
-// WS-UsernameToken the legacy exception; this library implements only the exception, which
-// the header of sdk/profiles/S.profile discloses. So on a digest-only device every call is
-// refused whatever the credentials are.
+// ONVIF Core 5.12.1 makes HTTP Digest the scheme a device shall be protected with and
+// WS-UsernameToken the legacy exception, and this library implements only the exception -- so
+// a device that has dropped the exception refuses every password it can offer. Naming that is
+// worth a clause.
 //
-// Before this, that device tripped the same "rejected the credentials" warning -- true in the
-// narrow sense that the exchange was refused, and actively misleading as advice: it sends an
-// operator to rotate a password that was never the problem, and no number of rotations fixes
-// a scheme mismatch.
-func TestADigestOnlyDeviceIsNotReportedAsAWrongPassword(t *testing.T) {
+// What it is NOT worth is leading with. The first version of this warning said the credentials
+// "may be correct" whenever a challenge arrived. All four cameras on the bench send a digest
+// challenge on a refused password and then accept WS-UsernameToken the moment the password is
+// right, so that sentence fired on the ordinary wrong-password case and sent the operator away
+// from the one thing that would have fixed it. The challenge cannot mean what it was read to
+// mean: WS-UsernameToken is not an HTTP authentication scheme, so a device supporting it has
+// nothing to say about it in WWW-Authenticate.
+//
+// Hence both assertions below. The scheme is named, and the credentials are still blamed
+// first.
+func TestADigestChallengeIsNamedWithoutExcusingTheCredentials(t *testing.T) {
 	profileS := rejectingStubWithChallenge(t, `Digest realm="IP Camera", nonce="deadbeef"`)
 	sink := withCapturedLogger(t)
 
@@ -201,13 +207,11 @@ func TestADigestOnlyDeviceIsNotReportedAsAWrongPassword(t *testing.T) {
 			len(warnings), strings.Join(warnings, "\n"))
 	}
 
-	// Naming the scheme is the whole point: it is the one word that tells the operator the
-	// password is not what needs changing.
 	if !strings.Contains(strings.ToLower(warnings[0]), "digest") {
-		t.Errorf("the warning does not name the scheme the device asked for: %s", warnings[0])
+		t.Errorf("the warning does not name the scheme the device offered: %s", warnings[0])
 	}
-	if strings.Contains(warnings[0], "rejected the credentials") {
-		t.Errorf("the warning still blames the credentials, which may be correct: %s",
-			warnings[0])
+	if !strings.Contains(warnings[0], "rejected the credentials") {
+		t.Errorf("the warning stopped blaming the credentials, which are wrong nearly every "+
+			"time and are the only thing the operator can act on: %s", warnings[0])
 	}
 }

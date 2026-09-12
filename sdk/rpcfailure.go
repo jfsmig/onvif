@@ -59,20 +59,27 @@ func rpcFailure(client *networking.Client, err error, rpc string) *zerolog.Event
 
 // authAdvice picks the sentence that tells the operator what to change.
 //
-// The two cases need opposite actions, and the wrong one wastes real time. A refused password
-// is fixed by supplying another. A device that asked for HTTP Digest refuses every password
-// this library can offer, because ONVIF Core 5.12.1 makes digest the required scheme and
-// WS-UsernameToken the legacy exception, and only the exception is implemented here -- see
-// the header of sdk/profiles/S.profile. Reporting that as a rejected credential sends an
-// operator round a loop of rotations that cannot end.
+// Both sentences lead with the credentials, because that is what an operator can act on and
+// what is wrong nearly every time. The digest variant only adds a second possibility.
 //
-// Deliberately not a third case for "both": a device that offers digest alongside something
-// else still gets this sentence, because what the operator needs to know is that the scheme
-// is in play at all.
+// It is deliberately not the other way round. The first version of this said the credentials
+// "may be correct" whenever a digest challenge arrived, on the theory that such a challenge
+// marks a device that has dropped WS-UsernameToken. The bench disproved it flatly: all four
+// cameras send a digest challenge on a refused password and then accept WS-UsernameToken as
+// soon as the password is right. The challenge cannot carry that meaning, because
+// WS-UsernameToken is not an HTTP authentication scheme and a device that supports it has
+// nothing to say about it in WWW-Authenticate.
+//
+// So what is left is a hint, offered in the right order: check the password, and suspect the
+// scheme only once the password is certainly right. ONVIF Core 5.12.1 makes digest the scheme
+// a device shall be protected with and WS-UsernameToken the legacy exception -- see the
+// header of sdk/profiles/S.profile -- so a device that has dropped the exception is the case
+// the second clause exists for, and it is rare enough to come second.
 func authAdvice(err error) string {
-	if errors.Is(err, utils.ErrDigestRequired) {
-		return "Camera asked for HTTP digest authentication, which this library does not " +
-			"speak; the credentials may be correct and whatever it reports will be incomplete"
+	const rejected = "Camera rejected the credentials, whatever it reports will be incomplete"
+	if errors.Is(err, utils.ErrDigestOffered) {
+		return rejected + "; it also offers HTTP digest, which this library does not speak, " +
+			"so a correct password can still be refused"
 	}
-	return "Camera rejected the credentials, whatever it reports will be incomplete"
+	return rejected
 }
