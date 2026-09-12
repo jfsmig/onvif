@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jfsmig/onvif/xsd"
+	"github.com/jfsmig/onvif/v2/xsd"
 )
 
 // onvif-cli JSON-encodes these structs straight to stdout, so a device that returns a

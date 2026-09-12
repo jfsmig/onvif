@@ -19,7 +19,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/jfsmig/onvif/event"
+	"github.com/jfsmig/onvif/v2/event"
 )
 
 type Event struct {

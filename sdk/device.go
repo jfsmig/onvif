@@ -19,8 +19,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/jfsmig/onvif/device"
-	"github.com/jfsmig/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/v2/device"
+	"github.com/jfsmig/onvif/v2/xsd/onvif"
 )
 
 type DeviceDescriptor struct {

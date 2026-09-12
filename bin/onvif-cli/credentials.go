@@ -19,8 +19,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jfsmig/onvif/credentials"
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/credentials"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // The base directories searched when neither --basedir nor ONVIF_BASEDIR names one. The

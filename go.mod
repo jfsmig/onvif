@@ -1,4 +1,4 @@
-module github.com/jfsmig/onvif
+module github.com/jfsmig/onvif/v2
 
 go 1.26.7
 

@@ -20,11 +20,11 @@
 package ptz
 
 import (
-	"github.com/jfsmig/onvif/xsd"
-	"github.com/jfsmig/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/v2/xsd"
+	"github.com/jfsmig/onvif/v2/xsd/onvif"
 )
 
-//go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen sdk ptz calls.txt
+//go:generate go run github.com/jfsmig/onvif/v2/bin/onvif-codegen sdk ptz calls.txt
 
 type Capabilities struct {
 	EFlip                       xsd.Boolean `xml:"EFlip,attr"`

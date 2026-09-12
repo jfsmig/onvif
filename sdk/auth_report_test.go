@@ -41,7 +41,7 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // rejectingStub answers the two bootstrap exchanges and then refuses everything with the

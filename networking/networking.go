@@ -31,7 +31,7 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/jfsmig/go-wsd/gosoap"
-	"github.com/jfsmig/onvif/utils"
+	"github.com/jfsmig/onvif/v2/utils"
 )
 
 // refuseRedirect stops net/http from following a 3xx.

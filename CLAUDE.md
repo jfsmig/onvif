@@ -30,8 +30,9 @@ session applies the fixes.
 
 `scripts/repo-check.sh` decides, deterministically, every rule a script can decide: the
 AGPL notice and the blank line after it, the MIT provenance set, the ban on the standard
-logger below `sdk`, `calls.txt` 1:1 with the wrappers at 89/79/28/9, and a template change
-carrying its regenerated output. A `Stop` hook in `.claude/settings.json` runs it on every
+logger below `sdk`, every self-reference naming the module path `go.mod` declares,
+`calls.txt` 1:1 with the wrappers at 89/79/28/9, and a template change carrying its
+regenerated output. A `Stop` hook in `.claude/settings.json` runs it on every
 turn.
 
 **Do not ask an agent to check any of those.** An agent re-deriving fixed shell costs a

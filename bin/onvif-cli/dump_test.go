@@ -43,8 +43,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/sdk"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/sdk"
 )
 
 func dumpSoap(body string) string {

@@ -23,9 +23,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/ptz"
-	"github.com/jfsmig/onvif/utils"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/ptz"
+	"github.com/jfsmig/onvif/v2/utils"
 )
 
 // stubAppliance stands up a device answering GetSystemDateAndTime and GetCapabilities,

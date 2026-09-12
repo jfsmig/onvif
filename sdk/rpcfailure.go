@@ -20,8 +20,8 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/utils"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/utils"
 )
 
 // rpcFailure is the one place that decides how loudly a swallowed per-call failure is

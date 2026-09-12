@@ -23,7 +23,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // GetConfiguration and GetConfigurationOptions are keyed by the PTZ *configuration* token,

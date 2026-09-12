@@ -19,7 +19,7 @@ package device
 
 import (
 	"context"
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // Call_SetHostnameFromDHCP forwards the call to dev.CallMethod() then parses the payload of the reply as a SetHostnameFromDHCPResponse.

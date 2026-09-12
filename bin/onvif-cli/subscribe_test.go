@@ -40,8 +40,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/sdk"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/sdk"
 )
 
 // noDelay collapses the back-off so a retry test is not a stopwatch. streamCamera takes the

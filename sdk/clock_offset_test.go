@@ -39,8 +39,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/xsd/onvif"
 )
 
 // createdStamp pulls the wsu:Created text out of a captured envelope. Matched on the local

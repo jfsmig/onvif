@@ -19,8 +19,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/jfsmig/onvif/media"
-	"github.com/jfsmig/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/v2/media"
+	"github.com/jfsmig/onvif/v2/xsd/onvif"
 )
 
 type Audio struct {

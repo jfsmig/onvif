@@ -37,7 +37,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // The subscription manager sits on a path of its own, which is the point: a pull that landed

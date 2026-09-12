@@ -39,8 +39,8 @@ package {{.Package}}
 import (
 "context"
 
-"github.com/jfsmig/onvif/networking"
-{{range .Services}}"github.com/jfsmig/onvif/{{.}}"
+"github.com/jfsmig/onvif/v2/networking"
+{{range .Services}}"github.com/jfsmig/onvif/v2/{{.}}"
 {{end}})
 
 // {{.Type}} offers the operations that the ONVIF Profile {{.Letter}} specification lists for

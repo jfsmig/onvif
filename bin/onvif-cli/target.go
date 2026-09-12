@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jfsmig/onvif/credentials"
+	"github.com/jfsmig/onvif/v2/credentials"
 )
 
 // deviceTarget is what the single argument of a dump sub-command designates: an address to

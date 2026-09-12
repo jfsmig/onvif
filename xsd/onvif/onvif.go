@@ -20,7 +20,7 @@
 package onvif
 
 import (
-	"github.com/jfsmig/onvif/xsd"
+	"github.com/jfsmig/onvif/v2/xsd"
 )
 
 // BUG(r): Enum types implemented as simple string

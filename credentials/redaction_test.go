@@ -34,7 +34,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // secret is distinctive enough that finding it anywhere is unambiguous, and shaped so that

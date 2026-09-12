@@ -30,7 +30,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jfsmig/onvif/xsd/iso8601"
+	"github.com/jfsmig/onvif/v2/xsd/iso8601"
 )
 
 /*

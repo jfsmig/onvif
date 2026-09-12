@@ -24,7 +24,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/jfsmig/onvif/utils"
+	"github.com/jfsmig/onvif/v2/utils"
 )
 
 // The ONVIF credential travels inside the SOAP body, so net/http's own protection — it

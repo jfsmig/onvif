@@ -33,8 +33,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/sdk"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/sdk"
 )
 
 // A fixed instant, so the rendering is a golden line rather than a clock read.

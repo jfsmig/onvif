@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jfsmig/onvif/xsd"
+	"github.com/jfsmig/onvif/v2/xsd"
 )
 
 // PresetTourToken and Operation are LOCAL elements of a tptz operation in a schema with

@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jfsmig/onvif/utils"
+	"github.com/jfsmig/onvif/v2/utils"
 )
 
 // clientWithEndpoints builds a Client holding exactly the given endpoint keys, bypassing

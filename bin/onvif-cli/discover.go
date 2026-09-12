@@ -25,9 +25,9 @@ import (
 
 	"github.com/jfsmig/go-wsd/wsd"
 
-	"github.com/jfsmig/onvif/credentials"
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/sdk"
+	"github.com/jfsmig/onvif/v2/credentials"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/sdk"
 )
 
 // probeOptions keeps the dialect the in-tree probe spoke: the zero Flavor is the

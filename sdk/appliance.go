@@ -44,13 +44,13 @@ import (
 	"github.com/beevik/etree"
 	"github.com/rs/zerolog"
 
-	"github.com/jfsmig/onvif/device"
-	"github.com/jfsmig/onvif/media"
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/utils"
+	"github.com/jfsmig/onvif/v2/device"
+	"github.com/jfsmig/onvif/v2/media"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/utils"
 )
 
-//go:generate go run github.com/jfsmig/onvif/bin/onvif-codegen profile sdk ./profiles
+//go:generate go run github.com/jfsmig/onvif/v2/bin/onvif-codegen profile sdk ./profiles
 
 var (
 	// Logger gathers the format and the destination of the diagnostics written here, and is

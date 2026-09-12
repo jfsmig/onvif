@@ -18,8 +18,8 @@ package sdk
 import (
 	"reflect"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/xsd"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/xsd"
 )
 
 // anyURI is the type every URI a device reports arrives as.

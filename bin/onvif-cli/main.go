@@ -24,8 +24,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/jfsmig/onvif/credentials"
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/credentials"
+	"github.com/jfsmig/onvif/v2/networking"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )

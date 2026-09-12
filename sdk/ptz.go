@@ -19,8 +19,8 @@ import (
 	"context"
 	"sync"
 
-	"github.com/jfsmig/onvif/ptz"
-	"github.com/jfsmig/onvif/xsd/onvif"
+	"github.com/jfsmig/onvif/v2/ptz"
+	"github.com/jfsmig/onvif/v2/xsd/onvif"
 )
 
 type Ptz struct {

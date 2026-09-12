@@ -42,11 +42,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jfsmig/onvif/device"
-	"github.com/jfsmig/onvif/event"
-	"github.com/jfsmig/onvif/media"
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/ptz"
+	"github.com/jfsmig/onvif/v2/device"
+	"github.com/jfsmig/onvif/v2/event"
+	"github.com/jfsmig/onvif/v2/media"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/ptz"
 )
 
 func TestRequestPackagesNameTheirONVIFService(t *testing.T) {

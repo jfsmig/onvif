@@ -9,6 +9,11 @@ Simple management IP-devices cameras that honor the [ONVIF Protocol](https://www
 The present repository is a fork of [goonvif](https://github.com/use-go/goonvif) that quickly evolved. 
 Because of the need for quickly merged changes, the link to the upstream has been cut.
 
+The module is `github.com/jfsmig/onvif/v2`: imports carry the major version, as in
+`import "github.com/jfsmig/onvif/v2/sdk"`. Coming from v1, read
+[Migrating from v1](#migrating-from-v1) first — the licence changed, and two packages left
+the module.
+
 ## CLI tools
 
 For the convenience and testing purposes, a [CLI](https://en.wikipedia.org/wiki/Command-line_interface) tool ships
@@ -213,32 +218,31 @@ Two consequences worth knowing:
 ## SDK
 
 A High Level go package aims at fetching information from the devices:
-- [github.com/jfsmig/onvif/sdk](https://pkg.go.dev/github.com/jfsmig/onvif/sdk)
+- [github.com/jfsmig/onvif/v2/sdk](https://pkg.go.dev/github.com/jfsmig/onvif/v2/sdk)
 
 Low-Level go packages implement the OnVIF unitary SOAP calls. For each call :
-- [github.com/jfsmig/onvif/device](https://pkg.go.dev/github.com/jfsmig/onvif/device)
-- [github.com/jfsmig/onvif/event](https://pkg.go.dev/github.com/jfsmig/onvif/event)
-- [github.com/jfsmig/onvif/ptz](https://pkg.go.dev/github.com/jfsmig/onvif/ptz)
-- [github.com/jfsmig/onvif/media](https://pkg.go.dev/github.com/jfsmig/onvif/media)
+- [github.com/jfsmig/onvif/v2/device](https://pkg.go.dev/github.com/jfsmig/onvif/v2/device)
+- [github.com/jfsmig/onvif/v2/event](https://pkg.go.dev/github.com/jfsmig/onvif/v2/event)
+- [github.com/jfsmig/onvif/v2/ptz](https://pkg.go.dev/github.com/jfsmig/onvif/v2/ptz)
+- [github.com/jfsmig/onvif/v2/media](https://pkg.go.dev/github.com/jfsmig/onvif/v2/media)
 
 Two more packages carry the request and reply **types only** — they have no `calls.txt` and
 so no `Call_*` wrappers, which means their operations cannot be issued yet:
-- [github.com/jfsmig/onvif/imaging](https://pkg.go.dev/github.com/jfsmig/onvif/imaging)
-- [github.com/jfsmig/onvif/analytics](https://pkg.go.dev/github.com/jfsmig/onvif/analytics)
+- [github.com/jfsmig/onvif/v2/imaging](https://pkg.go.dev/github.com/jfsmig/onvif/v2/imaging)
+- [github.com/jfsmig/onvif/v2/analytics](https://pkg.go.dev/github.com/jfsmig/onvif/v2/analytics)
 
 `imaging` and `analytics` are already among the service names `networking` will route, so
 what is missing is the wrappers rather than the plumbing.
 
-> **Breaking change.** The directory was `Imaging/` until it was renamed to `imaging/`, so the
-> import path `github.com/jfsmig/onvif/Imaging` is gone and is spelled `…/imaging` now. It was
-> the only capitalised package here, and the mismatch was not cosmetic: `onvif-codegen` refuses
-> to generate into a directory whose name differs from its package clause, so the sentence
-> above was false for `Imaging` — the wrappers could never have been added without this rename.
-> The package exports request and reply types only and has no callable operation, so an
-> importer's fix is the path and nothing else.
+> **Why `imaging` is lowercase in v2.** The directory was `Imaging/` until it was renamed, the
+> only capitalised package here, and the mismatch was not cosmetic: `onvif-codegen` refuses to
+> generate into a directory whose name differs from its package clause, so the sentence above
+> was false for `Imaging` — the wrappers could never have been added without this rename. The
+> package exports request and reply types only and has no callable operation, so an importer
+> coming from v1 fixes the import path and nothing else.
 
 Helpers:
-- [github.com/jfsmig/onvif/credentials](https://pkg.go.dev/github.com/jfsmig/onvif/credentials)
+- [github.com/jfsmig/onvif/v2/credentials](https://pkg.go.dev/github.com/jfsmig/onvif/v2/credentials)
   answers "which credentials for the camera bearing this identifier?". `credentials.Resolver`
   is the interface; a `Store` reads the `*.json` files described above, `Static` is a blanket
   credential, and `Chain` states the precedence between them. An application that already
@@ -246,10 +250,65 @@ Helpers:
   implements the interface and keeps the rest of the tool unchanged. `Resolve` answers from
   memory and cannot fail, so a source that does I/O per lookup belongs behind a type that
   loads eagerly, as `Store` does
-- [github.com/jfsmig/onvif/networking](https://pkg.go.dev/github.com/jfsmig/onvif/networking)
+- [github.com/jfsmig/onvif/v2/networking](https://pkg.go.dev/github.com/jfsmig/onvif/v2/networking)
   implements the low-level SOAP connectivity
 - [github.com/jfsmig/go-wsd/wsd](https://pkg.go.dev/github.com/jfsmig/go-wsd/wsd)
-  implements the probing of the LAN network interfaces. Please refer to the CLI tool `onvif-cli discover`
+  implements the probing of the LAN network interfaces, which `onvif/ws-discovery` did in v1.
+  Please refer to the CLI tool `onvif-cli discover`
+
+### Migrating from v1
+
+The module declares a major version, so the import path carries it:
+
+```console
+go get github.com/jfsmig/onvif/v2
+```
+
+```go
+import "github.com/jfsmig/onvif/v2/sdk"
+```
+
+The v1 path `github.com/jfsmig/onvif` still resolves, to the `v1.1.0` tag, and stays where
+it is. Go treats the two as different modules, so nothing here moves an existing importer
+and nothing forces an upgrade.
+
+What broke, heaviest first:
+
+- **The licence is AGPL-3.0-or-later.** `v1.1.0` was MIT, inherited from `goonvif`. It is the
+  change to weigh first, because it is the one an afternoon of edits cannot answer: the rest
+  are mechanical, this one is a decision about your own distribution. The files that still
+  hold upstream MIT code keep that notice beside the AGPL one, see [LICENSE.MIT](LICENSE.MIT).
+- **Two packages left the module rather than changing shape.** `onvif/gosoap`, the envelope
+  builder — `SoapMessage`, `NewSOAP`, `AddWSSecurity` — and `onvif/ws-discovery`, with
+  `GetAvailableDevicesAtSpecificEthernetInterface` and `SendProbe`, have no v2 equivalent
+  here. Both live in [github.com/jfsmig/go-wsd](https://pkg.go.dev/github.com/jfsmig/go-wsd),
+  as `…/go-wsd/gosoap` and `…/go-wsd/wsd`, and that is a **separate module**: an importer of
+  either adds a `require` rather than editing a path, and `wsd` is a redesign, not a move.
+- **The SDK is grouped by ONVIF Profile.** `Appliance` no longer carries the `Fetch*`
+  methods. It answers `ProfileS() (*ProfileS, bool)` and the fetches hang off that, so a
+  caller asks whether the camera advertises the Profile before calling into it:
+  `appliance.FetchMedia(ctx)` becomes `profileS.FetchMedia(ctx)`, after the check. Two were
+  renamed as they moved — `FetchProfiles` and `FetchProfile` are `FetchMediaProfiles` and
+  `FetchMediaProfile`, returning `MediaProfiles` and `MediaProfile` where v1 returned
+  `Profiles` and `XProfile` — and `Media.Capabilities` is now a pointer, so a failed
+  `GetServiceCapabilities` reads as null in a dump rather than as a struct of false bools.
+  See [Beginner's Guide](#beginners-guide) for the whole shape.
+- **`Imaging/` is spelled `imaging/`**, so `…/onvif/Imaging` has no v2 equivalent. The
+  package exports types only, so the fix is the import path and nothing else; the reason the
+  rename was not cosmetic is in the note above, under the package lists.
+- **Two `xsd` constructors changed shape.** `Duration.NewDateTime(…)` — misnamed, it built a
+  duration, and it was the one place here that killed the caller's process from inside a
+  library, with `log.Fatalln` — is now `Duration.NewDuration(…) (Duration, error)`. And
+  `DateTime.NewTime` is now `Time.NewTime`, returning the type it is named after. The other
+  fallible constructors in `xsd` already returned an error in v1.
+
+Smaller edges, in the packages a caller touches directly: `utils.ErrHttp` is `utils.ErrHTTP`,
+while `ErrUnreachable`, `ErrUnsupportedCall`, `ErrUnsupportedPTZ` and `utils.Runner` are gone;
+`networking.ReadAndParse` no longer takes a `context.Context`; `event.Message` is gone, and
+`event.AbsoluteOrRelativeTimeType` is an `xsd.AnySimpleType` rather than a struct.
+
+That is what an importer runs into, not every symbol that moved: `go doc` against the two
+tags is the exhaustive answer.
 
 ### Beginner's Guide
 

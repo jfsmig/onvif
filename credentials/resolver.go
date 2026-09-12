@@ -35,7 +35,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/jfsmig/onvif/networking"
+	"github.com/jfsmig/onvif/v2/networking"
 )
 
 // Resolver yields the credentials to present to one camera.

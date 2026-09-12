@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jfsmig/onvif/networking"
-	"github.com/jfsmig/onvif/sdk"
+	"github.com/jfsmig/onvif/v2/networking"
+	"github.com/jfsmig/onvif/v2/sdk"
 )
 
 // subscribeHelp completes targetHelp with what is specific to a fleet command that streams:

@@ -54,7 +54,8 @@ scripts/repo-check.sh --regen    # the same, plus the generate-then-diff gate
 `scripts/repo-check.sh` is where the rules stated in this file that a script can decide
 actually live: the licence notice and the blank line after it, the MIT provenance set, the
 ban on the standard logger below `sdk`, that every package directory is named after its
-package, and the generator counts. It exists so that neither
+package, that every self-reference names the module path `go.mod` declares, and the
+generator counts. It exists so that neither
 a reviewer nor a language model has to re-derive them by hand on every change. Read-only by
 default, so a `Stop` hook in `.claude/settings.json` runs it on every turn; `--regen` is the
 one mode that rewrites the working tree.
@@ -143,6 +144,22 @@ do the `xsd/onvif/*.xsd` schemas. Do not add headers to them and do not edit the
   other side: `onvif-codegen` refuses to generate into a directory whose name differs from its
   package clause, and `scripts/repo-check.sh` fails the build for the mismatch. `Imaging/`
   held `package imaging` for years, which silently made that package ungeneratable.
+
+- **The module is `github.com/jfsmig/onvif/v2`, and the major version is part of every
+  import path.** It is written in five kinds of place rather than one: `go.mod`, every
+  import, the `//go:generate` lines that `go run` the generator, the two templates that
+  *write* imports — `mainTemplate` in `bin/onvif-codegen/sdk.go`, and
+  `bin/onvif-codegen/profile_template.go` — and `README.md`, in its `go get` line and its
+  pkg.go.dev links. A v3 changes all five. The templates are the ones that fail strangely:
+  change everything but them and the tree builds, vets and tests green until the next
+  `go generate` writes the old path into the new tree, which CircleCI reports as two hundred
+  files of unexplained diff. `README.md` is the one that fails silently, because a dead
+  import path in prose breaks no build at all. Both are mechanical, so
+  `scripts/repo-check.sh` decides them: every `github.com/jfsmig/onvif…` in a `.go` file, and
+  every one in the three shapes of the README that are certainly import paths, must be under
+  the path `go.mod` declares. Routing is not affected by the suffix — `methodEndpoint` takes
+  the *last* segment of `PkgPath`, which is still `device`, and `sdk/routing_test.go` derives
+  it from the real path rather than a literal, so it keeps saying so.
 
 - **One request type can override that routing, and only the event service does.** A
   request struct implementing `networking.WSAAddressee` names its own destination, which

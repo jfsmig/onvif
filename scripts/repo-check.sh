@@ -273,6 +273,55 @@ check_package_dirs() {
   fi
 }
 
+# ---------------------------------------------------------------------------
+# 8. Every self-reference names the module path go.mod declares.
+#
+# The module is at a major version, so `/v2` is part of the import path rather than a
+# property of the tag. That puts the module path in four kinds of place instead of one:
+# go.mod, every import, the //go:generate lines that `go run` the generator, and the two
+# templates that *write* imports. A bump that reaches the first three and not the templates
+# builds, vets and tests green -- until the next `go generate` writes the old path into the
+# new tree, and then nothing builds, reported by `git diff --quiet` as uncommitted generator
+# output rather than as the stale path it actually is.
+#
+# Inside a .go file every occurrence is an import path, a //go:generate argument, or a
+# template that writes one, so the whole file is scanned. README.md is not: it also names
+# the repository in badge URLs, which are not import paths and must stay unversioned, and one
+# sentence deliberately names the v1 path. So only the three shapes there that are certainly
+# import paths are checked -- the pkg.go.dev links, the `go get` line, and the example import.
+# A stale path in a README breaks no build, which is exactly why it is the one that survives
+# a bump and sends a reader to a module that does not exist.
+#
+# It belongs here rather than in a Go test because two of the four places are a string
+# constant and a comment, which the compiler never resolves and no Go test can see.
+# ---------------------------------------------------------------------------
+check_module_path() {
+  local module out
+  module=$(awk '$1 == "module" { print $2; exit }' go.mod)
+  if [ -z "$module" ]; then
+    fail "go.mod declares a module path"; return
+  fi
+  out=$(gofiles | xargs grep -no 'github\.com/jfsmig/onvif[A-Za-z0-9_./-]*' 2>/dev/null \
+    | awk -v m="$module" -F: '{
+        if ($3 != m && index($3, m "/") != 1)
+          printf "  %s:%s: %s\n", $1, $2, $3
+      }')
+  out=$out$(grep -noE '(pkg\.go\.dev/|go get |import ")github\.com/jfsmig/onvif[A-Za-z0-9_./-]*' README.md \
+    | sed -E 's#:(pkg\.go\.dev/|go get |import ")#:#' \
+    | awk -v m="$module" -F: '{
+        if ($2 != m && index($2, m "/") != 1)
+          printf "  README.md:%s: %s\n", $1, $2
+      }')
+  if [ -n "$out" ]; then
+    fail "a self-reference does not name the module path $module"
+    echo "$out"
+    echo "  go.mod says $module; the templates in bin/onvif-codegen/, the //go:generate"
+    echo "  lines and the README links carry it too, and are bumped with it"
+  else
+    pass "every self-reference names the module path $module"
+  fi
+}
+
 run_checks() {
   echo "== licence rules =="
   check_licence_header
@@ -282,6 +331,7 @@ run_checks() {
   check_std_logger
   echo "== layout rules =="
   check_package_dirs
+  check_module_path
   echo "== generator invariants =="
   check_calls_wrappers
   check_template_regen
